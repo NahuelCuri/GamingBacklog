@@ -39,7 +39,7 @@ export const generateData = (count) => {
 };
 
 const Row = ({ index, style, data }) => {
-  const { items, onRowClick } = data;
+  const { items, onRowClick, onDeleteClick } = data;
   const item = items ? items[index] : null;
   if (!item) return <div style={style}>Loading...</div>;
 
@@ -79,10 +79,16 @@ const Row = ({ index, style, data }) => {
         <div className="col-span-6 md:col-span-2 text-right mt-4 md:mt-0">
           <span className="font-display font-bold text-xl tabular-nums">{item.hours}<span className="text-xs text-slate-500 font-normal ml-1">h</span></span>
         </div>
-        {/* Action Column */}
+        {/* Action Column (Delete) */}
         <div className="hidden md:flex col-span-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-          <button className="p-2 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors cursor-pointer">
-            <span className="material-symbols-outlined">more_horiz</span>
+          <button
+            className="p-2 hover:bg-white/10 rounded-full text-slate-400 hover:text-violet-500 transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteClick(item);
+            }}
+          >
+            <span className="material-symbols-outlined">delete</span>
           </button>
         </div>
       </div>
@@ -90,10 +96,11 @@ const Row = ({ index, style, data }) => {
   );
 };
 
-const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
+const DashboardPage = ({ onNavigate, games, onUpdateGame, onDeleteGame }) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [gameToDelete, setGameToDelete] = useState(null);
 
   const handleRowClick = (game) => {
     setSelectedGame(game);
@@ -121,6 +128,21 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+  };
+
+  const handleDeleteClick = (game) => {
+    setGameToDelete(game);
+  };
+
+  const confirmDelete = () => {
+    if (gameToDelete) {
+      onDeleteGame(gameToDelete.id);
+      setGameToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setGameToDelete(null);
   };
 
   const sortedGames = React.useMemo(() => {
@@ -219,7 +241,7 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
             <div className="col-span-2 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end" onClick={() => handleSort('hours')}>
               Player Hours {getSortIndicator('hours')}
             </div>
-            <div className="col-span-1 text-right">Action</div>
+            <div className="col-span-1 text-right"></div>
           </div>
 
           {/* Virtualized Table Rows Container */}
@@ -231,7 +253,7 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
                   width={width}
                   itemCount={sortedGames.length}
                   itemSize={110}
-                  itemData={{ items: sortedGames, onRowClick: handleRowClick }}
+                  itemData={{ items: sortedGames, onRowClick: handleRowClick, onDeleteClick: handleDeleteClick }}
                 >
                   {Row}
                 </List>
@@ -254,6 +276,33 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
           game={selectedGame}
           onEdit={handleEdit}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {gameToDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-background-dark/80 backdrop-blur-sm transition-opacity" onClick={cancelDelete}></div>
+          <div className="relative bg-surface-dark border border-white/10 rounded-2xl shadow-2xl p-6 md:p-8 max-w-sm w-full animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-white mb-2">Delete Game?</h3>
+            <p className="text-slate-400 mb-6">
+              Are you sure you want to remove <span className="text-white font-medium">{gameToDelete.title}</span> from your backlog? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 rounded-full text-slate-300 hover:bg-white/5 transition-colors font-medium text-sm cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20 transition-all font-medium text-sm cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Edit Game Modal */}

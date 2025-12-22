@@ -19,10 +19,14 @@ function App() {
     setGames(prevGames => prevGames.map(game => game.id === updatedGame.id ? updatedGame : game));
   };
 
+  const handleDeleteGame = (gameId) => {
+    setGames(prevGames => prevGames.filter(game => game.id !== gameId));
+  };
+
   return (
     <div className={view === 'login' ? "min-h-screen flex items-center justify-center p-4" : ""}>
       {view === 'login' && <LoginPage onLogin={handleLogin} />}
-      {view === 'dashboard' && <DashboardPage onNavigate={handleNavigate} games={games} onUpdateGame={handleUpdateGame} />}
+      {view === 'dashboard' && <DashboardPage onNavigate={handleNavigate} games={games} onUpdateGame={handleUpdateGame} onDeleteGame={handleDeleteGame} />}
       {view === 'picker' && <RandomPickerPage onNavigate={handleNavigate} games={games} />}
     </div>
   )
