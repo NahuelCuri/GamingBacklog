@@ -93,6 +93,7 @@ const Row = ({ index, style, data }) => {
 const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const handleRowClick = (game) => {
     setSelectedGame(game);
@@ -112,6 +113,50 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
     onUpdateGame(updatedGame);
     setSelectedGame(null);
     setIsEditing(false);
+  };
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedGames = React.useMemo(() => {
+    let sortableGames = [...games];
+    if (sortConfig.key !== null) {
+      sortableGames.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // Handle string comparison (case-insensitive)
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableGames;
+  }, [games, sortConfig]);
+
+  const getSortIndicator = (key) => {
+    if (sortConfig.key === key) {
+      return (
+        <span className="material-symbols-outlined text-[16px] align-middle ml-1">
+          {sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
@@ -162,10 +207,18 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
 
           {/* Table Header */}
           <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-3 text-xs uppercase tracking-wider text-slate-500 font-medium shrink-0">
-            <div className="col-span-5">Game Title</div>
-            <div className="col-span-2">Genre</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-2 text-right">Player Hours</div>
+            <div className="col-span-5 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('title')}>
+              Game Title {getSortIndicator('title')}
+            </div>
+            <div className="col-span-2 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('genre')}>
+              Genre {getSortIndicator('genre')}
+            </div>
+            <div className="col-span-2 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('status')}>
+              Status {getSortIndicator('status')}
+            </div>
+            <div className="col-span-2 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end" onClick={() => handleSort('hours')}>
+              Player Hours {getSortIndicator('hours')}
+            </div>
             <div className="col-span-1 text-right">Action</div>
           </div>
 
@@ -176,9 +229,9 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
                 <List
                   height={height}
                   width={width}
-                  itemCount={games.length}
+                  itemCount={sortedGames.length}
                   itemSize={110}
-                  itemData={{ items: games, onRowClick: handleRowClick }}
+                  itemData={{ items: sortedGames, onRowClick: handleRowClick }}
                 >
                   {Row}
                 </List>

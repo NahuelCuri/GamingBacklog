@@ -259,7 +259,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                                 checked={formData.status === status}
                                                 onChange={handleChange}
                                             />
-                                            <div className="w-full h-full flex items-center justify-center rounded-full text-sm font-medium text-text-muted transition-all duration-200 peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-primary/20 group-hover:text-text-light capitalize">
+                                            <div className="w-full h-full flex items-center justify-center rounded-full text-sm font-medium text-text-muted transition-all duration-200 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-violet-500/20 group-hover:text-text-light capitalize">
                                                 {status}
                                             </div>
                                         </label>
@@ -272,11 +272,11 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                 <label className="text-text-muted text-sm font-medium ml-1">Vibe Tags</label>
                                 <div className="w-full bg-background-dark border border-border-dark rounded-xl px-4 py-3 flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all duration-200 min-h-[60px] items-center">
                                     {formData.vibes.map((vibe, index) => (
-                                        <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary/10 text-primary border border-primary/20 animate-in fade-in zoom-in duration-200">
+                                        <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-violet-500/10 text-violet-500 border border-violet-500/20 animate-in fade-in zoom-in duration-200">
                                             {vibe}
                                             <button
                                                 onClick={() => removeVibe(vibe)}
-                                                className="hover:text-green-300 transition-colors flex items-center cursor-pointer"
+                                                className="hover:text-violet-300 transition-colors flex items-center cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-[16px] leading-none">close</span>
                                             </button>
@@ -297,7 +297,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                         <button
                                             key={vibe}
                                             onClick={() => addPopularVibe(vibe)}
-                                            className="text-xs text-text-muted hover:text-primary border border-border-dark/50 hover:border-primary/50 bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md transition-all duration-200 cursor-pointer"
+                                            className="text-xs text-text-muted hover:text-violet-500 border border-border-dark/50 hover:border-violet-500/50 bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md transition-all duration-200 cursor-pointer"
                                         >
                                             {vibe}
                                         </button>

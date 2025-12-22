@@ -56,17 +56,17 @@ const GameReviewModal = ({ isOpen, onClose, game, onEdit }) => {
 
                     {/* VIBE TAGS */}
                     <div className="flex flex-wrap gap-2 mb-8">
-                        <div className="flex items-center justify-center px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors cursor-default">
-                            <span className="text-primary text-xs font-semibold tracking-wide uppercase">Exploration</span>
+                        <div className="flex items-center justify-center px-4 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/10 transition-colors cursor-default">
+                            <span className="text-violet-400 text-xs font-semibold tracking-wide uppercase">Exploration</span>
                         </div>
-                        <div className="flex items-center justify-center px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors cursor-default">
-                            <span className="text-primary text-xs font-semibold tracking-wide uppercase">Cozy</span>
+                        <div className="flex items-center justify-center px-4 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/10 transition-colors cursor-default">
+                            <span className="text-violet-400 text-xs font-semibold tracking-wide uppercase">Cozy</span>
                         </div>
-                        <div className="flex items-center justify-center px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors cursor-default">
-                            <span className="text-primary text-xs font-semibold tracking-wide uppercase">Great Soundtrack</span>
+                        <div className="flex items-center justify-center px-4 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/10 transition-colors cursor-default">
+                            <span className="text-violet-400 text-xs font-semibold tracking-wide uppercase">Great Soundtrack</span>
                         </div>
-                        <div className="flex items-center justify-center px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors cursor-default">
-                            <span className="text-primary text-xs font-semibold tracking-wide uppercase">Puzzle</span>
+                        <div className="flex items-center justify-center px-4 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/10 transition-colors cursor-default">
+                            <span className="text-violet-400 text-xs font-semibold tracking-wide uppercase">Puzzle</span>
                         </div>
                     </div>
 
@@ -97,8 +97,8 @@ const GameReviewModal = ({ isOpen, onClose, game, onEdit }) => {
                         <div className="relative h-2.5 w-full bg-black/40 rounded-full overflow-hidden">
                             {/* HLTB Marker (Gray Bar) - Representing 50h on a scale of 100h */}
                             <div className="absolute top-0 left-0 h-full bg-white/20 w-[50%] rounded-r-full"></div>
-                            {/* Player Progress (Green Bar) - Representing 45h */}
-                            <div className="absolute top-0 left-0 h-full bg-primary w-[45%] rounded-full shadow-[0_0_12px_rgba(33,196,93,0.8)] z-10"></div>
+                            {/* Player Progress (Violet Bar) - Representing 45h */}
+                            <div className="absolute top-0 left-0 h-full bg-violet-500 w-[45%] rounded-full shadow-[0_0_12px_rgba(139,92,246,0.8)] z-10"></div>
                         </div>
                     </div>
 
