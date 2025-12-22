@@ -248,37 +248,27 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame, onDeleteGame }) => {
 
         {/* Data Table Section */}
         <section className="w-full flex flex-col h-screen min-h-screen">
-          <div className="flex items-center justify-between mb-8 px-4 shrink-0">
-            <h3 className="text-2xl font-bold">Recent Activity</h3>
-            <div className="flex gap-2">
-              <button className="flex items-center justify-center size-8 rounded-full bg-surface-dark hover:bg-white/10 transition-colors text-slate-400 hover:text-white cursor-pointer">
-                <span className="material-symbols-outlined text-sm">filter_list</span>
-              </button>
-              <button className="flex items-center justify-center size-8 rounded-full bg-surface-dark hover:bg-white/10 transition-colors text-slate-400 hover:text-white cursor-pointer">
-                <span className="material-symbols-outlined text-sm">sort</span>
-              </button>
-            </div>
-          </div>
+
 
           {/* Table Header */}
           <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-3 text-xs uppercase tracking-wider text-slate-500 font-medium shrink-0">
             <div className="col-span-3 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('title')}>
-              Game Title {getSortIndicator('title')}
+              Game Title
             </div>
             <div className="col-span-2 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('genre')}>
-              Genre {getSortIndicator('genre')}
+              Genre
             </div>
             <div className="col-span-2 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('dateFinished')}>
-              Date Completed {getSortIndicator('dateFinished')}
+              Date Completed
             </div>
             <div className="col-span-2 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('status')}>
-              Status {getSortIndicator('status')}
+              Status
             </div>
             <div className="col-span-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end" onClick={() => handleSort('hours')}>
-              Hours {getSortIndicator('hours')}
+              Hours
             </div>
             <div className="col-span-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end" onClick={() => handleSort('score')}>
-              Score {getSortIndicator('score')}
+              Score
             </div>
             <div className="col-span-1 text-right"></div>
           </div>

@@ -189,13 +189,13 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                         className="group relative px-12 py-4 bg-primary hover:bg-green-400 text-white font-black text-xl tracking-widest uppercase skew-x-[-12deg] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-neon hover:shadow-neon-strong"
                     >
                         <span className="block skew-x-[12deg]">
-                            {isSpinning ? 'Rolling...' : 'Roll Case'}
+                            {isSpinning ? 'Rolling...' : 'Roll Pool'}
                         </span>
                     </button>
 
                     {!isSpinning && (
                         <p className="text-xs text-slate-500 font-mono">
-                            {games ? `${games.length} items in case` : 'Loading...'}
+                            {games ? `${games.length} games in the pool` : 'Loading...'}
                         </p>
                     )}
                 </div>
