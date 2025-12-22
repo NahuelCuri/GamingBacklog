@@ -52,8 +52,14 @@ const GameReviewModal = ({ isOpen, onClose, game, onEdit }) => {
                             </p>
                         </div>
                         {/* Score Badge */}
-                        <div className="flex flex-col items-center justify-center bg-primary/10 rounded-2xl px-3 py-2 border border-primary/20 shadow-glow min-w-[72px]">
-                            <span className="text-primary text-3xl font-bold leading-none tracking-tighter">9.5</span>
+                        <div className={`flex flex-col items-center justify-center rounded-2xl px-3 py-2 border shadow-glow min-w-[72px] ${parseFloat(game.score) >= 8 ? 'bg-emerald-500/10 border-emerald-500/20' :
+                                parseFloat(game.score) >= 5 ? 'bg-yellow-500/10 border-yellow-500/20' :
+                                    'bg-red-500/10 border-red-500/20'
+                            }`}>
+                            <span className={`text-3xl font-bold leading-none tracking-tighter ${parseFloat(game.score) >= 8 ? 'text-emerald-500' :
+                                    parseFloat(game.score) >= 5 ? 'text-yellow-500' :
+                                        'text-red-500'
+                                }`}>{game.score || '-'}</span>
                         </div>
                     </div>
 
