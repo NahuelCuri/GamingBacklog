@@ -10,8 +10,13 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
         hours: '',
         score: '9.5',
         status: 'completed',
-        review: ''
+        vibes: [],
+        review: '',
+        hltb: ''
     });
+
+    const [vibeInput, setVibeInput] = useState('');
+    const [errors, setErrors] = useState({});
 
     // Initialize form data when game changes
     useEffect(() => {
@@ -23,10 +28,38 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                 // Mock data for fields not in the game object but in logic
                 score: '9.5',
                 status: game.status.toLowerCase().replace(' ', '-') || 'completed',
-                review: 'A masterpiece of world design, challenging combat, and open-ended exploration. Truly one of the best games I\'ve ever played. The boss fights are unforgettable.'
+                vibes: ['Atmospheric', 'Difficult', 'Great Soundtrack'],
+                review: 'A masterpiece of world design, challenging combat, and open-ended exploration. Truly one of the best games I\'ve ever played. The boss fights are unforgettable.',
+                hltb: '60' // Mock default
             });
+            setErrors({});
         }
     }, [game]);
+
+    const validate = () => {
+        const newErrors = {};
+
+        // Score validation (1-10)
+        const scoreNum = parseFloat(formData.score);
+        if (isNaN(scoreNum) || scoreNum < 1 || scoreNum > 10) {
+            newErrors.score = 'Score must be between 1 and 10';
+        }
+
+        // HLTB validation (positive number)
+        const hltbNum = parseFloat(formData.hltb);
+        if (isNaN(hltbNum) || hltbNum < 0) {
+            newErrors.hltb = 'Must be a positive number';
+        }
+
+        // Hours validation
+        const hoursNum = parseFloat(formData.hours);
+        if (isNaN(hoursNum) || hoursNum < 0) {
+            newErrors.hours = 'Must be a positive number';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
     const handleChange = (e) => {
         const { id, value, name, type } = e.target;
@@ -36,10 +69,45 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
             ...prev,
             [fieldName]: value
         }));
+        // Clear error when user types
+        if (errors[fieldName]) {
+            setErrors(prev => ({ ...prev, [fieldName]: undefined }));
+        }
+    };
+
+    const handleVibeKeyDown = (e) => {
+        if (e.key === 'Enter' && vibeInput.trim()) {
+            e.preventDefault();
+            if (!formData.vibes.includes(vibeInput.trim())) {
+                setFormData(prev => ({
+                    ...prev,
+                    vibes: [...prev.vibes, vibeInput.trim()]
+                }));
+            }
+            setVibeInput('');
+        }
+    };
+
+    const removeVibe = (vibeToRemove) => {
+        setFormData(prev => ({
+            ...prev,
+            vibes: prev.vibes.filter(vibe => vibe !== vibeToRemove)
+        }));
+    };
+
+    const addPopularVibe = (vibe) => {
+        if (!formData.vibes.includes(vibe)) {
+            setFormData(prev => ({
+                ...prev,
+                vibes: [...prev.vibes, vibe]
+            }));
+        }
     };
 
     const handleSave = () => {
-        onSave({ ...game, ...formData });
+        if (validate()) {
+            onSave({ ...game, ...formData });
+        }
     };
 
     return (
@@ -77,7 +145,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                         </div>
                     </div>
 
-                    {/* Genre & Hours Grid */}
+                    {/* Genre & Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="flex flex-col gap-2">
                             <label className="text-text-muted text-sm font-medium ml-1" htmlFor="genre">Genre</label>
@@ -93,7 +161,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                             <label className="text-text-muted text-sm font-medium ml-1" htmlFor="hours">Hours Played</label>
                             <div className="relative">
                                 <input
-                                    className="w-full bg-background-dark border border-border-dark rounded-xl px-5 py-4 text-text-light placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                                    className={`w-full bg-background-dark border ${errors.hours ? 'border-red-500' : 'border-border-dark'} rounded-xl px-5 py-4 text-text-light placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200`}
                                     id="hours"
                                     type="number"
                                     value={formData.hours}
@@ -101,52 +169,103 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted text-sm font-medium">hrs</span>
                             </div>
+                            {errors.hours && <span className="text-red-500 text-xs ml-1">{errors.hours}</span>}
                         </div>
                     </div>
 
-                    {/* Score & Status Grid */}
+                    {/* HLTB & Score Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Score Select */}
                         <div className="flex flex-col gap-2">
-                            <label className="text-text-muted text-sm font-medium ml-1" htmlFor="score">Score</label>
+                            <label className="text-text-muted text-sm font-medium ml-1" htmlFor="hltb">HLTB Time</label>
                             <div className="relative">
-                                <select
-                                    className="w-full appearance-none bg-background-dark border border-border-dark rounded-xl px-5 py-4 text-text-light focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 cursor-pointer"
-                                    id="score"
-                                    value={formData.score}
+                                <input
+                                    className={`w-full bg-background-dark border ${errors.hltb ? 'border-red-500' : 'border-border-dark'} rounded-xl px-5 py-4 text-text-light placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200`}
+                                    id="hltb"
+                                    type="number"
+                                    value={formData.hltb}
                                     onChange={handleChange}
-                                >
-                                    <option value="10">10 - Masterpiece</option>
-                                    <option value="9.5">9.5 - Amazing</option>
-                                    <option value="9">9 - Great</option>
-                                    <option value="8">8 - Very Good</option>
-                                    <option value="7">7 - Good</option>
-                                    <option value="6">6 - Okay</option>
-                                </select>
-                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">expand_more</span>
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted text-sm font-medium">hrs</span>
                             </div>
+                            {errors.hltb && <span className="text-red-500 text-xs ml-1">{errors.hltb}</span>}
                         </div>
 
-                        {/* Status Segmented Control */}
                         <div className="flex flex-col gap-2">
-                            <label className="text-text-muted text-sm font-medium ml-1">Status</label>
-                            <div className="flex bg-background-dark border border-border-dark p-1.5 rounded-full h-[58px]">
-                                {['playing', 'completed', 'backlog'].map((status) => (
-                                    <label key={status} className="flex-1 relative cursor-pointer group">
-                                        <input
-                                            className="peer sr-only"
-                                            name="status"
-                                            type="radio"
-                                            value={status}
-                                            checked={formData.status === status}
-                                            onChange={handleChange}
-                                        />
-                                        <div className="w-full h-full flex items-center justify-center rounded-full text-sm font-medium text-text-muted transition-all duration-200 peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-primary/20 group-hover:text-text-light capitalize">
-                                            {status}
-                                        </div>
-                                    </label>
-                                ))}
+                            <label className="text-text-muted text-sm font-medium ml-1" htmlFor="score">Score (1-10)</label>
+                            <div className="relative">
+                                <input
+                                    className={`w-full bg-background-dark border ${errors.score ? 'border-red-500' : 'border-border-dark'} rounded-xl px-5 py-4 text-text-light placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200`}
+                                    id="score"
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    step="0.1"
+                                    value={formData.score}
+                                    onChange={handleChange}
+                                />
+                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">star</span>
                             </div>
+                            {errors.score && <span className="text-red-500 text-xs ml-1">{errors.score}</span>}
+                        </div>
+                    </div>
+
+                    {/* Status Segmented Control */}
+                    <div className="flex flex-col gap-2">
+                        <label className="text-text-muted text-sm font-medium ml-1">Status</label>
+                        <div className="flex bg-background-dark border border-border-dark p-1.5 rounded-full h-[58px]">
+                            {['playing', 'completed', 'backlog'].map((status) => (
+                                <label key={status} className="flex-1 relative cursor-pointer group">
+                                    <input
+                                        className="peer sr-only"
+                                        name="status"
+                                        type="radio"
+                                        value={status}
+                                        checked={formData.status === status}
+                                        onChange={handleChange}
+                                    />
+                                    <div className="w-full h-full flex items-center justify-center rounded-full text-sm font-medium text-text-muted transition-all duration-200 peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-primary/20 group-hover:text-text-light capitalize">
+                                        {status}
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Vibe Tags */}
+                    <div className="flex flex-col gap-2">
+                        <label className="text-text-muted text-sm font-medium ml-1">Vibe Tags</label>
+                        <div className="w-full bg-background-dark border border-border-dark rounded-xl px-4 py-3 flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all duration-200 min-h-[60px] items-center">
+                            {formData.vibes.map((vibe, index) => (
+                                <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary/10 text-primary border border-primary/20 animate-in fade-in zoom-in duration-200">
+                                    {vibe}
+                                    <button
+                                        onClick={() => removeVibe(vibe)}
+                                        className="hover:text-green-300 transition-colors flex items-center cursor-pointer"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px] leading-none">close</span>
+                                    </button>
+                                </span>
+                            ))}
+                            <input
+                                className="bg-transparent border-none focus:ring-0 p-0 text-text-light placeholder:text-gray-600 text-sm h-8 min-w-[80px] flex-1 focus:outline-none"
+                                placeholder="Add tag..."
+                                type="text"
+                                value={vibeInput}
+                                onChange={(e) => setVibeInput(e.target.value)}
+                                onKeyDown={handleVibeKeyDown}
+                            />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 ml-1 mt-1">
+                            <span className="text-xs font-medium text-text-muted/60 uppercase tracking-wider py-1 mr-1">Popular:</span>
+                            {['Story Rich', 'Fantasy', 'Controller Support'].map((vibe) => (
+                                <button
+                                    key={vibe}
+                                    onClick={() => addPopularVibe(vibe)}
+                                    className="text-xs text-text-muted hover:text-primary border border-border-dark/50 hover:border-primary/50 bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md transition-all duration-200 cursor-pointer"
+                                >
+                                    {vibe}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
