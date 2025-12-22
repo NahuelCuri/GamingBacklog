@@ -6,7 +6,7 @@ import EditGameModal from './EditGameModal';
 import Header from './Header';
 
 // --- Mock Data Generator ---
-const generateData = (count) => {
+export const generateData = (count) => {
   const games = [
     { title: "Elden Ring", genre: "Action RPG", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuCKWSlmP0NF0S22cEVfRjp_EA8o-XFlNwwKKec727QBqV6Oalyp6dx2g8HgAfZcsDYYMb2xLvHuHhSPLHhNTggpqr_Dqs37TVIGDvnCsnx51k18JyoIliRp2htgR16dHRKbuAwSRLvj0RKfh8KfbBlvo06ehOBCq3MPos0G0jxgdmlAUwUzkTt1phM5WACxTXgvfyEoMfBj5WN6gRBMI4ho9AdEAfSkgKVAH5J-CB4Japk6hRdowH5HwxNfM8hORxvXn9yNOOWw-vM" },
     { title: "Baldur's Gate 3", genre: "CRPG", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuD_5ODb519KW-SnbzEnsTXZbApiyqHzrYVN6T1L-E8PmfExXToSz8dty00Iu5FXGejUy5UlihBjz2aZTfEZLtVU8CHlqm6xDUsVoyWoIAMjhVPlKhRFFrL9kKh8uW-OfO3r4l-K6S_BgCwx67I-XzDmEjh5EDpEkyuAfgD7yenyx2oU2ZYDfG3OXMfl-Fuow4c9OW5DHdUvI3qZUCx2cfbKzat-gjHS7fveGZ-LG9E-Dck5uBGQLQUtRkuFyPFNBPJoTHNTLWKW_JE" },
@@ -90,14 +90,9 @@ const Row = ({ index, style, data }) => {
   );
 };
 
-const DashboardPage = ({ onNavigate }) => {
-  const [data, setData] = useState([]);
+const DashboardPage = ({ onNavigate, games, onUpdateGame }) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-
-  useEffect(() => {
-    setData(generateData(50)); // Generate 50 items
-  }, []);
 
   const handleRowClick = (game) => {
     setSelectedGame(game);
@@ -114,9 +109,9 @@ const DashboardPage = ({ onNavigate }) => {
   };
 
   const handleSave = (updatedGame) => {
-    setSelectedGame(updatedGame);
+    onUpdateGame(updatedGame);
+    setSelectedGame(null);
     setIsEditing(false);
-    setData(prevData => prevData.map(g => g.id === updatedGame.id ? updatedGame : g));
   };
 
   return (
@@ -181,9 +176,9 @@ const DashboardPage = ({ onNavigate }) => {
                 <List
                   height={height}
                   width={width}
-                  itemCount={data.length}
+                  itemCount={games.length}
                   itemSize={110}
-                  itemData={{ items: data, onRowClick: handleRowClick }}
+                  itemData={{ items: games, onRowClick: handleRowClick }}
                 >
                   {Row}
                 </List>
