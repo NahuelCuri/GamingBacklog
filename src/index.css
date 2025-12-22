@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #21c45d;
+  --color-background-dark: #0B0F13;
+  --color-background-light: #f6f8f7;
+  --color-modal-surface: #161B22;
+  --color-surface-dark: #161b22;
+  --color-border-dark: #334155;
+  --color-text-light: #f8fafc;
+  --color-text-muted: #94a3b8;
+
+  --font-display: "Inter", "sans-serif";
+
+  --radius-default: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-2xl: 3rem;
+
+  --shadow-glow: 0 0 40px -10px rgba(33, 196, 93, 0.15);
+  --shadow-card: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  /* Wheel specific colors */
+  --color-wheel-surface: #161B22;
+  --color-wheel-accent: #22C55E;
+}
+
+/* Custom autofill style fix for dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #222933 inset !important;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.glass-effect {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Wheel Animations */
+@keyframes subtle-float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.floating-element {
+  animation: subtle-float 6s ease-in-out infinite;
+}
+
+.shadow-neon {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+}
+
+.shadow-neon-strong {
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.6);
+}
+
+.shadow-inner-glow {
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+@layer base {
+  body {
+    @apply font-display bg-background-dark text-text-light antialiased;
+  }
+}

@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from 'react';
+import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import GameReviewModal from './GameReviewModal';
+import EditGameModal from './EditGameModal';
+
+// --- Mock Data Generator ---
+const generateData = (count) => {
+  const games = [
+    { title: "Elden Ring", genre: "Action RPG", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuCKWSlmP0NF0S22cEVfRjp_EA8o-XFlNwwKKec727QBqV6Oalyp6dx2g8HgAfZcsDYYMb2xLvHuHhSPLHhNTggpqr_Dqs37TVIGDvnCsnx51k18JyoIliRp2htgR16dHRKbuAwSRLvj0RKfh8KfbBlvo06ehOBCq3MPos0G0jxgdmlAUwUzkTt1phM5WACxTXgvfyEoMfBj5WN6gRBMI4ho9AdEAfSkgKVAH5J-CB4Japk6hRdowH5HwxNfM8hORxvXn9yNOOWw-vM" },
+    { title: "Baldur's Gate 3", genre: "CRPG", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuD_5ODb519KW-SnbzEnsTXZbApiyqHzrYVN6T1L-E8PmfExXToSz8dty00Iu5FXGejUy5UlihBjz2aZTfEZLtVU8CHlqm6xDUsVoyWoIAMjhVPlKhRFFrL9kKh8uW-OfO3r4l-K6S_BgCwx67I-XzDmEjh5EDpEkyuAfgD7yenyx2oU2ZYDfG3OXMfl-Fuow4c9OW5DHdUvI3qZUCx2cfbKzat-gjHS7fveGZ-LG9E-Dck5uBGQLQUtRkuFyPFNBPJoTHNTLWKW_JE" },
+    { title: "Cyberpunk 2077", genre: "Open World", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuAsKoBJfNKF_fiNKGBx97yvjcQN5ZUuvxwN8oJjA-OzbFR2-AUbXM8DV2iezSYiE_nrW_s82ceE0EYhuaS7J2m2rO6PCXrDkdEX9YSOng3jMLxk6lt1TFBs_AXlLyyk6uOlxKK7w85oIITqZWHMLkFo_VmRdONvikTEV1OmopIEhLTCUrFWZk83oZ87GNPEDSnnaQwcuTPI-uu4XZGzQiyVBU4SNOJQ_Nqt2oU84Jf0NzdC7giyqj8vVHQKRIut5cymUhvo90t5pWsbzJBHg2EoBQB-6HrU" },
+    { title: "Hades", genre: "Roguelike", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuBD8fiiEUTDHYDEx73C-1yXdyyDi0V8CDVSWbV1vvCx2Kho8JNKTbTRpD8qDT754GLO8LW35ipynecA-mh9uAZ7PWSyQDO0jlpbZ3AXFKUb0NvbaD4F4o0o9ktCt7Xb1P19yZMq-qEP5p6fgMrzso4yps85BQ8X1mNUOxxoZ87GNPEDSnnaQwcuTPI-uu4XZGzQiyVBU4SNOJQ_Nqt2oU84Jf0NzdC7giyqj8vVHQKRIut5cymUhvo90t5pWsbzJBHg2EoBQB-6HrU" },
+    { title: "Stardew Valley", genre: "Simulation", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuBmB6lWVrvv7_4klzgtF5HXZmQA1NHp3kcEfOhMv5GJdFoelHWM8OzdbIe1R8yuQEKKMXFm5H_wG2_s9c6QaTtimQy3PQm3Ew7VatZ-SPXKnAzq8jWga6x5zAGveAo0bW9DQebwx-4_FFCUqnS9JX-eJz0OSiH57z6oPPKx2Hd3WfUvZSncvCtNVdWhMd1oLFPTCJ9mmhvEMDnXSaekEkWbH7o5vo63Y6Zi75LUb8gMUbVXcDbk-09bNYWbMZqJKfe5Lwnbc8Rbw3M" }
+  ];
+  const statuses = [
+    { label: "In Progress", color: "bg-primary" },
+    { label: "Ideally Paused", color: "bg-slate-600" },
+    { label: "Completed", color: "bg-primary" },
+    { label: "On Hold", color: "bg-slate-600" },
+    { label: "Replaying", color: "bg-primary" }
+  ];
+
+  return Array.from({ length: count }, (_, i) => {
+    const game = games[i % games.length];
+    const status = statuses[i % statuses.length];
+    return {
+      id: i,
+      title: `${game.title} ${i + 1}`,
+      genre: game.genre,
+      cover: game.cover,
+      lastPlayed: `${Math.floor(Math.random() * 24)} hours ago`,
+      status: status.label,
+      statusColor: status.color,
+      hours: Math.floor(Math.random() * 500)
+    };
+  });
+};
+
+const Row = ({ index, style, data }) => {
+  const { items, onRowClick } = data;
+  const item = items ? items[index] : null;
+  if (!item) return <div style={style}>Loading...</div>;
+
+  return (
+    <div style={style} className="px-1">
+      <div
+        className="group relative md:grid md:grid-cols-12 md:gap-4 items-center bg-white dark:bg-surface-dark p-4 sm:px-8 sm:py-5 rounded-2xl hover:bg-slate-50 dark:hover:bg-[#1c222b] transition-all duration-300 shadow-sm border border-transparent hover:border-white/5 h-[90%] cursor-pointer hover:shadow-md hover:scale-[1.005]"
+        onClick={() => onRowClick(item)}
+      >
+        {/* Title Column */}
+        <div className="col-span-12 md:col-span-5 flex items-center gap-4 mb-4 md:mb-0">
+          <div className="size-12 rounded-xl bg-cover bg-center shrink-0 shadow-lg" style={{ backgroundImage: `url("${item.cover}")` }}></div>
+          <div>
+            <h4 className="font-bold text-lg leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors">{item.title}</h4>
+            <p className="text-xs text-slate-500 mt-0.5">Last played {item.lastPlayed}</p>
+          </div>
+        </div>
+        {/* Genre Column */}
+        <div className="col-span-6 md:col-span-2 flex items-center">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-slate-300 border border-white/5">
+            {item.genre}
+          </span>
+        </div>
+        {/* Status Column */}
+        <div className="col-span-6 md:col-span-2 flex items-center md:justify-start justify-end">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              {item.status === 'In Progress' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>}
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${item.statusColor}`}></span>
+            </span>
+            <span className={`text-sm font-medium ${item.status === 'In Progress' || item.status === 'Completed' || item.status === 'Replaying' ? 'text-primary' : 'text-slate-400'}`}>
+              {item.status}
+            </span>
+          </div>
+        </div>
+        {/* Hours Column */}
+        <div className="col-span-6 md:col-span-2 text-right mt-4 md:mt-0">
+          <span className="font-display font-bold text-xl tabular-nums">{item.hours}<span className="text-xs text-slate-500 font-normal ml-1">h</span></span>
+        </div>
+        {/* Action Column */}
+        <div className="hidden md:flex col-span-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+          <button className="p-2 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors cursor-pointer">
+            <span className="material-symbols-outlined">more_horiz</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DashboardPage = ({ onNavigate }) => {
+  const [data, setData] = useState([]);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    setData(generateData(50)); // Generate 50 items
+  }, []);
+
+  const handleRowClick = (game) => {
+    setSelectedGame(game);
+    setIsEditing(false);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedGame(null);
+    setIsEditing(false);
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSave = (updatedGame) => {
+    setSelectedGame(updatedGame);
+    setIsEditing(false);
+    setData(prevData => prevData.map(g => g.id === updatedGame.id ? updatedGame : g));
+  };
+
+  return (
+    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col">
+      {/* Top Navigation (Minimalist) */}
+      <header className="w-full px-8 py-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="size-8 bg-primary/20 rounded-full flex items-center justify-center text-primary">
+            <span className="material-symbols-outlined text-xl">stadia_controller</span>
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">Nexus<span className="text-primary">DB</span></h2>
+        </div>
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => onNavigate('picker')}
+            className="flex items-center gap-2 text-slate-400 hover:text-primary transition-colors cursor-pointer group"
+          >
+            <span className="material-symbols-outlined text-xl group-hover:rotate-12 transition-transform">casino</span>
+            <span className="text-sm font-medium hidden sm:block">Random Picker</span>
+          </button>
+          <div className="hidden md:flex items-center bg-surface-dark dark:bg-surface-dark bg-white rounded-full px-4 py-2 border border-white/5 shadow-sm min-w-[320px]">
+            <span className="material-symbols-outlined text-slate-400 text-lg">search</span>
+            <input className="bg-transparent border-none focus:ring-0 text-sm w-full text-slate-200 placeholder-slate-500 outline-none" placeholder="Search library..." type="text" />
+          </div>
+          <div className="size-10 rounded-full bg-cover bg-center border-2 border-surface-dark" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBTENNs0w-Q_UYgtXNYDjFB4O8GuWCZi3MwFvmM_azKJL62pt41IUH0xMvFJvqiH2swa_fLB_TGx0vPrxRFYz20Y7jXqZghZIW9r_-Qk4Wl0n8EXL_doZOu-Gnm2828LHvIV_vuT9Kw2IdDr_qX-yupXncj2l8srLD2ugKaEEDXucgOOIcI6eU-M5HPPPoNFbasuNAYUWGl-tr3oB5Ybf0gGqWndld8zIOcn3AxoZl3LvIFPynrgrqtCj6Vz2F4WtghxaJRvXAU63I")' }}></div>
+        </div>
+      </header>
+
+      {/* Main Content Container */}
+      <main className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-12 flex flex-col gap-16">
+        {/* Hero Metric Section */}
+        <section className="flex flex-col items-center justify-center text-center animate-fade-in-up shrink-0">
+          <h1 className="text-slate-400 text-sm uppercase tracking-[0.2em] font-medium mb-4">Total Time Played</h1>
+          <div className="text-7xl sm:text-9xl font-black text-primary tracking-tighter leading-none drop-shadow-2xl selection:bg-primary selection:text-white">
+            3,482<span className="text-4xl sm:text-5xl align-top ml-2 opacity-60 font-bold text-white">h</span>
+          </div>
+          <div className="mt-6 flex gap-8 text-slate-500">
+            <div className="flex flex-col items-center">
+              <span className="text-white font-bold text-xl">142</span>
+              <span className="text-xs">Games Owned</span>
+            </div>
+            <div className="w-px h-10 bg-white/10"></div>
+            <div className="flex flex-col items-center">
+              <span className="text-white font-bold text-xl">78%</span>
+              <span className="text-xs">Completion</span>
+            </div>
+            <div className="w-px h-10 bg-white/10"></div>
+            <div className="flex flex-col items-center">
+              <span className="text-white font-bold text-xl">12</span>
+              <span className="text-xs">Played</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Data Table Section */}
+        <section className="w-full flex flex-col h-screen min-h-screen">
+          <div className="flex items-center justify-between mb-8 px-4 shrink-0">
+            <h3 className="text-2xl font-bold">Recent Activity</h3>
+            <div className="flex gap-2">
+              <button className="flex items-center justify-center size-8 rounded-full bg-surface-dark hover:bg-white/10 transition-colors text-slate-400 hover:text-white cursor-pointer">
+                <span className="material-symbols-outlined text-sm">filter_list</span>
+              </button>
+              <button className="flex items-center justify-center size-8 rounded-full bg-surface-dark hover:bg-white/10 transition-colors text-slate-400 hover:text-white cursor-pointer">
+                <span className="material-symbols-outlined text-sm">sort</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table Header */}
+          <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-3 text-xs uppercase tracking-wider text-slate-500 font-medium shrink-0">
+            <div className="col-span-5">Game Title</div>
+            <div className="col-span-2">Genre</div>
+            <div className="col-span-2">Status</div>
+            <div className="col-span-2 text-right">Player Hours</div>
+            <div className="col-span-1 text-right">Action</div>
+          </div>
+
+          {/* Virtualized Table Rows Container */}
+          <div className="flex-1 w-full h-full">
+            <AutoSizer>
+              {({ height, width }) => (
+                <List
+                  height={height}
+                  width={width}
+                  itemCount={data.length}
+                  itemSize={110}
+                  itemData={{ items: data, onRowClick: handleRowClick }}
+                >
+                  {Row}
+                </List>
+              )}
+            </AutoSizer>
+          </div>
+        </section>
+      </main>
+
+      {/* Simple Footer */}
+      <footer className="w-full py-8 text-center text-xs text-slate-600 dark:text-slate-500 shrink-0">
+        <p>© 2024 NexusDB. All statistics are updated in real-time.</p>
+      </footer>
+
+      {/* Game Review Modal */}
+      {!isEditing && (
+        <GameReviewModal
+          isOpen={!!selectedGame}
+          onClose={handleCloseModal}
+          game={selectedGame}
+          onEdit={handleEdit}
+        />
+      )}
+
+      {/* Edit Game Modal */}
+      <EditGameModal
+        isOpen={isEditing}
+        onClose={() => setIsEditing(false)}
+        game={selectedGame}
+        onSave={handleSave}
+      />
+    </div>
+  );
+};
+
+export default DashboardPage;
