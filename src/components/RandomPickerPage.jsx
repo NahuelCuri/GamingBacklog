@@ -48,66 +48,42 @@ const RandomPickerPage = ({ onNavigate, games }) => {
     };
 
     const handleSpin = () => {
-        if (isSpinning || items.length === 0) return;
+        if (isSpinning || !games || games.length === 0) return;
 
-        setIsSpinning(true);
+        // 1. Reset everything to start position WITHOUT animation
+        setIsSpinning(false);
         setWinner(null);
+        setOffset(0);
 
-        // Pick a NEW winner and regenerate the strip behind the scenes? 
-        // Actually, CS:GO roulette usually pre-determines the winner, then generates the layout.
-        // So let's pick a winner NOW.
+        // Prepare new strip
         const contentCandidates = [...games];
         const nextWinner = contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
-
-        // Re-generate strip with this winner at WINNER_INDEX
-        // BUT visually we might jump if we just replace the array. 
-        // Ideally we are at "position 0" or we reset to "position 0" instantly before spinning.
-        // Let's generate and reset.
 
         const newItems = new Array(TOTAL_ITEMS).fill(null).map((_, i) => {
             if (i === WINNER_INDEX) return nextWinner;
             return contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
         });
         setItems(newItems);
-        setOffset(0); // Reset to start
 
-        // Small delay to ensure render, then spin
+        // 2. Start animation after a brief delay to allow DOM to update to offset 0
         setTimeout(() => {
-            // Calculate target pixel offset
-            // We want WINNER_INDEX centered.
-            // Center of container (assuming partial container width or full width with translation)
-            // Let's say our "window" is effectively centered. 
-            // The strip moves LEFT.
-            // To center item W:
-            // Offset = (W * (WIDTH + GAP)) - (WindowWidth / 2) + (CardWidth / 2)
-            // But implementing randomly slight offset for "suspense" (landing on the line vs middle)
+            setIsSpinning(true);
 
             // Random jitter: +/- 40% of card width
             const jitter = (Math.random() * CARD_WIDTH * 0.8) - (CARD_WIDTH * 0.4);
-
-            // We want to scroll until the winner is centered.
-            // Since we translate the STRIP to the left, target is negative.
-            // We assume the strip starts with Item 0 at left-most edge of container.
-            // So we need to shift left by: (WINNER_INDEX * (CARD_WIDTH + GAP))
-            // But we want it centered in the viewport.
-            // Let's ignore viewport calculation here and rely on CSS centering the "window" 
-            // and us centering the item *relative to the window center*.
-            // Actually, simpler:
-            // TranslateX = - (WINNER_INDEX * (CARD_WIDTH + GAP)) + jitter
-            // Then add a "half window" offset if the container is full width.
-            // Let's do it purely relative to the arrow.
-
             const itemStride = CARD_WIDTH + CARD_GAP;
-            const targetPos = -(WINNER_INDEX * itemStride) + jitter;
+
+            // Calculate target
+            const targetPos = -(WINNER_INDEX * itemStride) - (CARD_WIDTH / 2) + jitter;
 
             setOffset(targetPos);
 
-            // Time matches the CSS transition
+            // 3. End animation
             setTimeout(() => {
                 setIsSpinning(false);
                 setWinner(nextWinner);
             }, 6500); // 6.5s spin time
-        }, 50);
+        }, 100);
     };
 
     const containerRef = useRef(null);
@@ -155,7 +131,7 @@ const RandomPickerPage = ({ onNavigate, games }) => {
 
                     {/* Sliding Rail */}
                     <div
-                        className="flex items-center gap-4 px-[50vw] will-change-transform"
+                        className="flex items-center gap-4 pl-[50%] will-change-transform"
                         style={{
                             transform: `translateX(${offset}px)`,
                             transition: isSpinning ? 'transform 6.5s cubic-bezier(0.1, 0.05, 0.1, 1)' : 'none',
