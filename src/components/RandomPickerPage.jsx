@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Header from './Header';
 
 const RandomPickerPage = ({ onNavigate }) => {
     const [isSpinning, setIsSpinning] = useState(false);
@@ -24,23 +25,8 @@ const RandomPickerPage = ({ onNavigate }) => {
     return (
         <div className="bg-background-dark text-white font-display overflow-x-hidden min-h-screen flex flex-col">
             {/* Navbar */}
-            <header className="w-full px-6 py-4 flex items-center justify-between z-10 border-b border-[#161B22]">
-                <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('dashboard')}>
-                    <span className="material-symbols-outlined text-primary text-3xl">casino</span>
-                    <h2 className="text-white text-lg font-bold tracking-tight">Random Game Picker</h2>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => onNavigate('dashboard')}
-                        className="text-sm font-medium text-gray-400 hover:text-primary transition-colors cursor-pointer"
-                    >
-                        Back to Backlog
-                    </button>
-                    {/* User Avatar */}
-                    <div className="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-[#161B22]" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuA3UAoBF_aIz4eYLMsQDHwxu8_DevsIl7XLAGI7PPX01TLV1bcZRkob0fkBMr1e7CbTOwNHaO_0z8p-pS8xFyArf_2xBFFvXPa6-JSFmBKyzWeUuGTR0ZCi1wjb8ZXBhf1a6IJp2T40iJwuhliOGH5CvyKm7kWW1cWzPbJizj1PGv3tChqA_2ptVgF6l4uJZ95jn_lE-fwQFlNYmp1jeo58fqMheHIrIavM0FI806vMV6Mz0ult0Zs0xQkNsXJNNuPm3ckoOEK6J3A")' }}>
-                    </div>
-                </div>
-            </header>
+            {/* Navbar */}
+            <Header onNavigate={onNavigate} activePage="picker" />
 
             {/* Main Content */}
             <main className="flex-grow flex flex-col items-center justify-center relative px-4 py-8">

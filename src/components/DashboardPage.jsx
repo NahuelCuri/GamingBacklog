@@ -3,6 +3,7 @@ import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import GameReviewModal from './GameReviewModal';
 import EditGameModal from './EditGameModal';
+import Header from './Header';
 
 // --- Mock Data Generator ---
 const generateData = (count) => {
@@ -121,28 +122,8 @@ const DashboardPage = ({ onNavigate }) => {
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col">
       {/* Top Navigation (Minimalist) */}
-      <header className="w-full px-8 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="size-8 bg-primary/20 rounded-full flex items-center justify-center text-primary">
-            <span className="material-symbols-outlined text-xl">stadia_controller</span>
-          </div>
-          <h2 className="text-xl font-bold tracking-tight">Nexus<span className="text-primary">DB</span></h2>
-        </div>
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => onNavigate('picker')}
-            className="flex items-center gap-2 text-slate-400 hover:text-primary transition-colors cursor-pointer group"
-          >
-            <span className="material-symbols-outlined text-xl group-hover:rotate-12 transition-transform">casino</span>
-            <span className="text-sm font-medium hidden sm:block">Random Picker</span>
-          </button>
-          <div className="hidden md:flex items-center bg-surface-dark dark:bg-surface-dark bg-white rounded-full px-4 py-2 border border-white/5 shadow-sm min-w-[320px]">
-            <span className="material-symbols-outlined text-slate-400 text-lg">search</span>
-            <input className="bg-transparent border-none focus:ring-0 text-sm w-full text-slate-200 placeholder-slate-500 outline-none" placeholder="Search library..." type="text" />
-          </div>
-          <div className="size-10 rounded-full bg-cover bg-center border-2 border-surface-dark" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBTENNs0w-Q_UYgtXNYDjFB4O8GuWCZi3MwFvmM_azKJL62pt41IUH0xMvFJvqiH2swa_fLB_TGx0vPrxRFYz20Y7jXqZghZIW9r_-Qk4Wl0n8EXL_doZOu-Gnm2828LHvIV_vuT9Kw2IdDr_qX-yupXncj2l8srLD2ugKaEEDXucgOOIcI6eU-M5HPPPoNFbasuNAYUWGl-tr3oB5Ybf0gGqWndld8zIOcn3AxoZl3LvIFPynrgrqtCj6Vz2F4WtghxaJRvXAU63I")' }}></div>
-        </div>
-      </header>
+      {/* Top Navigation (Minimalist) */}
+      <Header onNavigate={onNavigate} activePage="dashboard" />
 
       {/* Main Content Container */}
       <main className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-12 flex flex-col gap-16">
