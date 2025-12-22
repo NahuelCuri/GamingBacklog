@@ -133,9 +133,10 @@ const RandomPickerPage = ({ onNavigate, games }) => {
             </main>
 
             {/* Winner Modal - Overlay */}
+            {/* Winner Modal - Overlay */}
             {winner && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-[#161B22] border border-white/10 rounded-3xl p-8 max-w-sm w-full flex flex-col items-center gap-6 shadow-2xl relative animate-in zoom-in-95 duration-300">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-popup">
+                    <div className="bg-[#161B22] border border-white/10 rounded-3xl p-8 max-w-sm w-full flex flex-col items-center gap-6 shadow-2xl relative">
                         {/* Confetti / Glow effect background */}
                         <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent rounded-3xl pointer-events-none"></div>
 
