@@ -1,172 +1,248 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import Header from './Header';
 
 const RandomPickerPage = ({ onNavigate, games }) => {
     const [isSpinning, setIsSpinning] = useState(false);
-    const [rotation, setRotation] = useState(0);
     const [winner, setWinner] = useState(null);
+    const [offset, setOffset] = useState(0);
+    const [items, setItems] = useState([]);
 
-    // Filter for candidates (e.g., Backlog or In Progress, or just all)
-    // For now, let's pick 8 random games from the full list to display on the wheel
-    const [wheelItems, setWheelItems] = useState([]);
+    // Config
+    const CARD_WIDTH = 200; // Width of one game card
+    const CARD_GAP = 16;   // Gap between cards
+    const VISIBLE_ITEMS = 5; // How many items visible at once (approx)
+    // The exact center position pixels (will be calculated)
 
-    React.useEffect(() => {
+    // We need a long strip. Let's say 70 items. Winner is at index 60.
+    // That gives plenty of spin time.
+    const TOTAL_ITEMS = 80;
+    const WINNER_INDEX = 65;
+
+    // Initialize the "strip" of games
+    useEffect(() => {
         if (games && games.length > 0) {
-            // Shuffle and pick 8 unique games
-            const shuffled = [...games].sort(() => 0.5 - Math.random());
-            setWheelItems(shuffled.slice(0, 8));
+            generateStrip(null);
         }
     }, [games]);
 
+    const generateStrip = (forcedWinner) => {
+        if (!games || games.length === 0) return;
+
+        // Pick a winner if not provided
+        const contentCandidates = [...games]; // can filter if needed
+        const newWinner = forcedWinner || contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
+
+        // Fill the strip with random games
+        // We want the winner specifically at WINNER_INDEX
+        const newItems = new Array(TOTAL_ITEMS).fill(null).map((_, i) => {
+            if (i === WINNER_INDEX) return newWinner;
+            return contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
+        });
+
+        setItems(newItems);
+        // Reset position: Start a bit before the beginning so it looks full
+        // Actually, we want to start at index 0 roughly aligned.
+        // Let's say we center align index 2 initially.
+        setOffset(0);
+    };
+
     const handleSpin = () => {
-        if (isSpinning || wheelItems.length === 0) return;
+        if (isSpinning || items.length === 0) return;
+
         setIsSpinning(true);
         setWinner(null);
 
-        // Random index
-        const winningIndex = Math.floor(Math.random() * wheelItems.length);
-        const segmentAngle = 360 / wheelItems.length;
+        // Pick a NEW winner and regenerate the strip behind the scenes? 
+        // Actually, CS:GO roulette usually pre-determines the winner, then generates the layout.
+        // So let's pick a winner NOW.
+        const contentCandidates = [...games];
+        const nextWinner = contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
 
-        // Add huge rotation (at least 5 full spins = 1800deg)
-        // We want the winner to be at the TOP (arrow position).
-        // If segments are drawn clockwise 0, 1, 2... starting at 0deg.
-        // To get index i to 0 degrees, we rotate - (i * angle).
-        const extraSpins = 5 + Math.floor(Math.random() * 5);
-        const baseTarget = -(winningIndex * segmentAngle);
-        const randomOffset = Math.floor(Math.random() * (segmentAngle - 10)) - (segmentAngle / 2 - 5);
+        // Re-generate strip with this winner at WINNER_INDEX
+        // BUT visually we might jump if we just replace the array. 
+        // Ideally we are at "position 0" or we reset to "position 0" instantly before spinning.
+        // Let's generate and reset.
 
-        const finalRotation = rotation + (360 * extraSpins) + (baseTarget - (rotation % 360)) + randomOffset;
+        const newItems = new Array(TOTAL_ITEMS).fill(null).map((_, i) => {
+            if (i === WINNER_INDEX) return nextWinner;
+            return contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
+        });
+        setItems(newItems);
+        setOffset(0); // Reset to start
 
-        setRotation(finalRotation);
-
+        // Small delay to ensure render, then spin
         setTimeout(() => {
-            setIsSpinning(false);
-            setWinner(wheelItems[winningIndex]);
-        }, 5000);
+            // Calculate target pixel offset
+            // We want WINNER_INDEX centered.
+            // Center of container (assuming partial container width or full width with translation)
+            // Let's say our "window" is effectively centered. 
+            // The strip moves LEFT.
+            // To center item W:
+            // Offset = (W * (WIDTH + GAP)) - (WindowWidth / 2) + (CardWidth / 2)
+            // But implementing randomly slight offset for "suspense" (landing on the line vs middle)
+
+            // Random jitter: +/- 40% of card width
+            const jitter = (Math.random() * CARD_WIDTH * 0.8) - (CARD_WIDTH * 0.4);
+
+            // We want to scroll until the winner is centered.
+            // Since we translate the STRIP to the left, target is negative.
+            // We assume the strip starts with Item 0 at left-most edge of container.
+            // So we need to shift left by: (WINNER_INDEX * (CARD_WIDTH + GAP))
+            // But we want it centered in the viewport.
+            // Let's ignore viewport calculation here and rely on CSS centering the "window" 
+            // and us centering the item *relative to the window center*.
+            // Actually, simpler:
+            // TranslateX = - (WINNER_INDEX * (CARD_WIDTH + GAP)) + jitter
+            // Then add a "half window" offset if the container is full width.
+            // Let's do it purely relative to the arrow.
+
+            const itemStride = CARD_WIDTH + CARD_GAP;
+            const targetPos = -(WINNER_INDEX * itemStride) + jitter;
+
+            setOffset(targetPos);
+
+            // Time matches the CSS transition
+            setTimeout(() => {
+                setIsSpinning(false);
+                setWinner(nextWinner);
+            }, 6500); // 6.5s spin time
+        }, 50);
     };
 
+    const containerRef = useRef(null);
+    // Center compensation:
+    // We want index 0 to initially sit such that... actually let's just use flex center.
+    // If the strip is in a container that is centered, 
+    // and we align the "Current Point" to the center of the screen.
+    // We need to shift the whole strip so that start index is at the arrow? 
+    // No, usually start index is visible on the left and we scroll right-to-left.
+    // Let's assume the "Arrow" is at the exact center of the screen.
+    // We need to offset the strip by + (ScreenCenter) initially?
+    // Let's handle this by adding a "padder" to the strip or using CSS calc.
+
     return (
-        <div className="bg-background-dark text-white font-display overflow-x-hidden min-h-screen flex flex-col items-center">
-            {/* Navbar */}
+        <div className="bg-background-dark text-white font-display overflow-x-hidden min-h-screen flex flex-col">
             <Header onNavigate={onNavigate} activePage="picker" />
 
-            {/* Main Content */}
-            <main className="flex-grow flex flex-col items-center justify-center relative px-4 py-8 w-full max-w-4xl">
+            <main className="flex-grow flex flex-col items-center justify-center relative w-full overflow-hidden">
+
                 {/* Headline */}
-                <div className="text-center mb-8 md:mb-12 relative z-10 w-full animate-in slide-in-from-top-4 duration-700">
-                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-2 drop-shadow-lg">What's Next?</h1>
-                    <p className="text-gray-400 text-sm md:text-base font-light">Let fate decide your next adventure.</p>
+                <div className="absolute top-20 md:top-32 z-10 text-center animate-in slide-in-from-top-4 duration-700">
+                    <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-2 drop-shadow-lg">
+                        Mystery Game
+                    </h1>
+                    <p className="text-gray-400 text-sm md:text-base font-light tracking-widest uppercase">
+                        Case Opening
+                    </p>
                 </div>
 
-                {/* Wheel Container */}
-                <div className="relative mb-12 group scale-90 md:scale-100 transition-transform">
-                    {/* Ticker Pointer */}
-                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-30 text-primary drop-shadow-[0_2px_10px_rgba(34,197,94,0.5)]">
-                        <span className="material-symbols-outlined text-5xl md:text-6xl" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_drop_down</span>
+                {/* The Scroller Window */}
+                <div className="relative w-full max-w-[1400px] h-[300px] bg-background-dark border-y-4 border-white/5 flex items-center shadow-2xl mb-12">
+
+                    {/* Center Marker / Line */}
+                    <div className="absolute left-1/2 top-0 bottom-0 w-[4px] bg-primary z-30 shadow-neon transform -translate-x-1/2"></div>
+                    <div className="absolute left-1/2 top-4 -translate-x-1/2 z-30 text-primary">
+                        <span className="material-symbols-outlined text-4xl drop-shadow-md">arrow_drop_down</span>
+                    </div>
+                    <div className="absolute left-1/2 bottom-4 -translate-x-1/2 z-30 text-primary">
+                        <span className="material-symbols-outlined text-4xl drop-shadow-md">arrow_drop_up</span>
                     </div>
 
-                    {/* The Wheel */}
-                    <div className="relative size-[320px] md:size-[450px] lg:size-[500px] rounded-full bg-wheel-surface shadow-2xl border-[8px] md:border-[12px] border-[#161B22] flex items-center justify-center overflow-hidden">
-                        {/* Decorative Outer Ring Glow */}
-                        <div className="absolute inset-0 rounded-full border border-white/5 pointer-events-none"></div>
+                    {/* Gradient Fade Edges */}
+                    <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background-dark to-transparent z-20 pointer-events-none"></div>
+                    <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-background-dark to-transparent z-20 pointer-events-none"></div>
 
-                        {/* Rotatable content */}
-                        <div
-                            className="absolute inset-0 w-full h-full"
-                            style={{
-                                transform: `rotate(${rotation}deg)`,
-                                transition: isSpinning ? 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
-                            }}
-                        >
-                            {/* Dynamic Segments */}
-                            {wheelItems.map((item, index) => {
-                                const angle = 360 / wheelItems.length;
-                                const rotation = index * angle;
-                                return (
-                                    <div
-                                        key={item.id}
-                                        className="absolute top-0 left-0 w-full h-full origin-center flex justify-center pt-8"
-                                        style={{ transform: `rotate(${rotation}deg)` }}
-                                    >
-                                        {/* Separator Line */}
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-1/2 bg-white/10 origin-bottom"></div>
-
-                                        {/* Text */}
-                                        <div className="w-[120px] text-center pt-8">
-                                            <span className="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-400 drop-shadow-md line-clamp-2 block px-2" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', maxHeight: '180px' }}>
-                                                {item.title}
-                                            </span>
+                    {/* Sliding Rail */}
+                    <div
+                        className="flex items-center gap-4 px-[50vw] will-change-transform"
+                        style={{
+                            transform: `translateX(${offset}px)`,
+                            transition: isSpinning ? 'transform 6.5s cubic-bezier(0.1, 0.05, 0.1, 1)' : 'none',
+                        }}
+                    >
+                        {items.map((item, index) => (
+                            <div
+                                key={index}
+                                className={`relative shrink-0 w-[200px] h-[200px] rounded-lg overflow-hidden border-2 transition-all duration-300 ${index === WINNER_INDEX && !isSpinning && winner
+                                    ? 'border-primary shadow-neon-strong scale-110 z-10'
+                                    : 'border-white/10 bg-surface-dark'
+                                    }`}
+                            >
+                                {item ? (
+                                    <>
+                                        <div
+                                            className="absolute inset-0 bg-cover bg-center"
+                                            style={{ backgroundImage: `url("${item.cover}")` }}
+                                        ></div>
+                                        <div className="absolute inset-x-0 bottom-0 bg-black/80 p-3 text-center">
+                                            <p className="text-sm font-bold truncate text-gray-200">{item.title}</p>
                                         </div>
+                                    </>
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                        ?
                                     </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Center Hub */}
-                        <div className="absolute size-20 md:size-24 bg-[#0B0F13] rounded-full z-20 shadow-inner-glow border-4 border-[#27303b] flex items-center justify-center">
-                            <div className="size-3 bg-primary rounded-full shadow-neon"></div>
-                        </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
 
-                {/* Action Button */}
-                <div className="flex flex-col items-center gap-6 z-10">
+                {/* Controls */}
+                <div className="flex flex-col items-center gap-4 z-10 mt-8">
                     <button
                         onClick={handleSpin}
-                        disabled={isSpinning || wheelItems.length === 0}
-                        className="relative group/btn flex min-w-[200px] h-16 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-primary text-white text-xl font-bold tracking-widest shadow-neon hover:shadow-neon-strong transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        disabled={isSpinning || !games || games.length === 0}
+                        className="group relative px-12 py-4 bg-primary hover:bg-green-400 text-white font-black text-xl tracking-widest uppercase skew-x-[-12deg] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-neon hover:shadow-neon-strong"
                     >
-                        <span className="relative z-10">{isSpinning ? 'SPINNING...' : 'SPIN'}</span>
-                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300 rounded-full"></div>
+                        <span className="block skew-x-[12deg]">
+                            {isSpinning ? 'Rolling...' : 'Roll Case'}
+                        </span>
                     </button>
-                    <button
-                        onClick={() => {
-                            // Reshuffle
-                            const shuffled = [...games].sort(() => 0.5 - Math.random());
-                            setWheelItems(shuffled.slice(0, 8));
-                        }}
-                        className="text-[#97c4a7] text-sm font-normal hover:text-white transition-colors border-b border-transparent hover:border-[#97c4a7] pb-0.5"
-                    >
-                        Shuffle Games
-                    </button>
+
+                    {!isSpinning && (
+                        <p className="text-xs text-slate-500 font-mono">
+                            {games ? `${games.length} items in case` : 'Loading...'}
+                        </p>
+                    )}
                 </div>
-            </main>
 
-            {/* Winner Modal - Overlay */}
-            {/* Winner Modal - Overlay */}
-            {winner && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-popup">
-                    <div className="bg-[#161B22] border border-white/10 rounded-3xl p-8 max-w-sm w-full flex flex-col items-center gap-6 shadow-2xl relative">
-                        {/* Confetti / Glow effect background */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent rounded-3xl pointer-events-none"></div>
+                {/* Winner Reveal Modal (Optional, or just display inline) */}
+                {winner && !isSpinning && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
+                        <div className="bg-surface-dark border border-primary/30 p-8 rounded-xl max-w-md w-full text-center shadow-2xl transform scale-100 animate-in zoom-in-95 duration-300">
+                            <h2 className="text-3xl font-bold text-primary mb-2 uppercase tracking-tight">Item Acquired</h2>
+                            <div className="my-6 relative inline-block">
+                                <div className="w-48 h-64 bg-cover bg-center rounded-lg shadow-lg" style={{ backgroundImage: `url("${winner.cover}")` }}></div>
+                                <div className="absolute -inset-4 bg-primary/20 blur-xl -z-10 rounded-full"></div>
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-1">{winner.title}</h3>
+                            <p className="text-gray-400 mb-8">{winner.genre}</p>
 
-                        <h3 className="text-xl font-bold text-white z-10">We have a winner!</h3>
-
-                        <div className="relative group z-10">
-                            <div className="w-48 h-64 rounded-xl bg-cover bg-center shadow-lg border-2 border-primary/50 group-hover:scale-105 transition-transform duration-500" style={{ backgroundImage: `url("${winner.cover}")` }}></div>
-                            <div className="absolute -inset-2 bg-primary/20 blur-xl rounded-full -z-10 group-hover:bg-primary/30 transition-colors"></div>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setWinner(null)}
+                                    className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded font-bold transition-colors"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setWinner(null);
+                                        // Optional: trigger spin again immediately? 
+                                        // handleSpin(); 
+                                    }}
+                                    className="px-6 py-2 bg-primary hover:bg-green-400 text-white rounded font-bold transition-colors shadow-neon"
+                                >
+                                    Review Game
+                                </button>
+                            </div>
                         </div>
-
-                        <div className="text-center z-10">
-                            <h4 className="text-2xl font-bold text-white mb-1">{winner.title}</h4>
-                            <p className="text-primary text-sm font-medium uppercase tracking-wider">{winner.genre}</p>
-                        </div>
-
-                        <button
-                            onClick={() => setWinner(null)}
-                            className="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors z-10"
-                        >
-                            Awesome!
-                        </button>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Background Decoration */}
-            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                <div className="absolute -top-[20%] -left-[10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]"></div>
-                <div className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]"></div>
-            </div>
+            </main>
         </div>
     );
 };
