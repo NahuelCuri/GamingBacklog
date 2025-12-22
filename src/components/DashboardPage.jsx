@@ -25,6 +25,22 @@ export const generateData = (count) => {
   return Array.from({ length: count }, (_, i) => {
     const game = games[i % games.length];
     const status = statuses[i % statuses.length];
+
+    // Generate random date within last 2 years for completed games
+    let dateFinished = null;
+    if (status.label === 'Completed') {
+      const date = new Date();
+      date.setDate(date.getDate() - Math.floor(Math.random() * 730));
+      dateFinished = date.toISOString().split('T')[0];
+    } else if (status.label === 'Replaying') {
+      // Maybe replaying also has a previous finish date, but let's keep it simple or random
+      if (Math.random() > 0.5) {
+        const date = new Date();
+        date.setDate(date.getDate() - Math.floor(Math.random() * 730));
+        dateFinished = date.toISOString().split('T')[0];
+      }
+    }
+
     return {
       id: i,
       title: `${game.title} ${i + 1}`,
@@ -33,7 +49,10 @@ export const generateData = (count) => {
       lastPlayed: `${Math.floor(Math.random() * 24)} hours ago`,
       status: status.label,
       statusColor: status.color,
-      hours: Math.floor(Math.random() * 500)
+      hours: Math.floor(Math.random() * 500),
+      hours: Math.floor(Math.random() * 500),
+      dateFinished: dateFinished,
+      score: (Math.random() * 10).toFixed(1) // Random score 0.0 - 10.0
     };
   });
 };
@@ -50,7 +69,7 @@ const Row = ({ index, style, data }) => {
         onClick={() => onRowClick(item)}
       >
         {/* Title Column */}
-        <div className="col-span-12 md:col-span-5 flex items-center gap-4 mb-4 md:mb-0">
+        <div className="col-span-12 md:col-span-3 flex items-center gap-4 mb-4 md:mb-0">
           <div className="size-12 rounded-xl bg-cover bg-center shrink-0 shadow-lg" style={{ backgroundImage: `url("${item.cover}")` }}></div>
           <div>
             <h4 className="font-bold text-lg leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors">{item.title}</h4>
@@ -63,6 +82,19 @@ const Row = ({ index, style, data }) => {
             {item.genre}
           </span>
         </div>
+
+        {/* Date Finished Column */}
+        <div className="col-span-6 md:col-span-2 flex items-center text-sm text-slate-400">
+          {item.dateFinished ? (
+            <span className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[16px] text-slate-600">event</span>
+              {new Date(item.dateFinished).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+            </span>
+          ) : (
+            <span className="text-slate-600">-</span>
+          )}
+        </div>
+
         {/* Status Column */}
         <div className="col-span-6 md:col-span-2 flex items-center md:justify-start justify-end">
           <div className="flex items-center gap-2">
@@ -76,9 +108,20 @@ const Row = ({ index, style, data }) => {
           </div>
         </div>
         {/* Hours Column */}
-        <div className="col-span-6 md:col-span-2 text-right mt-4 md:mt-0">
+        <div className="col-span-6 md:col-span-1 text-right mt-4 md:mt-0">
           <span className="font-display font-bold text-xl tabular-nums">{item.hours}<span className="text-xs text-slate-500 font-normal ml-1">h</span></span>
         </div>
+
+        {/* Score Column */}
+        <div className="col-span-6 md:col-span-1 flex items-center justify-end font-bold text-lg tabular-nums">
+          <span className={`${parseFloat(item.score) >= 8 ? 'text-emerald-500' :
+            parseFloat(item.score) >= 5 ? 'text-yellow-500' :
+              'text-red-500'
+            }`}>
+            {item.score}
+          </span>
+        </div>
+
         {/* Action Column (Delete) */}
         <div className="hidden md:flex col-span-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
           <button
@@ -229,17 +272,23 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame, onDeleteGame }) => {
 
           {/* Table Header */}
           <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-3 text-xs uppercase tracking-wider text-slate-500 font-medium shrink-0">
-            <div className="col-span-5 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('title')}>
+            <div className="col-span-3 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('title')}>
               Game Title {getSortIndicator('title')}
             </div>
             <div className="col-span-2 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('genre')}>
               Genre {getSortIndicator('genre')}
             </div>
+            <div className="col-span-2 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('dateFinished')}>
+              Date Completed {getSortIndicator('dateFinished')}
+            </div>
             <div className="col-span-2 cursor-pointer hover:text-primary transition-colors flex items-center" onClick={() => handleSort('status')}>
               Status {getSortIndicator('status')}
             </div>
-            <div className="col-span-2 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end" onClick={() => handleSort('hours')}>
-              Player Hours {getSortIndicator('hours')}
+            <div className="col-span-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end" onClick={() => handleSort('hours')}>
+              Hours {getSortIndicator('hours')}
+            </div>
+            <div className="col-span-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end" onClick={() => handleSort('score')}>
+              Score {getSortIndicator('score')}
             </div>
             <div className="col-span-1 text-right"></div>
           </div>

@@ -46,7 +46,10 @@ const GameReviewModal = ({ isOpen, onClose, game, onEdit }) => {
                     <div className="flex justify-between items-start mb-6">
                         <div className="pr-16">
                             <h1 className="text-white text-3xl md:text-4xl font-bold tracking-tight leading-tight mb-2">{game.title}</h1>
-                            <p className="text-white/40 text-sm font-medium tracking-wide uppercase">{game.genre} • OPEN WORLD • 2023</p>
+                            <p className="text-white/40 text-sm font-medium tracking-wide uppercase">
+                                {game.genre} • OPEN WORLD • {game.dateFinished ? new Date(game.dateFinished).getFullYear() : '2023'}
+                                {game.dateFinished && <span className="text-primary ml-2">• FINISHED {new Date(game.dateFinished).toLocaleDateString()}</span>}
+                            </p>
                         </div>
                         {/* Score Badge */}
                         <div className="flex flex-col items-center justify-center bg-primary/10 rounded-2xl px-3 py-2 border border-primary/20 shadow-glow min-w-[72px]">

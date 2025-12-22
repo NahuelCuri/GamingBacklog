@@ -13,7 +13,8 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
         vibes: [],
         review: '',
         hltb: '',
-        cover: ''
+        cover: '',
+        dateFinished: ''
     });
 
     const [vibeInput, setVibeInput] = useState('');
@@ -32,7 +33,8 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                 vibes: ['Atmospheric', 'Difficult', 'Great Soundtrack'],
                 review: 'A masterpiece of world design, challenging combat, and open-ended exploration. Truly one of the best games I\'ve ever played. The boss fights are unforgettable.',
                 hltb: '60', // Mock default
-                cover: game.cover
+                cover: game.cover,
+                dateFinished: game.dateFinished || ''
             });
             setErrors({});
         }
@@ -207,6 +209,18 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                     </div>
                                     {errors.hours && <span className="text-red-500 text-xs ml-1">{errors.hours}</span>}
                                 </div>
+                            </div>
+
+                            {/* Date Finished */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-text-muted text-sm font-medium ml-1" htmlFor="dateFinished">Date Completed</label>
+                                <input
+                                    className="w-full bg-background-dark border border-border-dark rounded-xl px-5 py-4 text-text-light placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                                    id="dateFinished"
+                                    type="date"
+                                    value={formData.dateFinished}
+                                    onChange={handleChange}
+                                />
                             </div>
 
                             {/* HLTB & Score Grid */}
