@@ -18,6 +18,8 @@ const RandomPickerPage = ({ onNavigate, games }) => {
     // That gives plenty of spin time.
     const TOTAL_ITEMS = 80;
     const WINNER_INDEX = 65;
+    const START_INDEX = 5; // Start index for consecutive spins
+    const lastJitterRef = useRef(0);
 
     // Initialize the "strip" of games
     useEffect(() => {
@@ -50,31 +52,48 @@ const RandomPickerPage = ({ onNavigate, games }) => {
     const handleSpin = () => {
         if (isSpinning || !games || games.length === 0) return;
 
-        // 1. Reset everything to start position WITHOUT animation
-        setIsSpinning(false);
-        setWinner(null);
-        setOffset(0);
-
-        // Prepare new strip
+        // 1. Prepare for Reset
         const contentCandidates = [...games];
         const nextWinner = contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
 
+        // Generate new strip
         const newItems = new Array(TOTAL_ITEMS).fill(null).map((_, i) => {
+            // Case 1: Consecutive spin - Place OLD winner at START_INDEX
+            if (winner && i === START_INDEX) return winner;
+            // Case 2: Always place NEW winner at WINNER_INDEX
             if (i === WINNER_INDEX) return nextWinner;
+
             return contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
         });
-        setItems(newItems);
 
-        // 2. Start animation after a brief delay to allow DOM to update to offset 0
+        // Calculate Pixel Reset Position
+        let resetOffset = 0;
+        const itemStride = CARD_WIDTH + CARD_GAP;
+
+        if (winner) {
+            // We want to visually align newItems[START_INDEX] exactly where the old winner was.
+            // Ideally we re-use the exact jitter to prevent any jump.
+            const oldJitter = lastJitterRef.current;
+            resetOffset = -(START_INDEX * itemStride) - (CARD_WIDTH / 2) + oldJitter;
+        }
+
+        // Apply Reset (Disable transition, move strip, swap items)
+        setIsSpinning(false);
+        setWinner(null);
+        setItems(newItems);
+        setOffset(resetOffset);
+
+        // 2. Start Animation after update
         setTimeout(() => {
             setIsSpinning(true);
 
+            // Calculate NEW target
             // Random jitter: +/- 40% of card width
-            const jitter = (Math.random() * CARD_WIDTH * 0.8) - (CARD_WIDTH * 0.4);
-            const itemStride = CARD_WIDTH + CARD_GAP;
+            const newJitter = (Math.random() * CARD_WIDTH * 0.8) - (CARD_WIDTH * 0.4);
+            lastJitterRef.current = newJitter;
 
             // Calculate target
-            const targetPos = -(WINNER_INDEX * itemStride) - (CARD_WIDTH / 2) + jitter;
+            const targetPos = -(WINNER_INDEX * itemStride) - (CARD_WIDTH / 2) + newJitter;
 
             setOffset(targetPos);
 
@@ -106,15 +125,12 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                 {/* Headline */}
                 <div className="absolute top-20 md:top-32 z-10 text-center animate-in slide-in-from-top-4 duration-700">
                     <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-2 drop-shadow-lg">
-                        Mystery Game
+                        Random Game Picker
                     </h1>
-                    <p className="text-gray-400 text-sm md:text-base font-light tracking-widest uppercase">
-                        Case Opening
-                    </p>
                 </div>
 
                 {/* The Scroller Window */}
-                <div className="relative w-full max-w-[1400px] h-[300px] bg-background-dark border-y-4 border-white/5 flex items-center shadow-2xl mb-12">
+                <div className="relative w-full h-[300px] bg-background-dark border-y-4 border-white/5 flex items-center shadow-2xl mb-12">
 
                     {/* Center Marker / Line */}
                     <div className="absolute left-1/2 top-0 bottom-0 w-[4px] bg-primary z-30 shadow-neon transform -translate-x-1/2"></div>
@@ -126,8 +142,8 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                     </div>
 
                     {/* Gradient Fade Edges */}
-                    <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background-dark to-transparent z-20 pointer-events-none"></div>
-                    <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-background-dark to-transparent z-20 pointer-events-none"></div>
+                    <div className="absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-background-dark to-transparent z-20 pointer-events-none"></div>
+                    <div className="absolute inset-y-0 right-0 w-64 bg-gradient-to-l from-background-dark to-transparent z-20 pointer-events-none"></div>
 
                     {/* Sliding Rail */}
                     <div
