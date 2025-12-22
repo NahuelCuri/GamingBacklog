@@ -296,13 +296,18 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                                         type="button"
                                                         onClick={() => handleStatusSelect(status)}
                                                         className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150 capitalize flex items-center justify-between group cursor-pointer ${formData.status === status
-                                                                ? 'bg-primary/10 text-primary'
+                                                                ? status === 'playing' ? 'bg-violet-500/10 text-violet-500'
+                                                                    : status === 'finished' ? 'bg-primary/10 text-primary'
+                                                                        : 'bg-white/5 text-slate-400'
                                                                 : 'text-text-light hover:bg-white/5'
                                                             }`}
                                                     >
                                                         {status}
                                                         {formData.status === status && (
-                                                            <span className="material-symbols-outlined text-primary text-[18px]">check</span>
+                                                            <span className={`material-symbols-outlined text-[18px] ${status === 'playing' ? 'text-violet-500' :
+                                                                    status === 'finished' ? 'text-primary' :
+                                                                        'text-slate-400'
+                                                                }`}>check</span>
                                                         )}
                                                     </button>
                                                 ))}

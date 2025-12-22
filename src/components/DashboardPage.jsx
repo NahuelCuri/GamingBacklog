@@ -15,9 +15,9 @@ export const generateData = (count) => {
     { title: "Stardew Valley", genre: "Simulation", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuBmB6lWVrvv7_4klzgtF5HXZmQA1NHp3kcEfOhMv5GJdFoelHWM8OzdbIe1R8yuQEKKMXFm5H_wG2_s9c6QaTtimQy3PQm3Ew7VatZ-SPXKnAzq8jWga6x5zAGveAo0bW9DQebwx-4_FFCUqnS9JX-eJz0OSiH57z6oPPKx2Hd3WfUvZSncvCtNVdWhMd1oLFPTCJ9mmhvEMDnXSaekEkWbH7o5vo63Y6Zi75LUb8gMUbVXcDbk-09bNYWbMZqJKfe5Lwnbc8Rbw3M" }
   ];
   const statuses = [
-    { label: "Playing", color: "bg-primary" },
+    { label: "Playing", color: "bg-violet-500" },
     { label: "Finished", color: "bg-primary" },
-    { label: "Unplayed", color: "bg-slate-600" }
+    { label: "Unplayed", color: "bg-slate-500" }
   ];
 
   return Array.from({ length: count }, (_, i) => {
@@ -89,10 +89,16 @@ const Row = ({ index, style, data }) => {
         <div className="col-span-6 md:col-span-2 flex items-center md:justify-start justify-end">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
-              {item.status === 'Playing' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>}
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${item.statusColor}`}></span>
+              {item.status === 'Playing' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-500 opacity-75"></span>}
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${item.status === 'Playing' ? 'bg-violet-500' :
+                  item.status === 'Finished' ? 'bg-primary' :
+                    'bg-slate-500'
+                }`}></span>
             </span>
-            <span className={`text-sm font-medium ${item.status === 'Playing' || item.status === 'Finished' ? 'text-primary' : 'text-slate-400'}`}>
+            <span className={`text-sm font-medium ${item.status === 'Playing' ? 'text-violet-500' :
+              item.status === 'Finished' ? 'text-primary' :
+                'text-slate-400'
+              }`}>
               {item.status}
             </span>
           </div>
