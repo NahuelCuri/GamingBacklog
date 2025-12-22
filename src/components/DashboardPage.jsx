@@ -15,30 +15,21 @@ export const generateData = (count) => {
     { title: "Stardew Valley", genre: "Simulation", cover: "https://lh3.googleusercontent.com/aida-public/AB6AXuBmB6lWVrvv7_4klzgtF5HXZmQA1NHp3kcEfOhMv5GJdFoelHWM8OzdbIe1R8yuQEKKMXFm5H_wG2_s9c6QaTtimQy3PQm3Ew7VatZ-SPXKnAzq8jWga6x5zAGveAo0bW9DQebwx-4_FFCUqnS9JX-eJz0OSiH57z6oPPKx2Hd3WfUvZSncvCtNVdWhMd1oLFPTCJ9mmhvEMDnXSaekEkWbH7o5vo63Y6Zi75LUb8gMUbVXcDbk-09bNYWbMZqJKfe5Lwnbc8Rbw3M" }
   ];
   const statuses = [
-    { label: "In Progress", color: "bg-primary" },
-    { label: "Ideally Paused", color: "bg-slate-600" },
-    { label: "Completed", color: "bg-primary" },
-    { label: "On Hold", color: "bg-slate-600" },
-    { label: "Replaying", color: "bg-primary" }
+    { label: "Playing", color: "bg-primary" },
+    { label: "Finished", color: "bg-primary" },
+    { label: "Unplayed", color: "bg-slate-600" }
   ];
 
   return Array.from({ length: count }, (_, i) => {
     const game = games[i % games.length];
     const status = statuses[i % statuses.length];
 
-    // Generate random date within last 2 years for completed games
+    // Generate random date within last 2 years for finished games
     let dateFinished = null;
-    if (status.label === 'Completed') {
+    if (status.label === 'Finished') {
       const date = new Date();
       date.setDate(date.getDate() - Math.floor(Math.random() * 730));
       dateFinished = date.toISOString().split('T')[0];
-    } else if (status.label === 'Replaying') {
-      // Maybe replaying also has a previous finish date, but let's keep it simple or random
-      if (Math.random() > 0.5) {
-        const date = new Date();
-        date.setDate(date.getDate() - Math.floor(Math.random() * 730));
-        dateFinished = date.toISOString().split('T')[0];
-      }
     }
 
     return {
@@ -49,7 +40,6 @@ export const generateData = (count) => {
       lastPlayed: `${Math.floor(Math.random() * 24)} hours ago`,
       status: status.label,
       statusColor: status.color,
-      hours: Math.floor(Math.random() * 500),
       hours: Math.floor(Math.random() * 500),
       dateFinished: dateFinished,
       score: (Math.random() * 10).toFixed(1) // Random score 0.0 - 10.0
@@ -99,10 +89,10 @@ const Row = ({ index, style, data }) => {
         <div className="col-span-6 md:col-span-2 flex items-center md:justify-start justify-end">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
-              {item.status === 'In Progress' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>}
+              {item.status === 'Playing' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>}
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${item.statusColor}`}></span>
             </span>
-            <span className={`text-sm font-medium ${item.status === 'In Progress' || item.status === 'Completed' || item.status === 'Replaying' ? 'text-primary' : 'text-slate-400'}`}>
+            <span className={`text-sm font-medium ${item.status === 'Playing' || item.status === 'Finished' ? 'text-primary' : 'text-slate-400'}`}>
               {item.status}
             </span>
           </div>

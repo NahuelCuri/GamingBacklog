@@ -19,6 +19,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
 
     const [vibeInput, setVibeInput] = useState('');
     const [errors, setErrors] = useState({});
+    const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
 
     // Initialize form data when game changes
     useEffect(() => {
@@ -29,7 +30,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                 hours: game.hours,
                 // Mock data for fields not in the game object but in logic
                 score: '9.5',
-                status: game.status.toLowerCase().replace(' ', '-') || 'completed',
+                status: game.status.toLowerCase().replace(' ', '-') || 'finished',
                 vibes: ['Atmospheric', 'Difficult', 'Great Soundtrack'],
                 review: 'A masterpiece of world design, challenging combat, and open-ended exploration. Truly one of the best games I\'ve ever played. The boss fights are unforgettable.',
                 hltb: '60', // Mock default
@@ -106,6 +107,11 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                 vibes: [...prev.vibes, vibe]
             }));
         }
+    };
+
+    const handleStatusSelect = (status) => {
+        setFormData(prev => ({ ...prev, status }));
+        setIsStatusDropdownOpen(false);
     };
 
     const handleSave = () => {
@@ -259,25 +265,50 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                 </div>
                             </div>
 
-                            {/* Status Segmented Control */}
-                            <div className="flex flex-col gap-2">
+                            {/* Status Dropdown (Custom) */}
+                            <div className="flex flex-col gap-2 relative z-50">
                                 <label className="text-text-muted text-sm font-medium ml-1">Status</label>
-                                <div className="flex bg-background-dark border border-border-dark p-1.5 rounded-full h-[58px]">
-                                    {['playing', 'completed', 'backlog'].map((status) => (
-                                        <label key={status} className="flex-1 relative cursor-pointer group">
-                                            <input
-                                                className="peer sr-only"
-                                                name="status"
-                                                type="radio"
-                                                value={status}
-                                                checked={formData.status === status}
-                                                onChange={handleChange}
-                                            />
-                                            <div className="w-full h-full flex items-center justify-center rounded-full text-sm font-medium text-text-muted transition-all duration-200 peer-checked:bg-violet-500 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-violet-500/20 group-hover:text-text-light capitalize">
-                                                {status}
+                                <div className="relative">
+                                    {/* Trigger */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                                        className="w-full bg-background-dark border border-border-dark rounded-xl px-5 py-4 text-text-light flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 cursor-pointer"
+                                    >
+                                        <span className="capitalize">{formData.status}</span>
+                                        <span className={`material-symbols-outlined text-text-muted transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                                    </button>
+
+                                    {/* Dropdown Menu */}
+                                    {isStatusDropdownOpen && (
+                                        <>
+                                            {/* Backdrop for click-outside */}
+                                            <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={() => setIsStatusDropdownOpen(false)}
+                                            ></div>
+
+                                            {/* Menu Items */}
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-background-dark border border-border-dark rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
+                                                {['finished', 'playing', 'unplayed'].map((status) => (
+                                                    <button
+                                                        key={status}
+                                                        type="button"
+                                                        onClick={() => handleStatusSelect(status)}
+                                                        className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150 capitalize flex items-center justify-between group cursor-pointer ${formData.status === status
+                                                                ? 'bg-primary/10 text-primary'
+                                                                : 'text-text-light hover:bg-white/5'
+                                                            }`}
+                                                    >
+                                                        {status}
+                                                        {formData.status === status && (
+                                                            <span className="material-symbols-outlined text-primary text-[18px]">check</span>
+                                                        )}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        </label>
-                                    ))}
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
