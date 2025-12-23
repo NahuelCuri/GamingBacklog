@@ -64,7 +64,6 @@ const Row = ({ index, style, data }) => {
           <div className="size-12 rounded-xl bg-cover bg-center shrink-0 shadow-lg" style={{ backgroundImage: `url("${item.cover}")` }}></div>
           <div>
             <h4 className="font-bold text-lg leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors">{item.title}</h4>
-            <p className="text-xs text-slate-500 mt-0.5">Last played {item.lastPlayed}</p>
           </div>
         </div>
         {/* Genre Column */}

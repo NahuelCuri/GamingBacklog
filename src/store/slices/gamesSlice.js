@@ -48,7 +48,6 @@ const gamesSlice = createSlice({
                         title: g.title,
                         genre: g.genre,
                         cover: cover,
-                        lastPlayed: 'Recently',
                         status: g.status.charAt(0).toUpperCase() + g.status.slice(1),
                         statusColor: g.status === 'playing' ? 'bg-violet-500' : (g.status === 'finished' ? 'bg-primary' : 'bg-slate-500'),
                         hours: g.hours_played,
@@ -78,7 +77,6 @@ const gamesSlice = createSlice({
                     title: createdGame.title,
                     genre: createdGame.genre,
                     cover: cover,
-                    lastPlayed: 'Recently',
                     status: createdGame.status.charAt(0).toUpperCase() + createdGame.status.slice(1),
                     statusColor: createdGame.status === 'playing' ? 'bg-violet-500' : (createdGame.status === 'finished' ? 'bg-primary' : 'bg-slate-500'),
                     hours: createdGame.hours_played,
@@ -103,7 +101,7 @@ const gamesSlice = createSlice({
                     // Update only the fields present in the response or re-map entirely
                     // Re-mapping for safety
                     state.items[index] = {
-                        ...state.items[index], // keep local placeholders like 'lastPlayed' if needed
+                        ...state.items[index], // keep local placeholders if needed
                         title: updatedGame.title,
                         genre: updatedGame.genre,
                         cover: cover,
