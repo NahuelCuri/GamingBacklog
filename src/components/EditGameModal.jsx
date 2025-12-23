@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { uploadImage, API_URL } from '../services/api';
 
 const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
     if (!isOpen || !game) return null;
@@ -20,6 +21,8 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
     const [vibeInput, setVibeInput] = useState('');
     const [errors, setErrors] = useState({});
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef(null);
 
     // Initialize form data when game changes
     useEffect(() => {
@@ -114,6 +117,22 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
         setIsStatusDropdownOpen(false);
     };
 
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const url = await uploadImage(file, formData.title || 'New Game');
+            setFormData(prev => ({ ...prev, cover: url }));
+        } catch (error) {
+            console.error('Upload failed:', error);
+            // Optionally add error state/toast here
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleSave = () => {
         if (validate()) {
             onSave({ ...game, ...formData });
@@ -149,17 +168,32 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                     <img
                                         alt="Game Cover"
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        src={formData.cover || "https://via.placeholder.com/300x400?text=No+Cover"}
+                                        src={formData.cover ? (formData.cover.startsWith('http') ? formData.cover : `${API_URL}${formData.cover}`) : "https://via.placeholder.com/300x400?text=No+Cover"}
                                     />
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 backdrop-blur-[2px]">
-                                        <button className="px-4 py-2 rounded-full bg-white text-black text-sm font-bold shadow-lg hover:bg-gray-200 transition-colors flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 duration-300 cursor-pointer">
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                        />
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="px-4 py-2 rounded-full bg-white text-black text-sm font-bold shadow-lg hover:bg-gray-200 transition-colors flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 duration-300 cursor-pointer"
+                                        >
                                             <span className="material-symbols-outlined text-[18px]">upload</span>
-                                            Change Art
+                                            {isUploading ? 'Uploading...' : 'Change Art'}
                                         </button>
-                                        <button className="px-4 py-2 rounded-full bg-red-500/20 text-red-200 border border-red-500/30 text-sm font-medium hover:bg-red-500/30 transition-colors flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 duration-300 delay-75 cursor-pointer">
-                                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                                            Remove
-                                        </button>
+                                        {formData.cover && (
+                                            <button
+                                                onClick={() => setFormData(prev => ({ ...prev, cover: '' }))}
+                                                className="px-4 py-2 rounded-full bg-red-500/20 text-red-200 border border-red-500/30 text-sm font-medium hover:bg-red-500/30 transition-colors flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 duration-300 delay-75 cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                Remove
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

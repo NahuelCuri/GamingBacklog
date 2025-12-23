@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getGames, createGame, updateGame, deleteGame } from '../../services/api';
+import { getGames, createGame, updateGame, deleteGame, API_URL } from '../../services/api';
 
 const initialState = {
     items: [],
@@ -7,21 +7,20 @@ const initialState = {
     error: null,
 };
 
+// ... thunks code stays same ...
 export const fetchGames = createAsyncThunk('games/fetchGames', async () => {
     const response = await getGames();
     return response;
 });
-
+// ... other thunks ...
 export const addNewGame = createAsyncThunk('games/addNewGame', async (gameData) => {
     const response = await createGame(gameData);
     return response;
 });
-
 export const updateExistingGame = createAsyncThunk('games/updateGame', async ({ id, data }) => {
     const response = await updateGame(id, data);
     return response;
 });
-
 export const removeGame = createAsyncThunk('games/removeGame', async (id) => {
     await deleteGame(id);
     return id;
@@ -30,9 +29,7 @@ export const removeGame = createAsyncThunk('games/removeGame', async (id) => {
 const gamesSlice = createSlice({
     name: 'games',
     initialState,
-    reducers: {
-        // Optional: Client-side filtering/sorting reducers could go here
-    },
+    reducers: {},
     extraReducers: (builder) => {
         builder
             // Fetch Games
@@ -41,24 +38,28 @@ const gamesSlice = createSlice({
             })
             .addCase(fetchGames.fulfilled, (state, action) => {
                 state.status = 'succeeded';
-                // Map backend data to frontend model (similar to App.jsx logic)
-                // Note: Ideally the API serves cleaner data, but we preserve the mapping logic here for consistency
-                state.items = action.payload.map(g => ({
-                    id: g.id,
-                    title: g.title,
-                    genre: g.genre,
-                    cover: g.cover_url || g.cover,
-                    lastPlayed: 'Recently', // Placeholder
-                    status: g.status.charAt(0).toUpperCase() + g.status.slice(1),
-                    statusColor: g.status === 'playing' ? 'bg-violet-500' : (g.status === 'finished' ? 'bg-primary' : 'bg-slate-500'),
-                    hours: g.hours_played,
-                    dateFinished: g.date_finished,
-                    score: g.score,
-                    releaseYear: g.release_year,
-                    review: g.review_text,
-                    hltb: g.hltb_estimate,
-                    vibes: g.Tags ? g.Tags.map(t => t.name) : []
-                }));
+                state.items = action.payload.map(g => {
+                    let cover = g.cover_url || g.cover;
+                    if (cover && !cover.startsWith('http') && !cover.startsWith('data:')) {
+                        cover = `${API_URL}${cover}`;
+                    }
+                    return {
+                        id: g.id,
+                        title: g.title,
+                        genre: g.genre,
+                        cover: cover,
+                        lastPlayed: 'Recently',
+                        status: g.status.charAt(0).toUpperCase() + g.status.slice(1),
+                        statusColor: g.status === 'playing' ? 'bg-violet-500' : (g.status === 'finished' ? 'bg-primary' : 'bg-slate-500'),
+                        hours: g.hours_played,
+                        dateFinished: g.date_finished,
+                        score: g.score,
+                        releaseYear: g.release_year,
+                        review: g.review_text,
+                        hltb: g.hltb_estimate,
+                        vibes: g.Tags ? g.Tags.map(t => t.name) : []
+                    };
+                });
             })
             .addCase(fetchGames.rejected, (state, action) => {
                 state.status = 'failed';
@@ -67,12 +68,16 @@ const gamesSlice = createSlice({
             // Add Game
             .addCase(addNewGame.fulfilled, (state, action) => {
                 const createdGame = action.payload;
+                let cover = createdGame.cover_url || createdGame.cover;
+                if (cover && !cover.startsWith('http') && !cover.startsWith('data:')) {
+                    cover = `${API_URL}${cover}`;
+                }
                 // Map response to frontend model
                 const mappedGame = {
                     id: createdGame.id,
                     title: createdGame.title,
                     genre: createdGame.genre,
-                    cover: createdGame.cover_url || createdGame.cover,
+                    cover: cover,
                     lastPlayed: 'Recently',
                     status: createdGame.status.charAt(0).toUpperCase() + createdGame.status.slice(1),
                     statusColor: createdGame.status === 'playing' ? 'bg-violet-500' : (createdGame.status === 'finished' ? 'bg-primary' : 'bg-slate-500'),
@@ -91,13 +96,17 @@ const gamesSlice = createSlice({
                 const updatedGame = action.payload;
                 const index = state.items.findIndex(g => g.id === updatedGame.id);
                 if (index !== -1) {
+                    let cover = updatedGame.cover_url || updatedGame.cover;
+                    if (cover && !cover.startsWith('http') && !cover.startsWith('data:')) {
+                        cover = `${API_URL}${cover}`;
+                    }
                     // Update only the fields present in the response or re-map entirely
                     // Re-mapping for safety
                     state.items[index] = {
                         ...state.items[index], // keep local placeholders like 'lastPlayed' if needed
                         title: updatedGame.title,
                         genre: updatedGame.genre,
-                        cover: updatedGame.cover_url || updatedGame.cover,
+                        cover: cover,
                         status: updatedGame.status.charAt(0).toUpperCase() + updatedGame.status.slice(1),
                         statusColor: updatedGame.status === 'playing' ? 'bg-violet-500' : (updatedGame.status === 'finished' ? 'bg-primary' : 'bg-slate-500'),
                         hours: updatedGame.hours_played,

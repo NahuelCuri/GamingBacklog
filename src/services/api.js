@@ -61,4 +61,20 @@ export const deleteGame = async (id) => {
     return response.data;
 };
 
+export const uploadImage = async (file, gameName) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (gameName) {
+        formData.append('game_name', gameName);
+    }
+
+    const response = await api.post('/api/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data.url;
+};
+
+export { API_URL };
 export default api;
