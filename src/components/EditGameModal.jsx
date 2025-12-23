@@ -129,7 +129,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
             <div className="relative w-full max-w-5xl bg-surface-dark rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-white/5 flex flex-col max-h-[90vh] overflow-y-auto animate-fade-in-up">
                 {/* Header */}
                 <div className="flex items-center justify-between px-8 pt-8 pb-4">
-                    <h2 className="text-text-light text-2xl font-bold tracking-tight">Edit Game Details</h2>
+                    <h2 className="text-text-light text-2xl font-bold tracking-tight">{game.id ? 'Edit Game Details' : 'Add New Game'}</h2>
                     <button
                         onClick={onClose}
                         className="group p-2 rounded-full hover:bg-white/5 transition-colors duration-200 text-text-muted hover:text-white cursor-pointer"
@@ -296,17 +296,17 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                                         type="button"
                                                         onClick={() => handleStatusSelect(status)}
                                                         className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150 capitalize flex items-center justify-between group cursor-pointer ${formData.status === status
-                                                                ? status === 'playing' ? 'bg-violet-500/10 text-violet-500'
-                                                                    : status === 'finished' ? 'bg-primary/10 text-primary'
-                                                                        : 'bg-white/5 text-slate-400'
-                                                                : 'text-text-light hover:bg-white/5'
+                                                            ? status === 'playing' ? 'bg-violet-500/10 text-violet-500'
+                                                                : status === 'finished' ? 'bg-primary/10 text-primary'
+                                                                    : 'bg-white/5 text-slate-400'
+                                                            : 'text-text-light hover:bg-white/5'
                                                             }`}
                                                     >
                                                         {status}
                                                         {formData.status === status && (
                                                             <span className={`material-symbols-outlined text-[18px] ${status === 'playing' ? 'text-violet-500' :
-                                                                    status === 'finished' ? 'text-primary' :
-                                                                        'text-slate-400'
+                                                                status === 'finished' ? 'text-primary' :
+                                                                    'text-slate-400'
                                                                 }`}>check</span>
                                                         )}
                                                     </button>

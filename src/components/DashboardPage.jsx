@@ -136,30 +136,55 @@ const Row = ({ index, style, data }) => {
   );
 };
 
-const DashboardPage = ({ onNavigate, games, onUpdateGame, onDeleteGame }) => {
+const DashboardPage = ({ onNavigate, games, onCreateGame, onUpdateGame, onDeleteGame }) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [gameToDelete, setGameToDelete] = useState(null);
 
   const handleRowClick = (game) => {
     setSelectedGame(game);
     setIsEditing(false);
+    setIsCreating(false);
+  };
+
+  const handleAddGame = () => {
+    setSelectedGame({
+      title: '',
+      genre: '',
+      hours: '0',
+      score: '5.0',
+      status: 'Unplayed',
+      vibes: [],
+      review: '',
+      hltb: '',
+      cover: '',
+      dateFinished: ''
+    });
+    setIsEditing(true);
+    setIsCreating(true);
   };
 
   const handleCloseModal = () => {
     setSelectedGame(null);
     setIsEditing(false);
+    setIsCreating(false);
   };
 
   const handleEdit = () => {
     setIsEditing(true);
   };
 
-  const handleSave = (updatedGame) => {
-    onUpdateGame(updatedGame);
+  const handleSave = (gameData) => {
+    if (isCreating) {
+      onCreateGame(gameData);
+    } else {
+      onUpdateGame(gameData);
+    }
     setSelectedGame(null);
     setIsEditing(false);
+    setIsCreating(false);
   };
 
   const handleSort = (key) => {
@@ -222,13 +247,14 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame, onDeleteGame }) => {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col">
-      {/* Top Navigation (Minimalist) */}
+    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col relative">
       {/* Top Navigation (Minimalist) */}
       <Header onNavigate={onNavigate} activePage="dashboard" />
 
       {/* Main Content Container */}
       <main className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-12 flex flex-col gap-16">
+        {/* HACK: Invisible overlay to capture clicks if needed, not really used here but good for structure */}
+
         {/* Hero Metric Section */}
         <section className="flex flex-col items-center justify-center text-center animate-fade-in-up shrink-0">
           <h1 className="text-slate-400 text-sm uppercase tracking-[0.2em] font-medium mb-4">Total Time Played</h1>
@@ -298,6 +324,15 @@ const DashboardPage = ({ onNavigate, games, onUpdateGame, onDeleteGame }) => {
           </div>
         </section>
       </main>
+
+      {/* Floating Action Button (Add Game) */}
+      <button
+        onClick={handleAddGame}
+        className="fixed bottom-8 right-8 z-50 p-4 bg-primary hover:bg-primary/90 text-[#0B0F13] rounded-full shadow-lg shadow-primary/30 transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
+        aria-label="Add Game"
+      >
+        <span className="material-symbols-outlined text-[32px] group-hover:rotate-90 transition-transform duration-300">add</span>
+      </button>
 
       {/* Simple Footer */}
       <footer className="w-full py-8 text-center text-xs text-slate-600 dark:text-slate-500 shrink-0">
