@@ -112,7 +112,17 @@ const gamesSlice = createSlice({
             })
             // Remove Game
             .addCase(removeGame.fulfilled, (state, action) => {
+                console.log('Backend delete success for ID:', action.payload);
+                console.log('Current items IDs:', state.items.map(i => i.id));
+                const initialLength = state.items.length;
                 state.items = state.items.filter(game => game.id !== action.payload);
+                console.log('Items length after filter:', state.items.length);
+                if (state.items.length === initialLength) {
+                    console.warn('Game removal failed in state! ID not found or mismatch:', action.payload);
+                }
+            })
+            .addCase(removeGame.rejected, (state, action) => {
+                console.error('Backend delete failed:', action.error);
             });
     },
 });

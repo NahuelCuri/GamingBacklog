@@ -19,10 +19,18 @@ function App() {
   useEffect(() => {
     const initData = async () => {
       const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
       if (storedToken) {
         dispatch(setToken(storedToken));
+        if (storedUser) {
+          try {
+            dispatch(setUser(JSON.parse(storedUser)));
+          } catch (e) {
+            console.error("Failed to parse stored user", e);
+          }
+        }
         dispatch(setView('dashboard'));
-        // Ideally dispatch(fetchUserProfile()) if specific endpoint exists
       }
 
       dispatch(fetchGames());
@@ -35,13 +43,19 @@ function App() {
     // We update the Redux store directly.
     if (user.token) {
       dispatch(setToken(user.token));
+      localStorage.setItem('token', user.token);
     }
     dispatch(setUser(user));
+    // Persist user details to support page reloads
+    localStorage.setItem('user', JSON.stringify(user));
+
     dispatch(setView('dashboard'));
   };
 
   const handleLogout = () => {
     dispatch(logout());
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     dispatch(setView('login'));
   };
 
