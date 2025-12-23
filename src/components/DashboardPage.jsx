@@ -246,6 +246,20 @@ const DashboardPage = ({ onNavigate, onLogout, games, onCreateGame, onUpdateGame
     return null;
   };
 
+  const stats = React.useMemo(() => {
+    const totalHours = games.reduce((acc, game) => acc + (parseInt(game.hours) || 0), 0);
+    const finishedCount = games.filter(g => g.status === 'Finished').length;
+    const completionRate = games.length > 0 ? Math.round((finishedCount / games.length) * 100) : 0;
+    const playedCount = games.filter(g => g.status === 'Playing' || g.status === 'Finished').length;
+
+    return {
+      totalHours: totalHours.toLocaleString(),
+      gamesOwned: games.length,
+      completionRate: completionRate,
+      playedCount: playedCount
+    };
+  }, [games]);
+
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col relative">
       {/* Top Navigation (Minimalist) */}
@@ -259,21 +273,21 @@ const DashboardPage = ({ onNavigate, onLogout, games, onCreateGame, onUpdateGame
         <section className="flex flex-col items-center justify-center text-center animate-fade-in-up shrink-0">
           <h1 className="text-slate-400 text-sm uppercase tracking-[0.2em] font-medium mb-4">Total Time Played</h1>
           <div className="text-7xl sm:text-9xl font-black text-primary tracking-tighter leading-none drop-shadow-2xl selection:bg-primary selection:text-white">
-            3,482<span className="text-4xl sm:text-5xl align-top ml-2 opacity-60 font-bold text-white">h</span>
+            {stats.totalHours}<span className="text-4xl sm:text-5xl align-top ml-2 opacity-60 font-bold text-white">h</span>
           </div>
           <div className="mt-6 flex gap-8 text-slate-500">
             <div className="flex flex-col items-center">
-              <span className="text-white font-bold text-xl">142</span>
+              <span className="text-white font-bold text-xl">{stats.gamesOwned}</span>
               <span className="text-xs">Games Owned</span>
             </div>
             <div className="w-px h-10 bg-white/10"></div>
             <div className="flex flex-col items-center">
-              <span className="text-white font-bold text-xl">78%</span>
+              <span className="text-white font-bold text-xl">{stats.completionRate}%</span>
               <span className="text-xs">Completion</span>
             </div>
             <div className="w-px h-10 bg-white/10"></div>
             <div className="flex flex-col items-center">
-              <span className="text-white font-bold text-xl">12</span>
+              <span className="text-white font-bold text-xl">{stats.playedCount}</span>
               <span className="text-xs">Played</span>
             </div>
           </div>
