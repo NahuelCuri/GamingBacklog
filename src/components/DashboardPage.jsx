@@ -339,6 +339,30 @@ const DashboardPage = ({ onNavigate, onLogout, games, onCreateGame, onUpdateGame
         </section>
       </main>
 
+      {/* Floating Action Button (Test Game) */}
+      <button
+        onClick={() => {
+          const testGame = {
+            title: `Test Game ${new Date().toLocaleTimeString()}`,
+            genre: "Testing",
+            hours: Math.floor(Math.random() * 100).toString(),
+            score: (Math.random() * 10).toFixed(1),
+            status: "Unplayed",
+            vibes: [],
+            review: "This is an automatically generated test game.",
+            hltb: "10",
+            cover: `https://picsum.photos/seed/${Date.now()}/200/300`,
+            dateFinished: ""
+          };
+          onCreateGame(testGame);
+        }}
+        className="fixed bottom-8 right-32 z-50 p-4 bg-violet-600 hover:bg-violet-700 text-white rounded-full shadow-lg shadow-violet-600/30 transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
+        aria-label="Add Test Game"
+        title="Add Test Game"
+      >
+        <span className="material-symbols-outlined text-[32px] group-hover:rotate-12 transition-transform duration-300">smart_toy</span>
+      </button>
+
       {/* Floating Action Button (Add Game) */}
       <button
         onClick={handleAddGame}
