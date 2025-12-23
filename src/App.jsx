@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage';
 import DashboardPage from './components/DashboardPage';
 import RandomPickerPage from './components/RandomPickerPage';
 import StatisticsPage from './components/StatisticsPage';
+import RegisterPage from './components/RegisterPage';
 import { login, logout, setUser, setToken } from './store/slices/authSlice';
 import { fetchGames, addNewGame, updateExistingGame, removeGame } from './store/slices/gamesSlice';
 import { setView } from './store/slices/uiSlice';
@@ -101,8 +102,9 @@ function App() {
   };
 
   return (
-    <div className={view === 'login' ? "min-h-screen flex items-center justify-center p-4" : ""}>
-      {view === 'login' && <LoginPage onLogin={handleLogin} />}
+    <div className={(view === 'login' || view === 'register') ? "min-h-screen flex items-center justify-center p-4" : ""}>
+      {view === 'login' && <LoginPage onLogin={handleLogin} onNavigate={handleNavigate} />}
+      {view === 'register' && <RegisterPage onRegister={handleLogin} onNavigate={handleNavigate} />}
       {view === 'dashboard' && <DashboardPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} onCreateGame={handleCreateGame} onUpdateGame={handleUpdateGame} onDeleteGame={handleDeleteGame} />}
       {view === 'picker' && <RandomPickerPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} />}
       {view === 'statistics' && <StatisticsPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} />}

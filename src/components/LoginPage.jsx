@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { loginUser } from '../services/api';
 
-const LoginPage = ({ onLogin }) => {
+const LoginPage = ({ onLogin, onNavigate }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -108,7 +108,12 @@ const LoginPage = ({ onLogin }) => {
         <div className="mt-8 text-center">
           <p className="text-sm text-text-muted">
             Don't have an account?
-            <a className="font-medium text-primary hover:text-primary/80 transition-colors ml-1" href="#">Create one</a>
+            <button
+              className="font-medium text-primary hover:text-primary/80 transition-colors ml-1 bg-transparent border-none cursor-pointer"
+              onClick={() => onNavigate('register')}
+            >
+              Create one
+            </button>
           </p>
         </div>
       </div>
