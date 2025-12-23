@@ -136,7 +136,7 @@ const Row = ({ index, style, data }) => {
   );
 };
 
-const DashboardPage = ({ onNavigate, games, onCreateGame, onUpdateGame, onDeleteGame }) => {
+const DashboardPage = ({ onNavigate, onLogout, games, onCreateGame, onUpdateGame, onDeleteGame }) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -249,7 +249,7 @@ const DashboardPage = ({ onNavigate, games, onCreateGame, onUpdateGame, onDelete
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col relative">
       {/* Top Navigation (Minimalist) */}
-      <Header onNavigate={onNavigate} activePage="dashboard" />
+      <Header onNavigate={onNavigate} onLogout={onLogout} activePage="dashboard" />
 
       {/* Main Content Container */}
       <main className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-12 flex flex-col gap-16">

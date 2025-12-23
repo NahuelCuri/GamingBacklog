@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Header = ({ onNavigate, activePage }) => {
+const Header = ({ onNavigate, onLogout, activePage }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const isActive = (page) => activePage === page;
@@ -68,7 +68,7 @@ const Header = ({ onNavigate, activePage }) => {
                             <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)}></div>
                             <div className="absolute right-0 top-full mt-2 w-48 bg-surface-dark border border-white/5 rounded-xl shadow-xl z-20 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                                 <button
-                                    onClick={() => onNavigate('login')}
+                                    onClick={() => onLogout()}
                                     className="w-full text-left px-4 py-3 text-sm text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="material-symbols-outlined text-[18px] text-text-muted group-hover:text-red-400 transition-colors">logout</span>

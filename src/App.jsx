@@ -9,10 +9,18 @@ function App() {
   const [view, setView] = useState('login'); // 'login', 'dashboard', 'picker', 'statistics'
   const [games, setGames] = useState([]);
   const [userId, setUserId] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
 
   useEffect(() => {
     const initData = async () => {
       try {
+        // Quick check for existing token to skip to dashboard
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+          setView('dashboard');
+          setToken(storedToken);
+        }
+
         // User setup
         let users = await getUsers();
         let currentUser;
@@ -24,6 +32,11 @@ function App() {
               email: "gamer@example.com",
               password: "password123"
             });
+            if (currentUser && currentUser.token) {
+              localStorage.setItem('token', currentUser.token);
+              setToken(currentUser.token);
+              setView('dashboard'); // Ensure view is updated for new users too
+            }
           } catch (err) {
             console.warn("User creation failed (likely exists), attempting to fetch again...");
             // Retry fetch in case of race condition or duplicate error
@@ -33,9 +46,14 @@ function App() {
             }
           }
         } else {
+          // If we have users, try to find the one matching the token if possible, or just default to first
+          // In a real app we'd call /me. Here we just pick one.
           currentUser = users[0];
         }
-        setUserId(currentUser.id);
+
+        if (currentUser) {
+          setUserId(currentUser.id);
+        }
 
         // Games setup
         const fetchedGames = await getGames();
@@ -66,8 +84,14 @@ function App() {
   }, []);
 
   const handleLogin = (user) => {
-    if (user && user.id) {
-      setUserId(user.id);
+    if (user) {
+      if (user.token) {
+        localStorage.setItem('token', user.token);
+        setToken(user.token);
+      }
+      if (user.id) {
+        setUserId(user.id);
+      }
     }
     setView('dashboard');
   };
@@ -147,12 +171,19 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUserId(null);
+    setView('login');
+  };
+
   return (
     <div className={view === 'login' ? "min-h-screen flex items-center justify-center p-4" : ""}>
       {view === 'login' && <LoginPage onLogin={handleLogin} />}
-      {view === 'dashboard' && <DashboardPage onNavigate={handleNavigate} games={games} onCreateGame={handleCreateGame} onUpdateGame={handleUpdateGame} onDeleteGame={handleDeleteGame} />}
-      {view === 'picker' && <RandomPickerPage onNavigate={handleNavigate} games={games} />}
-      {view === 'statistics' && <StatisticsPage onNavigate={handleNavigate} games={games} />}
+      {view === 'dashboard' && <DashboardPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} onCreateGame={handleCreateGame} onUpdateGame={handleUpdateGame} onDeleteGame={handleDeleteGame} />}
+      {view === 'picker' && <RandomPickerPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} />}
+      {view === 'statistics' && <StatisticsPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} />}
     </div>
   )
 }
