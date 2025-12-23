@@ -3,8 +3,10 @@ import LoginPage from './components/LoginPage'
 import DashboardPage, { generateData } from './components/DashboardPage'
 import RandomPickerPage from './components/RandomPickerPage'
 
+import StatisticsPage from './components/StatisticsPage'
+
 function App() {
-  const [view, setView] = useState('login'); // 'login', 'dashboard', 'picker'
+  const [view, setView] = useState('login'); // 'login', 'dashboard', 'picker', 'statistics'
   const [games, setGames] = useState([]);
 
   useEffect(() => {
@@ -28,6 +30,7 @@ function App() {
       {view === 'login' && <LoginPage onLogin={handleLogin} />}
       {view === 'dashboard' && <DashboardPage onNavigate={handleNavigate} games={games} onUpdateGame={handleUpdateGame} onDeleteGame={handleDeleteGame} />}
       {view === 'picker' && <RandomPickerPage onNavigate={handleNavigate} games={games} />}
+      {view === 'statistics' && <StatisticsPage onNavigate={handleNavigate} games={games} />}
     </div>
   )
 }

@@ -42,7 +42,8 @@ export const generateData = (count) => {
       statusColor: status.color,
       hours: Math.floor(Math.random() * 500),
       dateFinished: dateFinished,
-      score: (Math.random() * 10).toFixed(1) // Random score 0.0 - 10.0
+      score: (Math.random() * 10).toFixed(1), // Random score 0.0 - 10.0
+      releaseYear: 2000 + Math.floor(Math.random() * 25) // Random year 2000-2024
     };
   });
 };
@@ -91,8 +92,8 @@ const Row = ({ index, style, data }) => {
             <span className="relative flex h-2.5 w-2.5">
               {item.status === 'Playing' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-500 opacity-75"></span>}
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${item.status === 'Playing' ? 'bg-violet-500' :
-                  item.status === 'Finished' ? 'bg-primary' :
-                    'bg-slate-500'
+                item.status === 'Finished' ? 'bg-primary' :
+                  'bg-slate-500'
                 }`}></span>
             </span>
             <span className={`text-sm font-medium ${item.status === 'Playing' ? 'text-violet-500' :

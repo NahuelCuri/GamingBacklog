@@ -36,6 +36,12 @@ const Header = ({ onNavigate, activePage }) => {
                         Random Picker
                     </button>
                     <button
+                        onClick={() => onNavigate('statistics')}
+                        className={`text-sm font-medium py-1 ${isActive('statistics') ? activeStyle : inactiveStyle}`}
+                    >
+                        Statistics
+                    </button>
+                    <button
                         className="text-sm font-medium text-text-muted hover:text-text-light transition-colors py-1"
                     >
                         Lists
