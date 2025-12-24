@@ -130,6 +130,12 @@ const gamesSlice = createSlice({
             })
             .addCase(removeGame.rejected, (state, action) => {
                 console.error('Backend delete failed:', action.error);
+            })
+            // Clear games on logout
+            .addCase('auth/logout', (state) => {
+                state.items = [];
+                state.status = 'idle';
+                state.error = null;
             });
     },
 });

@@ -50,6 +50,7 @@ function App() {
     // Persist user details to support page reloads
     localStorage.setItem('user', JSON.stringify(user));
 
+    dispatch(fetchGames());
     dispatch(setView('dashboard'));
   };
 
