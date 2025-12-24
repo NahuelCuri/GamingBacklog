@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 
 const Header = ({ onNavigate, onLogout, activePage }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const user = useSelector((state) => state.auth.user);
 
     const isActive = (page) => activePage === page;
     const activeStyle = "text-text-light border-b-2 border-primary";
@@ -41,11 +43,14 @@ const Header = ({ onNavigate, onLogout, activePage }) => {
                     >
                         Statistics
                     </button>
-                    <button
-                        className="text-sm font-medium text-text-muted hover:text-text-light transition-colors py-1"
-                    >
-                        Lists
-                    </button>
+                    {user?.role === 'admin' && (
+                        <button
+                            onClick={() => onNavigate('admin-users')}
+                            className={`text-sm font-medium py-1 ${isActive('admin-users') ? activeStyle : inactiveStyle}`}
+                        >
+                            User Dashboard
+                        </button>
+                    )}
                 </nav>
             </div>
 

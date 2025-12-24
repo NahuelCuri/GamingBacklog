@@ -5,6 +5,7 @@ import DashboardPage from './components/DashboardPage';
 import RandomPickerPage from './components/RandomPickerPage';
 import StatisticsPage from './components/StatisticsPage';
 import RegisterPage from './components/RegisterPage';
+import AdminUsersPage from './components/AdminUsersPage';
 import { login, logout, setUser, setToken } from './store/slices/authSlice';
 import { fetchGames, addNewGame, updateExistingGame, removeGame } from './store/slices/gamesSlice';
 import { setView } from './store/slices/uiSlice';
@@ -109,6 +110,7 @@ function App() {
       {view === 'dashboard' && <DashboardPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} onCreateGame={handleCreateGame} onUpdateGame={handleUpdateGame} onDeleteGame={handleDeleteGame} />}
       {view === 'picker' && <RandomPickerPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} />}
       {view === 'statistics' && <StatisticsPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} />}
+      {view === 'admin-users' && <AdminUsersPage onNavigate={handleNavigate} onLogout={handleLogout} />}
     </div>
   )
 }
