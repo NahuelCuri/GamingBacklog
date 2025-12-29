@@ -1,4 +1,7 @@
 import axios from 'axios';
+import { store } from '../store';
+import { logout } from '../store/slices/authSlice';
+import { setView } from '../store/slices/uiSlice';
 
 const API_URL = 'http://localhost:3000'; // Adjust if backend runs elsewhere
 
@@ -13,6 +16,17 @@ api.interceptors.request.use((config) => {
     }
     return config;
 });
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            store.dispatch(logout());
+            store.dispatch(setView('login'));
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const checkHealth = async () => {
     try {
@@ -38,6 +52,16 @@ export const createUser = async (userData) => {
 export const loginUser = async (credentials) => {
     const response = await api.post('/api/users/login', credentials);
     return response.data.data;
+};
+
+export const updateUser = async (id, userData) => {
+    const response = await api.put(`/api/users/${id}`, userData);
+    return response.data.data;
+};
+
+export const deleteUser = async (id) => {
+    const response = await api.delete(`/api/users/${id}`);
+    return response.data;
 };
 
 // --- Games ---

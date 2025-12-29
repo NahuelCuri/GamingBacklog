@@ -28,6 +28,7 @@ const authSlice = createSlice({
             state.status = 'idle';
             state.error = null;
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
         },
         // Useful for setting user derived from existing token on app init
         setUser: (state, action) => {

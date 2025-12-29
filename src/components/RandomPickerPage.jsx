@@ -1,12 +1,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Header from './Header';
+import GameSelectionModal from './GameSelectionModal';
 
 const RandomPickerPage = ({ onNavigate, games }) => {
     const [isSpinning, setIsSpinning] = useState(false);
     const [winner, setWinner] = useState(null);
     const [offset, setOffset] = useState(0);
     const [items, setItems] = useState([]);
+    const [showSelectionModal, setShowSelectionModal] = useState(false);
 
     // Config
     const CARD_WIDTH = 200; // Width of one game card
@@ -194,7 +196,10 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                     </button>
 
                     {!isSpinning && (
-                        <p className="text-xs text-slate-500 font-mono">
+                        <p
+                            className="text-xs text-slate-500 font-mono cursor-pointer hover:text-primary transition-colors duration-200"
+                            onClick={() => setShowSelectionModal(true)}
+                        >
                             {games ? `${games.length} games in the pool` : 'Loading...'}
                         </p>
                     )}
@@ -235,6 +240,12 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                 )}
 
             </main>
+
+            <GameSelectionModal
+                isOpen={showSelectionModal}
+                onClose={() => setShowSelectionModal(false)}
+                games={games}
+            />
         </div>
     );
 };

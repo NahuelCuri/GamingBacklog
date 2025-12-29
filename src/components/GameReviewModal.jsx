@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import PlatformIcon from './PlatformIcon';
 
 const GameReviewModal = ({ isOpen, onClose, game, onEdit }) => {
     if (!isOpen || !game) return null;
@@ -33,9 +34,9 @@ const GameReviewModal = ({ isOpen, onClose, game, onEdit }) => {
                         {/* Gradient Overlay for text readability on mobile if needed */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:hidden"></div>
                         {/* Floating Platform Badge (Visual Flair) */}
-                        <div className="absolute bottom-4 left-4 hidden md:flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                            <span className="material-symbols-outlined text-white/80" style={{ fontSize: '16px' }}>videogame_asset</span>
-                            <span className="text-xs font-medium text-white/90">Nintendo Switch</span>
+                        <div className="absolute bottom-4 left-4 hidden md:flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                            <PlatformIcon platform={game.platform} className="w-4 h-4 text-white/90" />
+                            <span className="text-xs font-medium text-white/90 capitalize">{game.platform || 'Undefined'}</span>
                         </div>
                     </div>
                 </div>
@@ -53,12 +54,12 @@ const GameReviewModal = ({ isOpen, onClose, game, onEdit }) => {
                         </div>
                         {/* Score Badge */}
                         <div className={`flex flex-col items-center justify-center rounded-2xl px-3 py-2 border shadow-glow min-w-[72px] ${parseFloat(game.score) >= 8 ? 'bg-emerald-500/10 border-emerald-500/20' :
-                                parseFloat(game.score) >= 5 ? 'bg-yellow-500/10 border-yellow-500/20' :
-                                    'bg-red-500/10 border-red-500/20'
+                            parseFloat(game.score) >= 5 ? 'bg-yellow-500/10 border-yellow-500/20' :
+                                'bg-red-500/10 border-red-500/20'
                             }`}>
                             <span className={`text-3xl font-bold leading-none tracking-tighter ${parseFloat(game.score) >= 8 ? 'text-emerald-500' :
-                                    parseFloat(game.score) >= 5 ? 'text-yellow-500' :
-                                        'text-red-500'
+                                parseFloat(game.score) >= 5 ? 'text-yellow-500' :
+                                    'text-red-500'
                                 }`}>{game.score || '-'}</span>
                         </div>
                     </div>

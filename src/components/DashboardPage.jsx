@@ -110,11 +110,12 @@ const Row = ({ index, style, data }) => {
 
         {/* Score Column */}
         <div className="col-span-6 md:col-span-1 flex items-center justify-end font-bold text-lg tabular-nums">
-          <span className={`${parseFloat(item.score) >= 8 ? 'text-emerald-500' :
-            parseFloat(item.score) >= 5 ? 'text-yellow-500' :
-              'text-red-500'
+          <span className={`${!item.score || isNaN(parseFloat(item.score)) ? 'text-slate-500' :
+            parseFloat(item.score) >= 8 ? 'text-emerald-500' :
+              parseFloat(item.score) >= 5 ? 'text-yellow-500' :
+                'text-red-500'
             }`}>
-            {item.score}
+            {item.score || '-'}
           </span>
         </div>
 
@@ -153,7 +154,7 @@ const DashboardPage = ({ onNavigate, onLogout, games, onCreateGame, onUpdateGame
       title: '',
       genre: '',
       hours: '0',
-      score: '5.0',
+      score: '',
       status: 'Unplayed',
       vibes: [],
       review: '',
@@ -341,6 +342,8 @@ const DashboardPage = ({ onNavigate, onLogout, games, onCreateGame, onUpdateGame
       {/* Floating Action Button (Test Game) */}
       <button
         onClick={() => {
+          const platforms = ['Steam', 'Xbox', 'Epic', 'Switch', 'GOG', 'Pirated'];
+          const randomPlatform = platforms[Math.floor(Math.random() * platforms.length)];
           const testGame = {
             title: `Test Game ${new Date().toLocaleTimeString()}`,
             genre: "Testing",
@@ -351,7 +354,8 @@ const DashboardPage = ({ onNavigate, onLogout, games, onCreateGame, onUpdateGame
             review: "This is an automatically generated test game.",
             hltb: "10",
             cover: `https://picsum.photos/seed/${Date.now()}/200/300`,
-            dateFinished: ""
+            dateFinished: "",
+            platform: randomPlatform
           };
           onCreateGame(testGame);
         }}

@@ -56,6 +56,7 @@ const gamesSlice = createSlice({
                         releaseYear: g.release_year,
                         review: g.review_text,
                         hltb: g.hltb_estimate,
+                        platform: g.platform,
                         vibes: g.Tags ? g.Tags.map(t => t.name) : []
                     };
                 });
@@ -85,6 +86,7 @@ const gamesSlice = createSlice({
                     releaseYear: createdGame.release_year,
                     review: createdGame.review_text,
                     hltb: createdGame.hltb_estimate,
+                    platform: createdGame.platform,
                     vibes: []
                 };
                 state.items.unshift(mappedGame);
@@ -113,6 +115,7 @@ const gamesSlice = createSlice({
                         releaseYear: updatedGame.release_year,
                         review: updatedGame.review_text,
                         hltb: updatedGame.hltb_estimate,
+                        platform: updatedGame.platform,
                         // vibes: ... (tags not yet in update response typically, unless handled)
                     };
                 }

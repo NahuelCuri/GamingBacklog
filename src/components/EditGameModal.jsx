@@ -9,18 +9,20 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
         title: '',
         genre: '',
         hours: '',
-        score: '9.5',
+        score: '',
         status: 'completed',
         vibes: [],
         review: '',
         hltb: '',
         cover: '',
-        dateFinished: ''
+        dateFinished: '',
+        platform: 'steam'
     });
 
     const [vibeInput, setVibeInput] = useState('');
     const [errors, setErrors] = useState({});
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+    const [isPlatformDropdownOpen, setIsPlatformDropdownOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef(null);
 
@@ -32,13 +34,14 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                 genre: game.genre,
                 hours: game.hours,
                 // Mock data for fields not in the game object but in logic
-                score: '9.5',
+                score: game.score !== undefined && game.score !== null ? game.score : '',
                 status: game.status.toLowerCase().replace(' ', '-') || 'finished',
                 vibes: ['Atmospheric', 'Difficult', 'Great Soundtrack'],
                 review: 'A masterpiece of world design, challenging combat, and open-ended exploration. Truly one of the best games I\'ve ever played. The boss fights are unforgettable.',
                 hltb: '60', // Mock default
                 cover: game.cover,
-                dateFinished: game.dateFinished || ''
+                dateFinished: game.dateFinished || '',
+                platform: game.platform || 'steam'
             });
             setErrors({});
         }
@@ -47,10 +50,12 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
     const validate = () => {
         const newErrors = {};
 
-        // Score validation (1-10)
-        const scoreNum = parseFloat(formData.score);
-        if (isNaN(scoreNum) || scoreNum < 1 || scoreNum > 10) {
-            newErrors.score = 'Score must be between 1 and 10';
+        // Score validation (optional, 1-10 if provided)
+        if (formData.score !== '') {
+            const scoreNum = parseFloat(formData.score);
+            if (isNaN(scoreNum) || scoreNum < 1 || scoreNum > 10) {
+                newErrors.score = 'Score must be between 1 and 10';
+            }
         }
 
         // HLTB validation (positive number)
@@ -115,6 +120,11 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
     const handleStatusSelect = (status) => {
         setFormData(prev => ({ ...prev, status }));
         setIsStatusDropdownOpen(false);
+    };
+
+    const handlePlatformSelect = (platform) => {
+        setFormData(prev => ({ ...prev, platform }));
+        setIsPlatformDropdownOpen(false);
     };
 
     const handleImageUpload = async (e) => {
@@ -299,55 +309,94 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                 </div>
                             </div>
 
-                            {/* Status Dropdown (Custom) */}
-                            <div className="flex flex-col gap-2 relative z-50">
-                                <label className="text-text-muted text-sm font-medium ml-1">Status</label>
-                                <div className="relative">
-                                    {/* Trigger */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                                        className="w-full bg-background-dark border border-border-dark rounded-xl px-5 py-4 text-text-light flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 cursor-pointer"
-                                    >
-                                        <span className="capitalize">{formData.status}</span>
-                                        <span className={`material-symbols-outlined text-text-muted transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
-                                    </button>
 
-                                    {/* Dropdown Menu */}
-                                    {isStatusDropdownOpen && (
-                                        <>
-                                            {/* Backdrop for click-outside */}
-                                            <div
-                                                className="fixed inset-0 z-40"
-                                                onClick={() => setIsStatusDropdownOpen(false)}
-                                            ></div>
 
-                                            {/* Menu Items */}
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-background-dark border border-border-dark rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
-                                                {['finished', 'playing', 'unplayed'].map((status) => (
-                                                    <button
-                                                        key={status}
-                                                        type="button"
-                                                        onClick={() => handleStatusSelect(status)}
-                                                        className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150 capitalize flex items-center justify-between group cursor-pointer ${formData.status === status
-                                                            ? status === 'playing' ? 'bg-violet-500/10 text-violet-500'
-                                                                : status === 'finished' ? 'bg-primary/10 text-primary'
-                                                                    : 'bg-white/5 text-slate-400'
-                                                            : 'text-text-light hover:bg-white/5'
-                                                            }`}
-                                                    >
-                                                        {status}
-                                                        {formData.status === status && (
-                                                            <span className={`material-symbols-outlined text-[18px] ${status === 'playing' ? 'text-violet-500' :
-                                                                status === 'finished' ? 'text-primary' :
-                                                                    'text-slate-400'
-                                                                }`}>check</span>
-                                                        )}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
+                            {/* Platform & Status Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-50">
+                                {/* Platform Dropdown */}
+                                <div className="flex flex-col gap-2 relative">
+                                    <label className="text-text-muted text-sm font-medium ml-1">Platform</label>
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPlatformDropdownOpen(!isPlatformDropdownOpen)}
+                                            className="w-full bg-background-dark border border-border-dark rounded-xl px-5 py-4 text-text-light flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 cursor-pointer"
+                                        >
+                                            <span className="capitalize">{formData.platform}</span>
+                                            <span className={`material-symbols-outlined text-text-muted transition-transform duration-200 ${isPlatformDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                                        </button>
+
+                                        {isPlatformDropdownOpen && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setIsPlatformDropdownOpen(false)}></div>
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-background-dark border border-border-dark rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1 max-h-[200px] overflow-y-auto custom-scrollbar">
+                                                    {['Steam', 'Xbox', 'Epic', 'Switch', 'GOG', 'Pirated'].map((platform) => (
+                                                        <button
+                                                            key={platform}
+                                                            type="button"
+                                                            onClick={() => handlePlatformSelect(platform)}
+                                                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150 capitalize flex items-center justify-between group cursor-pointer ${formData.platform === platform ? 'bg-primary/10 text-primary' : 'text-text-light hover:bg-white/5'}`}
+                                                        >
+                                                            {platform}
+                                                            {formData.platform === platform && <span className="material-symbols-outlined text-[18px] text-primary">check</span>}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Status Dropdown */}
+                                <div className="flex flex-col gap-2 relative">
+                                    <label className="text-text-muted text-sm font-medium ml-1">Status</label>
+                                    <div className="relative">
+                                        {/* Trigger */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                                            className="w-full bg-background-dark border border-border-dark rounded-xl px-5 py-4 text-text-light flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 cursor-pointer"
+                                        >
+                                            <span className="capitalize">{formData.status}</span>
+                                            <span className={`material-symbols-outlined text-text-muted transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                                        </button>
+
+                                        {/* Dropdown Menu */}
+                                        {isStatusDropdownOpen && (
+                                            <>
+                                                {/* Backdrop for click-outside */}
+                                                <div
+                                                    className="fixed inset-0 z-40"
+                                                    onClick={() => setIsStatusDropdownOpen(false)}
+                                                ></div>
+
+                                                {/* Menu Items */}
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-background-dark border border-border-dark rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
+                                                    {['finished', 'playing', 'unplayed'].map((status) => (
+                                                        <button
+                                                            key={status}
+                                                            type="button"
+                                                            onClick={() => handleStatusSelect(status)}
+                                                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150 capitalize flex items-center justify-between group cursor-pointer ${formData.status === status
+                                                                ? status === 'playing' ? 'bg-violet-500/10 text-violet-500'
+                                                                    : status === 'finished' ? 'bg-primary/10 text-primary'
+                                                                        : 'bg-white/5 text-slate-400'
+                                                                : 'text-text-light hover:bg-white/5'
+                                                                }`}
+                                                        >
+                                                            {status}
+                                                            {formData.status === status && (
+                                                                <span className={`material-symbols-outlined text-[18px] ${status === 'playing' ? 'text-violet-500' :
+                                                                    status === 'finished' ? 'text-primary' :
+                                                                        'text-slate-400'
+                                                                    }`}>check</span>
+                                                            )}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -423,6 +472,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                 </div>
             </div>
         </div>
+
     );
 };
 
