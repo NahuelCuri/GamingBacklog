@@ -43,6 +43,12 @@ const Header = ({ onNavigate, onLogout, activePage }) => {
                     >
                         Statistics
                     </button>
+                    <button
+                        onClick={() => onNavigate('tier-lists')}
+                        className={`text-sm font-medium py-1 ${isActive('tier-lists') ? activeStyle : inactiveStyle}`}
+                    >
+                        Tier Lists
+                    </button>
                     {user?.role === 'admin' && (
                         <button
                             onClick={() => onNavigate('admin-users')}

@@ -6,6 +6,8 @@ import RandomPickerPage from './components/RandomPickerPage';
 import StatisticsPage from './components/StatisticsPage';
 import RegisterPage from './components/RegisterPage';
 import AdminUsersPage from './components/AdminUsersPage';
+import TierListDashboard from './components/TierListDashboard';
+import TierListEditor from './components/TierListEditor';
 import { login, logout, setUser, setToken } from './store/slices/authSlice';
 import { fetchGames, addNewGame, updateExistingGame, removeGame } from './store/slices/gamesSlice';
 import { setView } from './store/slices/uiSlice';
@@ -14,6 +16,7 @@ import { getUsers } from './services/api';
 function App() {
   const dispatch = useDispatch();
   const view = useSelector((state) => state.ui.view);
+  const viewParams = useSelector((state) => state.ui.viewParams);
   const games = useSelector((state) => state.games.items);
   const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
@@ -113,6 +116,8 @@ function App() {
       {view === 'picker' && <RandomPickerPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} />}
       {view === 'statistics' && <StatisticsPage onNavigate={handleNavigate} onLogout={handleLogout} games={games} />}
       {view === 'admin-users' && <AdminUsersPage onNavigate={handleNavigate} onLogout={handleLogout} />}
+      {view === 'tier-lists' && <TierListDashboard onNavigate={handleNavigate} onLogout={handleLogout} />}
+      {view === 'tier-list-editor' && <TierListEditor tierListId={viewParams} onNavigate={handleNavigate} />}
     </div>
   )
 }

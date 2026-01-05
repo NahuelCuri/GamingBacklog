@@ -1,7 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-    view: 'login', // 'login', 'dashboard', 'picker', 'statistics'
+    view: 'login', // 'login', 'dashboard', 'picker', 'statistics', 'tier-lists', 'tier-list-editor'
+    viewParams: null,
 };
 
 const uiSlice = createSlice({
@@ -9,7 +10,13 @@ const uiSlice = createSlice({
     initialState,
     reducers: {
         setView: (state, action) => {
-            state.view = action.payload;
+            if (typeof action.payload === 'object' && action.payload.view) {
+                state.view = action.payload.view;
+                state.viewParams = action.payload.params || null;
+            } else {
+                state.view = action.payload;
+                state.viewParams = null;
+            }
         },
     },
 });
