@@ -7,6 +7,8 @@ import Header from './Header';
 const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelectedIds, toggleSelection, onNavigate, onLogout }) => {
     // Genre Filter State: Set of strings. Empty set means "All".
     const [selectedGenres, setSelectedGenres] = useState(new Set());
+    // Search Query State
+    const [searchQuery, setSearchQuery] = useState('');
 
     const uniqueGenres = useMemo(() => {
         const genres = games.map(g => g.genre).filter(Boolean);
@@ -14,11 +16,21 @@ const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelec
     }, [games]);
 
     const filteredGames = useMemo(() => {
-        // If no genres selected, show all games
-        if (selectedGenres.size === 0) return games;
-        // Otherwise filter by selected genres
-        return games.filter(g => selectedGenres.has(g.genre));
-    }, [games, selectedGenres]);
+        let result = games;
+
+        // Filter by Search Query
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(g => g.title.toLowerCase().includes(query));
+        }
+
+        // Filter by Selected Genres
+        if (selectedGenres.size > 0) {
+            result = result.filter(g => selectedGenres.has(g.genre));
+        }
+
+        return result;
+    }, [games, selectedGenres, searchQuery]);
 
     const toggleGenre = (genre) => {
         if (genre === 'All') {
@@ -31,7 +43,10 @@ const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelec
 
         if (isActive) {
             newGenres.delete(genre);
-            // DESELECT games of this genre
+            // DESELECT games of this genre (respecting current search filter?)
+            // Implementation choice: select/deselect logic operates on *currently matching games*?
+            // "If i click on a pill that is selected, it should deselect all of the games selected by clicking on that pill."
+            // This implies referring to the genre group specifically.
             const gamesToDeselect = games.filter(g => g.genre === genre);
             setSelectedIds(prev => {
                 const next = new Set(prev);
@@ -100,10 +115,13 @@ const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelec
                             <div
                                 onClick={() => {
                                     if (selectedIds.size === games.length) {
+                                        // Act as "Deselect All" if everything is selected
                                         setSelectedIds(new Set());
                                     } else {
+                                        // Otherwise "Select All"
                                         setSelectedIds(new Set(games.map(g => g.id)));
                                     }
+                                    // Reset filters? Maybe keep them.
                                 }}
                                 className="px-4 py-2 bg-surface-dark rounded-full border border-surface-hover flex items-center gap-2 cursor-pointer hover:bg-surface-hover group transition-colors"
                             >
@@ -115,44 +133,54 @@ const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelec
                         </div>
                     </div>
 
-                    <div className="bg-background-dark/95 backdrop-blur-sm pb-4">
-                        <div className="flex flex-col gap-4">
-                            {/* Genre Dropdown & Filter - Simplified for this view, preserving pills */}
-                            <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                                <button
-                                    onClick={() => {
-                                        if (selectedIds.size === games.length) {
-                                            // Act as "Deselect All" if everything is selected
-                                            setSelectedIds(new Set());
-                                        } else {
-                                            // Otherwise "Select All"
-                                            setSelectedIds(new Set(games.map(g => g.id)));
-                                        }
-                                        toggleGenre('All');
-                                    }}
-                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-bold text-sm hover:opacity-90 transition-opacity whitespace-nowrap ${selectedGenres.size === 0 && selectedIds.size > 0
+                    <div className="bg-background-dark/95 backdrop-blur-sm pb-4 flex flex-col gap-4">
+                        {/* Search Bar - Added */}
+                        <div className="relative w-full max-w-xl">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">search</span>
+                            <input
+                                type="text"
+                                placeholder="Search games by title..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-surface-dark border border-surface-hover rounded-xl py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            />
+                        </div>
+
+                        {/* Genre Dropdown & Filter - Simplified for this view, preserving pills */}
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                            <button
+                                onClick={() => {
+                                    if (selectedIds.size === games.length) {
+                                        // Act as "Deselect All" if everything is selected
+                                        setSelectedIds(new Set());
+                                    } else {
+                                        // Otherwise "Select All"
+                                        setSelectedIds(new Set(games.map(g => g.id)));
+                                    }
+                                    toggleGenre('All');
+                                }}
+                                className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-bold text-sm hover:opacity-90 transition-opacity whitespace-nowrap ${selectedGenres.size === 0 && selectedIds.size > 0
                                         ? 'bg-primary text-background-dark'
                                         : 'bg-surface-dark border border-surface-hover text-text-muted hover:bg-surface-hover hover:text-white'
-                                        }`}
-                                >
-                                    {selectedGenres.size === 0 && selectedIds.size > 0 && <span className="material-symbols-outlined text-[18px]">check</span>}
-                                    All Games
-                                </button>
+                                    }`}
+                            >
+                                {selectedGenres.size === 0 && selectedIds.size > 0 && <span className="material-symbols-outlined text-[18px]">check</span>}
+                                All Games
+                            </button>
 
-                                {uniqueGenres.map(genre => (
-                                    <button
-                                        key={genre}
-                                        onClick={() => toggleGenre(genre)}
-                                        className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm hover:opacity-90 transition-opacity whitespace-nowrap ${selectedGenres.has(genre)
+                            {uniqueGenres.map(genre => (
+                                <button
+                                    key={genre}
+                                    onClick={() => toggleGenre(genre)}
+                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm hover:opacity-90 transition-opacity whitespace-nowrap ${selectedGenres.has(genre)
                                             ? 'bg-primary text-background-dark font-bold'
                                             : 'bg-surface-dark border border-surface-hover text-text-muted hover:bg-surface-hover hover:text-white'
-                                            }`}
-                                    >
-                                        {selectedGenres.has(genre) && <span className="material-symbols-outlined text-[18px]">check</span>}
-                                        {genre}
-                                    </button>
-                                ))}
-                            </div>
+                                        }`}
+                                >
+                                    {selectedGenres.has(genre) && <span className="material-symbols-outlined text-[18px]">check</span>}
+                                    {genre}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -220,8 +248,8 @@ const GameRow = ({ index, style, data }) => {
                 <div
                     onClick={() => toggleSelection(game.id)}
                     className={`group relative bg-surface-dark hover:bg-surface-hover rounded-2xl p-4 transition-all duration-200 border cursor-pointer h-full flex items-center ${isSelected
-                        ? 'border-violet-500 shadow-[0_0_15px_-3px_rgba(139,92,246,0.5)]' // Highlight style
-                        : 'border-transparent hover:border-surface-hover shadow-sm opacity-60 hover:opacity-100'
+                            ? 'border-violet-500 shadow-[0_0_15px_-3px_rgba(139,92,246,0.5)]' // Highlight style
+                            : 'border-transparent hover:border-surface-hover shadow-sm opacity-60 hover:opacity-100'
                         }`}
                 >
                     <div className="flex flex-col md:grid md:grid-cols-12 gap-4 items-center w-full pointer-events-none">
