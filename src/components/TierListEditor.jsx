@@ -22,6 +22,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { getTierList, updateTierList } from '../services/tierlist';
 import { getGames } from '../services/api';
 import html2canvas from 'html2canvas';
+import Header from './Header';
 
 // --- Draggable Game Item Component ---
 const SortableGameItem = ({ game, id }) => {
@@ -331,43 +332,7 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
             onDragEnd={handleDragEnd}
         >
             <div className="bg-background-light dark:bg-background-dark text-[#F8FAFC] font-display min-h-screen flex flex-col overflow-x-hidden selection:bg-primary/30">
-                {/* Navbar */}
-                <header className="sticky top-0 z-50 border-b border-[#1E293B] bg-background-dark/80 backdrop-blur-md px-6 py-4">
-                    <div className="max-w-7xl mx-auto flex items-center justify-between">
-                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('tier-lists')}>
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary">
-                                <span className="material-symbols-outlined text-2xl">view_kanban</span>
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold tracking-tight text-white">TierMaster</h1>
-                                <p className="text-xs text-gray-400">Drag & Drop Builder</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="flex h-10 items-center justify-center gap-2 rounded-full bg-[#1E293B] px-5 text-sm font-semibold text-white transition hover:bg-[#2C3B4E]"
-                            >
-                                <span className="material-symbols-outlined text-[18px]">restart_alt</span>
-                                <span>Reset</span>
-                            </button>
-                            <button
-                                onClick={handleSaveImage}
-                                className="flex h-10 items-center justify-center gap-2 rounded-full bg-[#1E293B] px-5 text-sm font-semibold text-white transition hover:bg-[#2C3B4E]"
-                            >
-                                <span className="material-symbols-outlined text-[20px]">download</span>
-                                <span>Save Image</span>
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                className="flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-background-dark transition hover:bg-emerald-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
-                            >
-                                <span className="material-symbols-outlined text-[20px]">save</span>
-                                <span>Save</span>
-                            </button>
-                        </div>
-                    </div>
-                </header>
+                <Header onNavigate={onNavigate} onLogout={() => window.location.reload()} activePage="tier-lists" />
 
                 {/* Main Content */}
                 <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-8">
@@ -434,6 +399,31 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
                                 ))}
                             </div>
                         </SortableContext>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end gap-3 pb-8">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="flex h-10 items-center justify-center gap-2 rounded-full bg-[#1E293B] px-5 text-sm font-semibold text-white transition hover:bg-[#2C3B4E]"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                            <span>Reset</span>
+                        </button>
+                        <button
+                            onClick={handleSaveImage}
+                            className="flex h-10 items-center justify-center gap-2 rounded-full bg-[#1E293B] px-5 text-sm font-semibold text-white transition hover:bg-[#2C3B4E]"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">download</span>
+                            <span>Save Image</span>
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-background-dark transition hover:bg-emerald-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">save</span>
+                            <span>Save</span>
+                        </button>
                     </div>
                 </main>
 
