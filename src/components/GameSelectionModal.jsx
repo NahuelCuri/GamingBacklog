@@ -4,7 +4,7 @@ import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import Header from './Header';
 
-const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelectedIds, toggleSelection }) => {
+const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelectedIds, toggleSelection, onNavigate, onLogout }) => {
     // Genre Filter State: Set of strings. Empty set means "All".
     const [selectedGenres, setSelectedGenres] = useState(new Set());
 
@@ -72,7 +72,7 @@ const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelec
 
             {/* Top Navigation - Standard Header + Modal specific close */}
             <div className="flex-none w-full bg-background-dark/95 backdrop-blur z-50">
-                <Header activePage="picker" onNavigate={() => { }} onLogout={() => { }} />
+                <Header activePage="picker" onNavigate={onNavigate} onLogout={onLogout} />
 
                 {/* Modal Specific Sub-header */}
                 <div className="w-full border-b border-surface-dark px-4 sm:px-6 lg:px-8 py-2 flex justify-end">

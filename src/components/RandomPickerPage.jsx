@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Header from './Header';
 import GameSelectionModal from './GameSelectionModal';
 
-const RandomPickerPage = ({ onNavigate, games }) => {
+const RandomPickerPage = ({ onNavigate, onLogout, games }) => {
     const [isSpinning, setIsSpinning] = useState(false);
     const [winner, setWinner] = useState(null);
     const [offset, setOffset] = useState(0);
@@ -116,7 +116,7 @@ const RandomPickerPage = ({ onNavigate, games }) => {
 
     return (
         <div className="bg-background-dark text-white font-display overflow-x-hidden min-h-screen flex flex-col">
-            <Header onNavigate={onNavigate} activePage="picker" />
+            <Header onNavigate={onNavigate} onLogout={onLogout} activePage="picker" />
 
             <main className="flex-grow flex flex-col items-center justify-center relative w-full overflow-hidden">
 
@@ -251,6 +251,8 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                 selectedIds={selectedIds}
                 setSelectedIds={setSelectedIds}
                 toggleSelection={toggleGameSelection}
+                onNavigate={onNavigate}
+                onLogout={onLogout}
             />
         </div>
     );
