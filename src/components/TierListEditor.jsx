@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -8,6 +8,10 @@ import {
     useSensors,
     DragOverlay,
     defaultDropAnimationSideEffects,
+    pointerWithin,
+    rectIntersection,
+    getFirstCollision,
+    closestCorners,
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -118,7 +122,31 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [activeDragItem, setActiveDragItem] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [showAllGames, setShowAllGames] = useState(false);
     const captureRef = useRef(null);
+    const lastOverId = useRef(null); // Keep track of last over id for smoother transitions
+
+    // Custom collision detection strategy
+    const customCollisionDetection = useCallback(
+        (args) => {
+            const pointerCollisions = pointerWithin(args);
+
+            // If pointer is inside something, use that
+            if (pointerCollisions.length > 0) {
+                return pointerCollisions;
+            }
+
+            // Fallback to rect intersection (good for containers)
+            const rectCollisions = rectIntersection(args);
+            if (rectCollisions.length > 0) {
+                return rectCollisions;
+            }
+
+            // Fallback to closest center if nothing else matches (e.g. slight miss)
+            return closestCenter(args);
+        },
+        []
+    );
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -153,7 +181,13 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
                 });
 
                 // Unranked Pool (Backlog games not in tiers)
-                const unranked = allGames.filter(g => !rankedGameIds.has(g.id)).map(g => ({ ...g, dragId: g.id }));
+                // We keep all unranked games in memory, but filter them in the render logic or here.
+                // Actually, for dragItems state, it's better to having them all available if possible, 
+                // but checking the previous implementation we were filtering here.
+                // Let's load ALL unranked into state, and filter by 'showAllGames' in the render part.
+                const unranked = allGames
+                    .filter(g => !rankedGameIds.has(g.id))
+                    .map(g => ({ ...g, dragId: g.id }));
                 initialItems['unranked'] = unranked;
 
                 setDragItems(initialItems);
@@ -268,6 +302,8 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
         setActiveDragItem(null);
     };
 
+    const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(false);
+
     const handleSave = async () => {
         // Construct payload
         // Rows need to be reconstructed with items
@@ -291,7 +327,7 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
 
         try {
             await updateTierList(tierList.id, payload);
-            alert("Tier List Saved!");
+            setIsSaveSuccessOpen(true);
         } catch (error) {
             console.error("Failed to save", error);
             alert("Failed to save.");
@@ -318,15 +354,17 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
         return <div className="min-h-screen bg-background-dark text-white flex items-center justify-center">Loading...</div>;
     }
 
-    // Filter unranked games by search
-    const filteredUnranked = (dragItems['unranked'] || []).filter(g =>
-        g.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Filter unranked games by search AND status toggle
+    const filteredUnranked = (dragItems['unranked'] || []).filter(g => {
+        const matchesSearch = g.title.toLowerCase().includes(searchQuery.toLowerCase());
+        const isFinished = g.status === 'finished' || g.status === 'Finished';
+        return matchesSearch && (showAllGames || isFinished);
+    });
 
     return (
         <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={customCollisionDetection}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
@@ -389,7 +427,23 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
                                 <span className="material-symbols-outlined text-primary">layers</span>
                                 Unranked Games
                             </h3>
-                            <span className="text-xs font-semibold bg-[#1E293B] text-gray-400 px-3 py-1 rounded-full">{filteredUnranked.length} Games Remaining</span>
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${showAllGames ? 'bg-primary border-primary' : 'border-gray-500 group-hover:border-primary'}`}>
+                                        {showAllGames && <span className="material-symbols-outlined text-black text-[16px] font-bold">check</span>}
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        className="hidden"
+                                        checked={showAllGames}
+                                        onChange={() => setShowAllGames(!showAllGames)}
+                                    />
+                                    <span className={`text-sm font-medium transition-colors ${showAllGames ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+                                        Show All Games
+                                    </span>
+                                </label>
+                                <span className="text-xs font-semibold bg-[#1E293B] text-gray-400 px-3 py-1 rounded-full">{filteredUnranked.length} Games</span>
+                            </div>
                         </div>
 
                         <SortableContext items={filteredUnranked.map(g => g.dragId)} strategy={rectSortingStrategy}>
@@ -444,6 +498,26 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
                         </div>
                     ) : null}
                 </DragOverlay>
+
+                {/* Save Success Modal */}
+                {isSaveSuccessOpen && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSaveSuccessOpen(false)}></div>
+                        <div className="relative w-full max-w-sm bg-surface-dark rounded-2xl shadow-2xl border border-white/5 p-6 animate-in fade-in zoom-in-95 duration-200 text-center">
+                            <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center mx-auto mb-4">
+                                <span className="material-symbols-outlined text-2xl">check_circle</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">Saved Successfully!</h3>
+                            <p className="text-gray-400 text-sm mb-6">Your tier list changes have been safely stored.</p>
+                            <button
+                                onClick={() => setIsSaveSuccessOpen(false)}
+                                className="w-full py-2.5 rounded-full bg-primary hover:bg-emerald-400 text-background-dark font-bold transition-all"
+                            >
+                                Awesome
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </DndContext>
     );

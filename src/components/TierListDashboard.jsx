@@ -5,6 +5,8 @@ import { getTierLists, deleteTierList, createTierList } from '../services/tierli
 const TierListDashboard = ({ onNavigate, onLogout }) => {
     const [tierLists, setTierLists] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newListName, setNewListName] = useState("");
 
     useEffect(() => {
         fetchTierLists();
@@ -21,13 +23,17 @@ const TierListDashboard = ({ onNavigate, onLogout }) => {
         }
     };
 
-    const handleCreateNew = async () => {
-        const name = prompt("Enter name for new Tier List:");
-        if (!name) return;
+    const handleCreateNew = () => {
+        setIsCreateModalOpen(true);
+        setNewListName("");
+    };
+
+    const submitCreateNew = async () => {
+        if (!newListName.trim()) return;
 
         try {
-            const newList = await createTierList({
-                name: name,
+            await createTierList({
+                name: newListName,
                 rows: [
                     { label: "S", color: "#FF7F7F", sort_order: 0, items: [] },
                     { label: "A", color: "#FFBF7F", sort_order: 1, items: [] },
@@ -36,14 +42,9 @@ const TierListDashboard = ({ onNavigate, onLogout }) => {
                     { label: "D", color: "#BFFF7F", sort_order: 4, items: [] },
                 ]
             });
-            // Navigate to editor with new ID which we handle in App.jsx via a specific mechanism usually,
-            // or we just refresh list.
-            // Since onNavigate usually takes a view name, we might need to pass data.
-            // For now, let's refresh list.
             fetchTierLists();
-            // ideally we would: onNavigate('tier-list-editor', { id: newList.id })
-            // but App.jsx simple view switcher might need update to support params.
-            // We'll address this in App.jsx.
+            setIsCreateModalOpen(false);
+            setNewListName("");
         } catch (error) {
             console.error("Failed to create tier list", error);
             alert("Failed to create tier list");
@@ -114,6 +115,47 @@ const TierListDashboard = ({ onNavigate, onLogout }) => {
                     </div>
                 )}
             </main>
+
+            {/* Create Tier List Modal */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCreateModalOpen(false)}></div>
+                    <div className="relative w-full max-w-md bg-surface-dark rounded-2xl shadow-2xl border border-white/5 p-8 animate-in fade-in zoom-in-95 duration-200">
+                        <h2 className="text-2xl font-bold text-white mb-6">Create New Tier List</h2>
+
+                        <div className="flex flex-col gap-2 mb-8">
+                            <label className="text-text-muted text-sm font-medium ml-1">List Name</label>
+                            <input
+                                className="w-full bg-background-dark border border-border-dark rounded-xl px-5 py-4 text-text-light placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+                                placeholder="e.g. My Favorite RPGs"
+                                type="text"
+                                value={newListName}
+                                onChange={(e) => setNewListName(e.target.value)}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') submitCreateNew();
+                                }}
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="px-6 py-3 rounded-full text-text-muted font-medium hover:text-white hover:bg-white/5 transition-all duration-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitCreateNew}
+                                disabled={!newListName.trim()}
+                                className="px-8 py-3 bg-primary hover:bg-emerald-400 text-background-dark rounded-full font-bold shadow-lg shadow-primary/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Create List
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
