@@ -121,15 +121,18 @@ const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelec
                             <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
                                 <button
                                     onClick={() => {
-                                        if (selectedIds.size === 0) {
-                                            // Act as "Select All" if nothing selected
+                                        if (selectedIds.size === games.length) {
+                                            // Act as "Deselect All" if everything is selected
+                                            setSelectedIds(new Set());
+                                        } else {
+                                            // Otherwise "Select All"
                                             setSelectedIds(new Set(games.map(g => g.id)));
                                         }
                                         toggleGenre('All');
                                     }}
                                     className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-bold text-sm hover:opacity-90 transition-opacity whitespace-nowrap ${selectedGenres.size === 0 && selectedIds.size > 0
-                                            ? 'bg-primary text-background-dark'
-                                            : 'bg-surface-dark border border-surface-hover text-text-muted hover:bg-surface-hover hover:text-white'
+                                        ? 'bg-primary text-background-dark'
+                                        : 'bg-surface-dark border border-surface-hover text-text-muted hover:bg-surface-hover hover:text-white'
                                         }`}
                                 >
                                     {selectedGenres.size === 0 && selectedIds.size > 0 && <span className="material-symbols-outlined text-[18px]">check</span>}
@@ -141,8 +144,8 @@ const GameSelectionModal = ({ isOpen, onClose, games = [], selectedIds, setSelec
                                         key={genre}
                                         onClick={() => toggleGenre(genre)}
                                         className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm hover:opacity-90 transition-opacity whitespace-nowrap ${selectedGenres.has(genre)
-                                                ? 'bg-primary text-background-dark font-bold'
-                                                : 'bg-surface-dark border border-surface-hover text-text-muted hover:bg-surface-hover hover:text-white'
+                                            ? 'bg-primary text-background-dark font-bold'
+                                            : 'bg-surface-dark border border-surface-hover text-text-muted hover:bg-surface-hover hover:text-white'
                                             }`}
                                     >
                                         {selectedGenres.has(genre) && <span className="material-symbols-outlined text-[18px]">check</span>}
@@ -217,8 +220,8 @@ const GameRow = ({ index, style, data }) => {
                 <div
                     onClick={() => toggleSelection(game.id)}
                     className={`group relative bg-surface-dark hover:bg-surface-hover rounded-2xl p-4 transition-all duration-200 border cursor-pointer h-full flex items-center ${isSelected
-                            ? 'border-violet-500 shadow-[0_0_15px_-3px_rgba(139,92,246,0.5)]' // Highlight style
-                            : 'border-transparent hover:border-surface-hover shadow-sm opacity-60 hover:opacity-100'
+                        ? 'border-violet-500 shadow-[0_0_15px_-3px_rgba(139,92,246,0.5)]' // Highlight style
+                        : 'border-transparent hover:border-surface-hover shadow-sm opacity-60 hover:opacity-100'
                         }`}
                 >
                     <div className="flex flex-col md:grid md:grid-cols-12 gap-4 items-center w-full pointer-events-none">

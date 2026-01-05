@@ -52,7 +52,7 @@ const RandomPickerPage = ({ onNavigate, games }) => {
     // If spin is active, we shouldn't change items. 
     // But user can't change selection while spinning (modal closed).
     useEffect(() => {
-        if (activeGames.length > 0 && !isSpinning) {
+        if (!isSpinning) {
             generateStrip(null);
         }
     }, [activeGames, isSpinning]);
@@ -197,7 +197,10 @@ const RandomPickerPage = ({ onNavigate, games }) => {
 
                     {!isSpinning && (
                         <p
-                            className="text-xs text-slate-500 font-mono cursor-pointer hover:text-primary transition-colors duration-200"
+                            className={`text-xs font-mono cursor-pointer transition-all duration-200 ${activeGames.length === 0
+                                ? 'text-violet-500 animate-pulse drop-shadow-[0_0_8px_rgba(139,92,246,0.5)] font-bold scale-110'
+                                : 'text-slate-500 hover:text-primary'
+                                }`}
                             onClick={() => setShowSelectionModal(true)}
                         >
                             {games ? `${activeGames.length} games in the pool` : 'Loading...'}
