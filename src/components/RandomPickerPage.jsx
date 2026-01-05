@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Header from './Header';
 import GameSelectionModal from './GameSelectionModal';
 
@@ -10,113 +10,109 @@ const RandomPickerPage = ({ onNavigate, games }) => {
     const [items, setItems] = useState([]);
     const [showSelectionModal, setShowSelectionModal] = useState(false);
 
-    // Config
-    const CARD_WIDTH = 200; // Width of one game card
-    const CARD_GAP = 16;   // Gap between cards
-    const VISIBLE_ITEMS = 5; // How many items visible at once (approx)
-    // The exact center position pixels (will be calculated)
+    // Pool Selection State (Lifted from Modal)
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const initializedRef = useRef(false);
 
-    // We need a long strip. Let's say 70 items. Winner is at index 60.
-    // That gives plenty of spin time.
-    const TOTAL_ITEMS = 80;
-    const WINNER_INDEX = 65;
-    const START_INDEX = 5; // Start index for consecutive spins
-    const lastJitterRef = useRef(0);
-
-    // Initialize the "strip" of games
+    // Initialize selection when games load
     useEffect(() => {
-        if (games && games.length > 0) {
-            generateStrip(null);
+        if (games && games.length > 0 && !initializedRef.current) {
+            setSelectedIds(new Set(games.map(g => g.id)));
+            initializedRef.current = true;
         }
     }, [games]);
 
-    const generateStrip = (forcedWinner) => {
-        if (!games || games.length === 0) return;
+    const activeGames = useMemo(() => {
+        if (!games) return [];
+        return games.filter(g => selectedIds.has(g.id));
+    }, [games, selectedIds]);
 
-        // Pick a winner if not provided
-        const contentCandidates = [...games]; // can filter if needed
+    const toggleGameSelection = (id) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    // Config
+    const CARD_WIDTH = 200;
+    const CARD_GAP = 16;
+    const TOTAL_ITEMS = 80;
+    const WINNER_INDEX = 65;
+    const START_INDEX = 5;
+    const lastJitterRef = useRef(0);
+
+    // Re-generate strip when ACTIVE games change (and not spinning)
+    // Avoid regenerating during spin though? 
+    // If spin is active, we shouldn't change items. 
+    // But user can't change selection while spinning (modal closed).
+    useEffect(() => {
+        if (activeGames.length > 0 && !isSpinning) {
+            generateStrip(null);
+        }
+    }, [activeGames, isSpinning]);
+
+    const generateStrip = (forcedWinner) => {
+        if (activeGames.length === 0) {
+            setItems([]);
+            return;
+        }
+
+        const contentCandidates = [...activeGames];
         const newWinner = forcedWinner || contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
 
-        // Fill the strip with random games
-        // We want the winner specifically at WINNER_INDEX
         const newItems = new Array(TOTAL_ITEMS).fill(null).map((_, i) => {
             if (i === WINNER_INDEX) return newWinner;
             return contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
         });
 
         setItems(newItems);
-        // Reset position: Start a bit before the beginning so it looks full
-        // Actually, we want to start at index 0 roughly aligned.
-        // Let's say we center align index 2 initially.
         setOffset(0);
     };
 
     const handleSpin = () => {
-        if (isSpinning || !games || games.length === 0) return;
+        if (isSpinning || activeGames.length === 0) return;
 
-        // 1. Prepare for Reset
-        const contentCandidates = [...games];
+        const contentCandidates = [...activeGames];
         const nextWinner = contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
 
-        // Generate new strip
         const newItems = new Array(TOTAL_ITEMS).fill(null).map((_, i) => {
-            // Case 1: Consecutive spin - Place OLD winner at START_INDEX
             if (winner && i === START_INDEX) return winner;
-            // Case 2: Always place NEW winner at WINNER_INDEX
             if (i === WINNER_INDEX) return nextWinner;
-
             return contentCandidates[Math.floor(Math.random() * contentCandidates.length)];
         });
 
-        // Calculate Pixel Reset Position
         let resetOffset = 0;
         const itemStride = CARD_WIDTH + CARD_GAP;
 
         if (winner) {
-            // We want to visually align newItems[START_INDEX] exactly where the old winner was.
-            // Ideally we re-use the exact jitter to prevent any jump.
             const oldJitter = lastJitterRef.current;
             resetOffset = -(START_INDEX * itemStride) - (CARD_WIDTH / 2) + oldJitter;
         }
 
-        // Apply Reset (Disable transition, move strip, swap items)
         setIsSpinning(false);
         setWinner(null);
         setItems(newItems);
         setOffset(resetOffset);
 
-        // 2. Start Animation after update
         setTimeout(() => {
             setIsSpinning(true);
-
-            // Calculate NEW target
-            // Random jitter: +/- 40% of card width
             const newJitter = (Math.random() * CARD_WIDTH * 0.8) - (CARD_WIDTH * 0.4);
             lastJitterRef.current = newJitter;
-
-            // Calculate target
             const targetPos = -(WINNER_INDEX * itemStride) - (CARD_WIDTH / 2) + newJitter;
-
             setOffset(targetPos);
 
-            // 3. End animation
             setTimeout(() => {
                 setIsSpinning(false);
                 setWinner(nextWinner);
-            }, 6500); // 6.5s spin time
+            }, 6500);
         }, 100);
     };
-
-    const containerRef = useRef(null);
-    // Center compensation:
-    // We want index 0 to initially sit such that... actually let's just use flex center.
-    // If the strip is in a container that is centered, 
-    // and we align the "Current Point" to the center of the screen.
-    // We need to shift the whole strip so that start index is at the arrow? 
-    // No, usually start index is visible on the left and we scroll right-to-left.
-    // Let's assume the "Arrow" is at the exact center of the screen.
-    // We need to offset the strip by + (ScreenCenter) initially?
-    // Let's handle this by adding a "padder" to the strip or using CSS calc.
 
     return (
         <div className="bg-background-dark text-white font-display overflow-x-hidden min-h-screen flex flex-col">
@@ -155,7 +151,7 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                             transition: isSpinning ? 'transform 6.5s cubic-bezier(0.1, 0.05, 0.1, 1)' : 'none',
                         }}
                     >
-                        {items.map((item, index) => (
+                        {items.length > 0 ? items.map((item, index) => (
                             <div
                                 key={index}
                                 className={`relative shrink-0 w-[200px] h-[200px] rounded-lg overflow-hidden border-2 transition-all duration-300 ${index === WINNER_INDEX && !isSpinning && winner
@@ -179,7 +175,11 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                                     </div>
                                 )}
                             </div>
-                        ))}
+                        )) : (
+                            <div className="absolute left-1/2 -translate-x-1/2 text-text-muted text-lg">
+                                No games in pool. Add some below!
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -187,7 +187,7 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                 <div className="flex flex-col items-center gap-4 z-10 mt-8">
                     <button
                         onClick={handleSpin}
-                        disabled={isSpinning || !games || games.length === 0}
+                        disabled={isSpinning || activeGames.length === 0}
                         className="group relative px-12 py-4 bg-primary hover:bg-green-400 text-white font-black text-xl tracking-widest uppercase skew-x-[-12deg] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-neon hover:shadow-neon-strong"
                     >
                         <span className="block skew-x-[12deg]">
@@ -200,7 +200,7 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                             className="text-xs text-slate-500 font-mono cursor-pointer hover:text-primary transition-colors duration-200"
                             onClick={() => setShowSelectionModal(true)}
                         >
-                            {games ? `${games.length} games in the pool` : 'Loading...'}
+                            {games ? `${activeGames.length} games in the pool` : 'Loading...'}
                         </p>
                     )}
                 </div>
@@ -245,6 +245,9 @@ const RandomPickerPage = ({ onNavigate, games }) => {
                 isOpen={showSelectionModal}
                 onClose={() => setShowSelectionModal(false)}
                 games={games}
+                selectedIds={selectedIds}
+                setSelectedIds={setSelectedIds}
+                toggleSelection={toggleGameSelection}
             />
         </div>
     );
