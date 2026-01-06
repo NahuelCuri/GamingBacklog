@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -123,8 +123,25 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
     const [activeDragItem, setActiveDragItem] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [showAllGames, setShowAllGames] = useState(false);
+    const [dropAnimationEnabled, setDropAnimationEnabled] = useState(true);
     const captureRef = useRef(null);
     const lastOverId = useRef(null); // Keep track of last over id for smoother transitions
+    const restoreScrollPos = useRef(null); // To prevent scroll jumps when returning to pool
+
+    // Restore scroll position after drag end if needed
+    useLayoutEffect(() => {
+        if (restoreScrollPos.current !== null) {
+            const pos = restoreScrollPos.current;
+            window.scrollTo({ top: pos, behavior: 'instant' });
+
+            // Backup scroll in the next frame
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: pos, behavior: 'instant' });
+            });
+
+            restoreScrollPos.current = null;
+        }
+    });
 
     // Custom collision detection strategy
     const customCollisionDetection = useCallback(
@@ -142,8 +159,8 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
                 return rectCollisions;
             }
 
-            // Fallback to closest center if nothing else matches (e.g. slight miss)
-            return closestCenter(args);
+            // If nothing matched, we are truly outside.
+            return [];
         },
         []
     );
@@ -205,6 +222,7 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
     }, [tierListId]);
 
     const handleDragStart = (event) => {
+        setDropAnimationEnabled(true);
         const { active } = event;
         // Find the game object
         let game = null;
@@ -287,6 +305,35 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
         const activeContainer = findContainer(activeId);
         const overContainer = findContainer(overId);
 
+        // If dropped outside any droppable area, return to unranked
+        if (!overContainer || !over) {
+            // 1. DISABLE ANIMATION to prevent "flying" scroll
+            setDropAnimationEnabled(false);
+
+            // 2. Prevent auto-scroll by capturing current position
+            restoreScrollPos.current = window.scrollY;
+
+            // Also blur active element as a backup
+            if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }
+
+            if (activeContainer && activeContainer !== 'unranked') {
+                setDragItems((prev) => {
+                    const item = prev[activeContainer].find(i => i.dragId === activeId);
+                    if (!item) return prev; // Should not happen
+
+                    return {
+                        ...prev,
+                        [activeContainer]: prev[activeContainer].filter(i => i.dragId !== activeId),
+                        ['unranked']: [...prev['unranked'], item]
+                    };
+                });
+            }
+            setActiveDragItem(null);
+            return;
+        }
+
         if (activeContainer && overContainer && activeContainer === overContainer) {
             const activeIndex = dragItems[activeContainer].findIndex(i => i.dragId === activeId);
             const overIndex = dragItems[overContainer].findIndex(i => i.dragId === overId);
@@ -368,6 +415,10 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            accessibility={{
+                restoreFocus: false
+            }}
+            autoScroll={false}
         >
             <div className="bg-background-light dark:bg-background-dark text-[#F8FAFC] font-display min-h-screen flex flex-col overflow-x-hidden selection:bg-primary/30">
                 <Header onNavigate={onNavigate} onLogout={() => window.location.reload()} activePage="tier-lists" />
@@ -486,7 +537,7 @@ const TierListEditor = ({ tierListId, onNavigate }) => {
                     <p>© 2023 TierMaster. Built for gamers.</p>
                 </footer>
 
-                <DragOverlay>
+                <DragOverlay dropAnimation={dropAnimationEnabled ? undefined : null}>
                     {activeDragItem ? (
                         <div
                             className="relative size-20 shrink-0 overflow-hidden rounded-lg shadow-2xl cursor-grabbing scale-105"
