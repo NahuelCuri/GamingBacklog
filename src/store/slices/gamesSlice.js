@@ -57,6 +57,7 @@ const gamesSlice = createSlice({
                         review: g.review_text,
                         hltb: g.hltb_estimate,
                         platform: g.platform,
+                        platinum: g.platinum,
                         vibes: g.Tags ? g.Tags.map(t => t.name) : []
                     };
                 });
@@ -87,6 +88,7 @@ const gamesSlice = createSlice({
                     review: createdGame.review_text,
                     hltb: createdGame.hltb_estimate,
                     platform: createdGame.platform,
+                    platinum: createdGame.platinum,
                     vibes: []
                 };
                 state.items.unshift(mappedGame);
@@ -116,6 +118,7 @@ const gamesSlice = createSlice({
                         review: updatedGame.review_text,
                         hltb: updatedGame.hltb_estimate,
                         platform: updatedGame.platform,
+                        platinum: updatedGame.platinum,
                         // vibes: ... (tags not yet in update response typically, unless handled)
                     };
                 }

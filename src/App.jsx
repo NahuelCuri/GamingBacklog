@@ -83,6 +83,7 @@ function App() {
       hltb_estimate: parseInt(newGame.hltb) || 0,
       cover_url: newGame.cover,
       platform: newGame.platform,
+      platinum: newGame.platinum,
       tag_ids: []
     };
 
@@ -99,7 +100,8 @@ function App() {
       review_text: updatedGame.review,
       hltb_estimate: parseInt(updatedGame.hltb) || 0,
       cover_url: updatedGame.cover,
-      platform: updatedGame.platform
+      platform: updatedGame.platform,
+      platinum: updatedGame.platinum
     };
     dispatch(updateExistingGame({ id: updatedGame.id, data: gamePayload }));
   };

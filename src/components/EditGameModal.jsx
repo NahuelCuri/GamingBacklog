@@ -16,7 +16,8 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
         hltb: '',
         cover: '',
         dateFinished: '',
-        platform: 'steam'
+        platform: 'steam',
+        platinum: false
     });
 
     const [vibeInput, setVibeInput] = useState('');
@@ -41,7 +42,8 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                 hltb: '60', // Mock default
                 cover: game.cover,
                 dateFinished: game.dateFinished || '',
-                platform: game.platform || 'steam'
+                platform: game.platform || 'steam',
+                platinum: game.platinum || false
             });
             setErrors({});
         }
@@ -311,8 +313,8 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
 
 
 
-                            {/* Platform & Status Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-50">
+                            {/* Platform, Status & Platinum Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-50">
                                 {/* Platform Dropdown */}
                                 <div className="flex flex-col gap-2 relative">
                                     <label className="text-text-muted text-sm font-medium ml-1">Platform</label>
@@ -398,6 +400,26 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Platinum Toggle */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-text-muted text-sm font-medium ml-1">Platinumed</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, platinum: !prev.platinum }))}
+                                        className={`w-full bg-background-dark border border-border-dark rounded-xl px-5 py-4 flex items-center justify-between transition-all duration-200 group cursor-pointer ${formData.platinum ? 'ring-2 ring-[#E5E4E2]/50 border-[#E5E4E2]' : ''}`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {formData.platinum && <span className="material-symbols-outlined text-[#E5E4E2]">emoji_events</span>}
+                                            <span className={`text-text-light ${formData.platinum ? 'text-[#E5E4E2] font-bold' : ''}`}>
+                                                {formData.platinum ? 'Platinumed' : 'Not yet'}
+                                            </span>
+                                        </div>
+                                        <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.platinum ? 'bg-[#E5E4E2]' : 'bg-white/10'}`}>
+                                            <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 ${formData.platinum ? 'translate-x-6 bg-slate-900' : 'translate-x-0'}`}></div>
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Vibe Tags */}
@@ -472,6 +494,7 @@ const EditGameModal = ({ isOpen, onClose, game, onSave }) => {
                 </div>
             </div>
         </div>
+
 
     );
 };

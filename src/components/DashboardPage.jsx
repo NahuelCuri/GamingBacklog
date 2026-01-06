@@ -56,14 +56,19 @@ const Row = ({ index, style, data }) => {
   return (
     <div style={style} className="px-1">
       <div
-        className="group relative md:grid md:grid-cols-12 md:gap-4 items-center bg-white dark:bg-surface-dark p-4 sm:px-8 sm:py-5 rounded-2xl hover:bg-slate-50 dark:hover:bg-[#1c222b] transition-all duration-300 shadow-sm border border-transparent hover:border-white/5 h-[90%] cursor-pointer hover:shadow-md hover:scale-[1.005]"
+        className={`group relative md:grid md:grid-cols-12 md:gap-4 items-center bg-white dark:bg-surface-dark p-4 sm:px-8 sm:py-5 rounded-2xl hover:bg-slate-50 dark:hover:bg-[#1c222b] transition-all duration-300 shadow-sm border border-transparent hover:border-white/5 h-[90%] cursor-pointer hover:shadow-md hover:scale-[1.005] ${item.platinum ? 'hover-glow-platinum' : ''}`}
         onClick={() => onRowClick(item)}
       >
         {/* Title Column */}
         <div className="col-span-12 md:col-span-3 flex items-center gap-4 mb-4 md:mb-0">
           <div className="size-12 rounded-xl bg-cover bg-center shrink-0 shadow-lg" style={{ backgroundImage: `url("${item.cover}")` }}></div>
           <div>
-            <h4 className="font-bold text-lg leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors">{item.title}</h4>
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold text-lg leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors">{item.title}</h4>
+              {item.platinum && (
+                <span className="material-symbols-outlined text-[#E5E4E2] text-[20px] drop-shadow-[0_0_8px_rgba(229,228,226,0.5)]" title="Platinumed">emoji_events</span>
+              )}
+            </div>
           </div>
         </div>
         {/* Genre Column */}
@@ -160,7 +165,8 @@ const DashboardPage = ({ onNavigate, onLogout, games, onCreateGame, onUpdateGame
       review: '',
       hltb: '',
       cover: '',
-      dateFinished: ''
+      dateFinished: '',
+      platinum: false
     });
     setIsEditing(true);
     setIsCreating(true);
