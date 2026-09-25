@@ -103,10 +103,19 @@
 
   --font-sans: var(--font-hanken), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  /* Legacy used the browser's `normal` line height everywhere; keep named text
+     sizes from imposing Tailwind's taller defaults. */
+  --text-xs--line-height: normal;
+  --text-sm--line-height: normal;
+  --text-base--line-height: normal;
+  --text-lg--line-height: normal;
+  --text-xl--line-height: normal;
+  --text-2xl--line-height: normal;
 }
 
 /* Base rules carried over from the legacy home <style> */
-html, body { margin: 0; background: var(--bg); }
+html, body { margin: 0; background: var(--bg); line-height: normal; }
 body { font-family: var(--font-sans); color: var(--text); }
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent2); }
@@ -119,3 +128,21 @@ button, [role=button], [role=tab], a, label, summary, input, select, textarea { 
 ::placeholder { color: var(--dim); }
 ::selection { background: color-mix(in srgb, var(--accent) 25%, transparent); }
 input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert); }
+
+.g-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.g-scroll::-webkit-scrollbar-thumb { background: #2a302c; border-radius: 6px; border: 2px solid var(--bg); }
+
+@keyframes gfade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes gpop { from { opacity: 0; transform: translateY(8px) scale(.99) } to { opacity: 1; transform: none } }
+@keyframes gpulse { 0%, 100% { opacity: .4; transform: scale(1) } 50% { opacity: 1; transform: scale(1.12) } }
+@keyframes gpulsebtn {
+  0%, 100% { opacity: .55; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent) }
+  50% { opacity: 1; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition: none !important; scroll-behavior: auto !important;
+  }
+}

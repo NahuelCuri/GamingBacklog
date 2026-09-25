@@ -64,7 +64,14 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
    - **No `LocalStore`:** legacy has no signed-out mode (it shows the login), so there is nothing to port.
    - `/dev/`: a development-only page for sign-in, load state, export/import and pasting a prod localStorage dump. Remove it or gate it harder before cutover (it ships a stub in prod).
    - Verified against prod Supabase anonymously: all 5 tables respond 200 with 0 rows (RLS). Sign-in with real accounts is for the user to check on `/dev/`.
-3. **Shell + home.** Login, library picker, settings, theme and accent per collection.
+3. **Shell + home.** ✅
+   - `AuthGate` (loading / not configured / sign-in card), `LibraryPicker` with the hover wash, and `SettingsModal` (theme, library visibility, admin storage usage).
+   - `ShellProvider` holds visible libraries, theme, settings and the page-switch wipe.
+   - Real routes replace legacy's in-memory `activeCollection`: `/`, `/games/`, `/books/`, `/wines/`, `/movies/`, `/expenses/` (static via `generateStaticParams`) and `/trips/` (members only; a placeholder until phase 7).
+   - Each route applies its palette via `data-collection`.
+   - Visual parity checked against `/legacy/` by computed styles: the auth card matches within 1px. Tailwind line heights are reset to `normal` to match legacy.
+   - Additions: Escape closes dialogs, focus moves into dialogs, library toggles are `role="switch"`.
+   - Component tests (Testing Library + jsdom) cover the picker, navigation, auto-open, settings persistence and admin gating.
 4. **Games.** Table, modal, stats, roulette, share card and image, date picker. Checkpoint: parity with `/legacy/`.
 5. **Books, Movies, Wines, Expenses.** Mostly config. Checkpoint: `wines` sync.
 6. **MonthsView, i18n, currency.**
