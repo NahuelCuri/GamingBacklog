@@ -72,7 +72,16 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
    - Visual parity checked against `/legacy/` by computed styles: the auth card matches within 1px. Tailwind line heights are reset to `normal` to match legacy.
    - Additions: Escape closes dialogs, focus moves into dialogs, library toggles are `role="switch"`.
    - Component tests (Testing Library + jsdom) cover the picker, navigation, auto-open, settings persistence and admin gating.
-4. **Games.** Table, modal, stats, roulette, share card and image, date picker. Checkpoint: parity with `/legacy/`.
+4. **Games.** ✅ Library (table and cards), add/edit form with DatePicker and ISBN lookup, stats, roulette, share card and stats image. The view and filters sync to the query string.
+   - Share builders are ported to `lib/collection/share.ts` with parity tests.
+   - `/dev/preview/?c=<key>` renders any collection on its seed in memory, for visual checks without signing in.
+   - **Behaviour kept from legacy:** there is no settings access in the collection header on mobile.
+   - **Fixed along the way:**
+     - The roulette winner subtitle uses the config suffix. Legacy showed "h to beat" for every collection.
+     - Cards use the configured fields. Legacy hard-coded the games fields.
+   - **Dropped:** the "filter by tags" panel, which legacy code had but nothing could open.
+   - **Tooling:** `NEXT_DIST_DIR=.next-build npx next build` builds without touching a running `next dev`. Sharing `.next` corrupted the webpack cache once.
+   - **Checkpoint for the user:** compare `/games/` against `/legacy/` with real data, and test copying and downloading the images.
 5. **Books, Movies, Wines, Expenses.** Mostly config. Checkpoint: `wines` sync.
 6. **MonthsView, i18n, currency.**
 7. **GeoMap + Trip Planner.**

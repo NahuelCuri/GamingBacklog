@@ -7,6 +7,6 @@ export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
     include: ["**/*.test.ts", "**/*.test.tsx"],
-    exclude: ["node_modules/**", "legacy-src/**", ".next/**", "out/**"],
+    exclude: ["node_modules/**", "legacy-src/**", ".next/**", ".next-*/**", "out/**"],
   },
 });

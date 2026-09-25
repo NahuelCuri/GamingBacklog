@@ -20,6 +20,8 @@ import { ItemModal, type ModalState } from "./ItemModal";
 import { LibraryFab } from "./LibraryFab";
 import { LibraryView } from "./LibraryView";
 import { RouletteView } from "./RouletteView";
+import { ShareCardDialog } from "./share/ShareCardDialog";
+import { ShareImageDialog } from "./share/ShareImageDialog";
 import { StatsView } from "./stats/StatsView";
 
 export function CollectionPage({ collection }: { collection: CollectionKey }) {
@@ -42,6 +44,8 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
   const isMobile = useIsMobile();
   const [url, setUrl] = useUrlState();
   const [modal, setModal] = useState<ModalState | null>(null);
+  const [shareItem, setShareItem] = useState<Item | null>(null);
+  const [statsImage, setStatsImage] = useState(false);
 
   const openAdd = useCallback(() => setModal({ mode: "add", draft: blankDraft(cfg) }), [cfg]);
   const openEdit = useCallback((g: Item) => setModal({ mode: "edit", draft: draftFromItem(cfg, g) }), [cfg]);
@@ -50,9 +54,8 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
   const ctx = useMemo<CollectionCtx>(
     () => ({
       collection, cfg, data, items: data.items, actions, money: usd, isMobile, url, setUrl, openAdd, openEdit,
-      // Share card and stats image arrive in phase 4e.
-      openShare: () => {},
-      openStatsImage: () => {},
+      openShare: setShareItem,
+      openStatsImage: () => setStatsImage(true),
     }),
     [collection, cfg, data, actions, isMobile, url, setUrl, openAdd, openEdit],
   );
@@ -86,6 +89,8 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
           )}
         </main>
         {modal && <ItemModal modal={modal} setModal={setModal} onClose={closeModal} />}
+        {statsImage && <ShareImageDialog onClose={() => setStatsImage(false)} />}
+        {shareItem && <ShareCardDialog item={shareItem} onClose={() => setShareItem(null)} />}
         <LibraryFab current={collection} />
       </div>
     </CollectionContext.Provider>
