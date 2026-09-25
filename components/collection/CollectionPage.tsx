@@ -19,6 +19,8 @@ import { CollectionHeader } from "./CollectionHeader";
 import { ItemModal, type ModalState } from "./ItemModal";
 import { LibraryFab } from "./LibraryFab";
 import { LibraryView } from "./LibraryView";
+import { RouletteView } from "./RouletteView";
+import { StatsView } from "./stats/StatsView";
 
 export function CollectionPage({ collection }: { collection: CollectionKey }) {
   useCollectionTheme(collection);
@@ -77,7 +79,9 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
             </div>
           )}
           {data.status !== "error" && url.view === "library" && <LibraryView />}
-          {data.status !== "error" && url.view !== "library" && (
+          {data.status === "ready" && url.view === "stats" && <StatsView />}
+          {data.status === "ready" && url.view === "roulette" && cfg.roulette && <RouletteView />}
+          {data.status !== "error" && !["library", "stats", "roulette"].includes(url.view) && (
             <p className="py-16 text-center font-mono text-[13px] text-dim">This view is being ported — coming later in phase 4.</p>
           )}
         </main>

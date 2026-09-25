@@ -7,6 +7,8 @@ const isDev = process.env.NODE_ENV === "development";
 const nextConfig: NextConfig = {
   // Export only on build; in dev this lets the redirect below work.
   output: isDev ? undefined : "export",
+  // Lets a production build run next to a live `next dev` without sharing .next.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   basePath: BASE_PATH,
   trailingSlash: true,
   images: { unoptimized: true },

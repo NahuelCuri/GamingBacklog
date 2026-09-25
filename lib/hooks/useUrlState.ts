@@ -23,6 +23,9 @@ export function useUrlState() {
   }, []);
 
   useEffect(() => {
+    // The first commit still holds the defaults (the URL is read in the effect
+    // above); writing them back would wipe the incoming query string.
+    if (state === DEFAULT_URL_STATE) return;
     const before = prev.current;
     if (!before || sameUrlState(before, state)) return;
     prev.current = state;

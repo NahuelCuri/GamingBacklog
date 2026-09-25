@@ -16,23 +16,29 @@ function reducer(s: CollectionState, a: Tagged): CollectionState {
 
 /**
  * Loads one collection from `store` and exposes its state plus actions. Passing
- * a new store (another collection or user) resets and reloads; results from a
- * previous store are ignored.
+ * a new store (another collection or user) resets and reloads; late results
+ * from a previous store are ignored.
  */
 export function useCollection(key: CollectionKey, store: CollectionStore | null) {
   const [state, rawDispatch] = useReducer(reducer, initialCollectionState);
   const stateRef = useRef(state);
+  const storeRef = useRef(store);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+  // Declared before the load effect so it is current when that effect runs.
+  useEffect(() => {
+    storeRef.current = store;
+  }, [store]);
 
   const actions = useMemo(() => {
     if (!store) return null;
-    let alive = true;
+    // Compare against the live store rather than a disposed flag: StrictMode
+    // runs effects twice, and a flag would silence the second (real) load.
     const dispatch = (a: CollectionAction) => {
-      if (alive) rawDispatch(a);
+      if (storeRef.current === store) rawDispatch(a);
     };
-    const act = collectionActions(store, dispatch, () => stateRef.current, {
+    return collectionActions(store, dispatch, () => stateRef.current, {
       backup: (items: Item[]) => downloadJson(exportFileName(key), toExportJson(items)),
       loadSeed: async () => {
         const res = await fetch(withBase(`/seeds/${key}.json`));
@@ -40,19 +46,12 @@ export function useCollection(key: CollectionKey, store: CollectionStore | null)
         return res.json();
       },
     });
-    return {
-      ...act,
-      dispose: () => {
-        alive = false;
-      },
-    };
   }, [key, store]);
 
   useEffect(() => {
     if (!actions) return;
     rawDispatch({ type: "reset" });
     actions.refresh();
-    return actions.dispose;
   }, [actions]);
 
   useEffect(() => {

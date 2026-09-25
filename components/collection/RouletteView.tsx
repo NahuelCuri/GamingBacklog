@@ -1,0 +1,353 @@
+"use client";
+
+// Roulette tab: build a pool (filters or hand-picked), spin the reel, act on
+// the winner. The reel eases out over 4.8s; reduced motion skips straight to it.
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  defaultRouletteState, pickRandom, pickSuggestions, pool as buildPool, primaryKey, pushRecent, reelCard, reelStrip, reelTarget,
+  tagCloud, winnerActive, type RouletteState,
+} from "@/lib/collection";
+import type { Item } from "@/lib/collection/types";
+import { useCollectionCtx } from "./CollectionContext";
+
+const DURATION = 4800;
+const ease = (t: number) => 1 - Math.pow(1 - t, 3.4);
+const eyebrow = "text-[10px] font-semibold tracking-[.09em] text-dim uppercase";
+
+const chip = (on: boolean): CSSProperties =>
+  on
+    ? { color: "var(--onAccent)", background: "var(--accent)", borderColor: "var(--accent)" }
+    : { color: "var(--text2)", background: "var(--inset)", borderColor: "var(--wf)" };
+
+export function RouletteView() {
+  const { cfg, items, actions, isMobile, openEdit } = useCollectionCtx();
+  const r = cfg.roulette!;
+  const primary = primaryKey(cfg);
+  const [st, setSt] = useState<RouletteState>(() => defaultRouletteState(cfg));
+  const [search, setSearch] = useState("");
+  const [reel, setReel] = useState<Item[]>([]);
+  const [spinning, setSpinning] = useState(false);
+  const [winner, setWinner] = useState<Item | null>(null);
+  const [recent, setRecent] = useState<Item[]>([]);
+  const strip = useRef<HTMLDivElement>(null);
+  const raf = useRef(0);
+
+  useEffect(() => () => cancelAnimationFrame(raf.current), []);
+
+  const poolItems = useMemo(() => buildPool(cfg, items, st), [cfg, items, st]);
+  const cloud = useMemo(() => tagCloud(cfg, items), [cfg, items]);
+  const suggest = pickSuggestions(cfg, items, st.rPicked, search);
+  const picked = st.rPicked.map((id) => items.find((g) => g.id === id)).filter((g): g is Item => !!g);
+  const blocked = spinning || poolItems.length === 0;
+
+  const finish = (w: Item) => {
+    setSpinning(false);
+    setWinner(w);
+    setRecent((rc) => pushRecent(rc, w));
+  };
+
+  const spin = () => {
+    if (blocked) return;
+    const w = pickRandom(poolItems);
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setReel([]);
+      finish(w);
+      return;
+    }
+    const target = reelTarget();
+    setReel(reelStrip(poolItems, w));
+    setSpinning(true);
+    setWinner(null);
+    let start = 0;
+    const step = (now: number) => {
+      const el = strip.current;
+      if (!el) {
+        raf.current = requestAnimationFrame(step);
+        return;
+      }
+      if (!start) start = now;
+      const t = Math.min(1, (now - start) / DURATION);
+      el.style.transform = `translateX(${target * ease(t)}px)`;
+      if (t < 1) raf.current = requestAnimationFrame(step);
+      else finish(w);
+    };
+    cancelAnimationFrame(raf.current);
+    raf.current = requestAnimationFrame(step);
+  };
+
+  const startAction = () => {
+    if (!winner) return;
+    const g = { ...winner, [r.startAction.field]: r.startAction.value };
+    actions?.save(g);
+    setWinner(g);
+  };
+
+  const active = winnerActive(cfg, winner);
+  const scoreV = winner?.[r.winnerScoreField];
+  const subV = winner?.[r.winnerSubField];
+
+  return (
+    <div className="grid items-start gap-6 pt-[26px]" style={{ gridTemplateColumns: isMobile ? "1fr" : "360px 1fr", animation: "gfade .2s ease" }}>
+      {/* pool builder */}
+      <div className="min-w-0 rounded-[14px] border border-wd bg-surface px-5 pt-5 pb-[22px]">
+        <div className="mb-[3px] text-[15px] font-bold">Build your pool</div>
+        <div className="mb-[18px] text-[12.5px] text-muted">Narrow it down, then let fate pick.</div>
+
+        <div className="mb-[18px] flex gap-1 rounded-[9px] border border-wd bg-inset p-[3px]">
+          {(["filters", "picked"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={st.rmode === m}
+              onClick={() => setSt((s) => ({ ...s, rmode: m }))}
+              className="flex-1 cursor-pointer rounded-md border-none p-[7px] text-center text-[12.5px] font-semibold"
+              style={{ color: st.rmode === m ? "var(--onAccent)" : "var(--muted)", background: st.rmode === m ? "var(--accent)" : "transparent" }}
+            >
+              {m === "filters" ? "By filters" : "Hand-pick"}
+            </button>
+          ))}
+        </div>
+
+        {st.rmode === "filters" ? (
+          <div>
+            <div className={eyebrow + " mb-2"}>Status</div>
+            <div className="mb-[18px] flex gap-[5px]">
+              {r.statusFilters.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  aria-pressed={st.rStatus === c.value}
+                  onClick={() => setSt((s) => ({ ...s, rStatus: c.value }))}
+                  className="flex-1 cursor-pointer rounded-lg border px-1 py-[7px] text-center text-xs font-medium"
+                  style={chip(st.rStatus === c.value)}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            {r.band && (
+              <>
+                <div className={eyebrow + " mb-2"}>{r.band.label}</div>
+                <div className="mb-[18px] flex flex-wrap gap-[5px]">
+                  {r.band.options.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      aria-pressed={st.rLength === o.value}
+                      onClick={() => setSt((s) => ({ ...s, rLength: o.value }))}
+                      className="cursor-pointer rounded-lg border px-[11px] py-[7px] text-xs font-medium"
+                      style={chip(st.rLength === o.value)}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="mb-[9px] flex items-center justify-between">
+              <span className={eyebrow}>Tags · any of</span>
+              {st.rTags.length > 0 && (
+                <button type="button" onClick={() => setSt((s) => ({ ...s, rTags: [] }))} className="cursor-pointer border-none bg-transparent p-0 text-[11px] text-accent">
+                  clear
+                </button>
+              )}
+            </div>
+            <div className="g-scroll flex max-h-[168px] flex-wrap gap-1.5 overflow-auto">
+              {cloud.map(({ tag, count }) => {
+                const on = st.rTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setSt((s) => ({ ...s, rTags: on ? s.rTags.filter((x) => x !== tag) : [...s.rTags, tag] }))}
+                    className="cursor-pointer rounded-[20px] border px-2.5 py-[5px] text-[11.5px]"
+                    style={
+                      on
+                        ? { color: "var(--onAccent)", background: "var(--accent)", borderColor: "var(--accent)" }
+                        : { color: "var(--muted2)", background: "var(--chip2)", borderColor: "var(--we)" }
+                    }
+                  >
+                    {tag} <span className="font-mono text-[10px] tabular-nums opacity-70">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search an item to add to the draw"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={`Search a ${cfg.noun} to add…`}
+              className="mb-2.5 w-full rounded-[9px] border border-wh bg-inset px-3 py-[9px] text-[13px] text-text"
+            />
+            {suggest.length > 0 && (
+              <div className="g-scroll mb-[14px] flex max-h-[190px] flex-col gap-[2px] overflow-auto">
+                {suggest.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    aria-label={`Add ${g[primary]} to the draw`}
+                    onClick={() => {
+                      setSt((s) => ({ ...s, rPicked: [...s.rPicked, g.id] }));
+                      setSearch("");
+                    }}
+                    className="flex cursor-pointer justify-between gap-2 rounded-[7px] border-none bg-chip2 px-2.5 py-2 text-[12.5px] text-text2"
+                  >
+                    <span className="truncate">{String(g[primary])}</span>
+                    <span aria-hidden className="flex-none text-accent">
+                      +
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className={eyebrow + " mb-[9px]"}>In the draw · {st.rPicked.length}</div>
+            {picked.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {picked.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    aria-label={`Remove ${g[primary]} from the draw`}
+                    onClick={() => setSt((s) => ({ ...s, rPicked: s.rPicked.filter((x) => x !== g.id) }))}
+                    className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-2.5 py-[5px] text-xs text-accent"
+                    style={{ background: "color-mix(in srgb, var(--accent) 13%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
+                  >
+                    {String(g[primary])}{" "}
+                    <span aria-hidden className="text-[13px] leading-none">
+                      ×
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[12.5px] text-dim">Nothing added yet — search above.</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* reel + result */}
+      <div className="min-w-0">
+        <div className="mb-1.5 text-center">
+          <div className="text-xl font-bold tracking-[-.02em]">Can&apos;t decide? Spin.</div>
+          <div className="mt-[3px] text-[12.5px] text-muted">
+            <span className="font-mono" style={{ color: poolItems.length ? "var(--accent)" : "#d98f8f" }}>
+              {poolItems.length}
+            </span>{" "}
+            {cfg.nounPlural} in the pool
+          </div>
+        </div>
+
+        <div className="relative mx-auto mt-[18px] h-[118px] w-[700px] max-w-full overflow-hidden rounded-[13px] border border-we bg-inset">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[2] w-[120px]" style={{ background: "linear-gradient(90deg, var(--inset), transparent)" }} />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[2] w-[120px]" style={{ background: "linear-gradient(270deg, var(--inset), transparent)" }} />
+          <div
+            className="absolute inset-y-0 left-1/2 z-[3] w-[2px] -translate-x-px bg-accent"
+            style={{ boxShadow: "0 0 12px color-mix(in srgb, var(--accent) 60%, transparent)" }}
+          />
+          <div className="absolute -top-px left-1/2 z-[3] h-0 w-0 -translate-x-[6px]" style={{ borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "7px solid var(--accent)" }} />
+          <div className="absolute -bottom-px left-1/2 z-[3] h-0 w-0 -translate-x-[6px]" style={{ borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderBottom: "7px solid var(--accent)" }} />
+          {reel.length > 0 ? (
+            <div ref={strip} aria-hidden className="absolute top-[14px] left-1/2 flex gap-3">
+              {reel.map((g, i) => {
+                const c = reelCard(cfg, g);
+                return (
+                  <div key={i} className="flex h-[90px] w-[150px] flex-none flex-col justify-between rounded-[10px] border border-wd bg-chip2 px-3 py-[11px]">
+                    <div className="line-clamp-2 text-[12.5px] leading-[1.25] font-semibold">{c.title}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: c.dot, boxShadow: c.glow ? "0 0 7px var(--accent)" : "none" }} />
+                      <span className="font-mono text-[10.5px] text-muted">{c.sub}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-[13px] text-dim">
+              {poolItems.length ? "Hit spin to roll the reel." : "Pool is empty — widen your filters."}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-[18px] text-center">
+          <button
+            type="button"
+            onClick={spin}
+            aria-disabled={blocked}
+            className="rounded-[11px] border-none bg-accent px-10 py-[13px] text-[15px] font-bold text-on-accent"
+            style={{ cursor: blocked ? "not-allowed" : "pointer", opacity: blocked ? 0.5 : 1 }}
+          >
+            {spinning ? "Spinning…" : "Spin"}
+          </button>
+        </div>
+
+        <div aria-live="polite" className="sr-only">
+          {winner && !spinning ? `Winner: ${winner[primary]}` : ""}
+        </div>
+
+        {winner && !spinning && (
+          <div
+            className="mt-6 rounded-[14px] border px-6 py-[22px]"
+            style={{
+              background: "linear-gradient(160deg, color-mix(in srgb, var(--accent) 9%, transparent), color-mix(in srgb, var(--accent) 2%, transparent))",
+              borderColor: "color-mix(in srgb, var(--accent) 28%, transparent)",
+              animation: "gpop .3s ease",
+            }}
+          >
+            <div className="mb-2.5 text-[10px] font-semibold tracking-[.12em] text-accent uppercase">Tonight you play</div>
+            <div className="flex items-start justify-between gap-4" style={{ flexDirection: isMobile ? "column" : "row" }}>
+              <div className="min-w-0">
+                <div className="text-2xl leading-[1.15] font-bold tracking-[-.02em]">{String(winner[primary])}</div>
+                <div className="mt-[11px] flex flex-wrap gap-1.5">
+                  {((winner[cfg.tagField] as string[]) || []).map((t) => (
+                    <span key={t} className="rounded-[5px] bg-chip px-[9px] py-[3px] text-[11.5px] text-muted2">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-none font-mono" style={{ textAlign: isMobile ? "left" : "right" }}>
+                <div className="text-[28px] font-semibold text-accent">{scoreV != null ? String(scoreV) : "—"}</div>
+                <div className="mt-[2px] text-[11px] text-muted">{subV != null ? String(subV) + (r.winnerSubSuffix ?? "") : "—"}</div>
+              </div>
+            </div>
+            {!!String(winner[cfg.detail.reviewField] ?? "").trim() && (
+              <div className="mt-[14px] text-[13px] leading-[1.6] text-text3 italic">{String(winner[cfg.detail.reviewField])}</div>
+            )}
+            <div className="mt-[18px] flex flex-wrap gap-[9px]">
+              <button type="button" onClick={startAction} className="cursor-pointer rounded-[9px] border-none bg-accent px-[18px] py-[9px] text-[13px] font-bold text-on-accent">
+                {active ? r.startAction.activeLabel : r.startAction.label}
+              </button>
+              <button type="button" onClick={spin} className="cursor-pointer rounded-[9px] border border-wf bg-chip px-[18px] py-[9px] text-[13px] font-semibold text-text2">
+                Spin again
+              </button>
+              <button type="button" onClick={() => openEdit(winner)} className="cursor-pointer rounded-[9px] border border-wh bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-muted">
+                Details
+              </button>
+            </div>
+          </div>
+        )}
+
+        {recent.length > 0 && (
+          <div className="mt-[22px]">
+            <div className={eyebrow + " mb-[9px]"}>Recent spins</div>
+            <div className="flex flex-wrap gap-[7px]">
+              {recent.map((g) => (
+                <span key={g.id} className="rounded-[20px] border border-wd bg-chip2 px-[11px] py-[5px] text-xs text-muted2">
+                  {String(g[primary])}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
