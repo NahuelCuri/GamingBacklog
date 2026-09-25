@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { BASE_PATH } from "./lib/paths";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -6,13 +7,13 @@ const isDev = process.env.NODE_ENV === "development";
 const nextConfig: NextConfig = {
   // Export only on build; in dev this lets the redirect below work.
   output: isDev ? undefined : "export",
-  basePath: "/GamingBacklog",
+  basePath: BASE_PATH,
   trailingSlash: true,
   images: { unoptimized: true },
   // Dev convenience: localhost:3000/ → /GamingBacklog/ instead of a 404.
   ...(isDev && {
     redirects: async () => [
-      { source: "/", destination: "/GamingBacklog/", basePath: false, permanent: false },
+      { source: "/", destination: BASE_PATH + "/", basePath: false, permanent: false },
     ],
   }),
 };

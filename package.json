@@ -12,6 +12,7 @@
     "extract-legacy": "python scripts/extract-legacy.py"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "next": "15.5.26",
     "react": "19.1.0",
     "react-dom": "19.1.0"

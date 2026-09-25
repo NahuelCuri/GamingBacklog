@@ -1,4 +1,5 @@
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { withBase } from "@/lib/paths";
 
 // Phase 0 placeholder: proves tokens, fonts and theme switching. Replaced by
 // the real library picker in phase 3.
@@ -37,7 +38,7 @@ export default function Home() {
 
       <p className="text-sm text-muted">
         La app actual sigue disponible en{" "}
-        <a href="/GamingBacklog/legacy/index.html">/legacy</a> para comparar.
+        <a href={withBase("/legacy/index.html")}>/legacy</a> para comparar.
       </p>
     </main>
   );

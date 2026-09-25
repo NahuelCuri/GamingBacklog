@@ -53,7 +53,17 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
    - Deliberate differences: currency is passed explicitly instead of via the `window.__CURRENCY` global, builders return data only (styles and handlers move into components), and detail values are always strings.
    - Deferred to phase 4: the share-image and share-card builders (`buildShare` / `buildShareCard`), ported together with their components.
    - Found: no config defines `currency`, so the Expenses currency toggle is currently inert in legacy.
-2. **Data layer.** Supabase client, auth, `DataProvider` with `LocalStore` / `SupabaseStore`, explicit `loading / error / ready` states, localStorage migration, dev import, and a safe JSON export (fixes the `[]` bug).
+2. **Data layer.** ✅
+   - `lib/supabase.ts` (client), `lib/auth.tsx` (`AuthProvider` / `useAuth`, legacy validation messages).
+   - `lib/data/store.ts`: `supabaseStore` covers per-user tables and the shared `wines` table with realtime. `memoryStore` is for tests.
+   - `lib/data/collection-state.ts`: explicit `loading / ready / error` states. `collection-actions.ts` handles optimistic writes and surfaces failures.
+   - `useCollection` and `useStore` hooks.
+   - **`[]` export bug fixed:** a failed load is an error state, not an empty list. Export and import are refused until the data is loaded, and a failed refresh keeps the rows.
+   - **Import:** validated, always downloads a backup first, and writes new rows before deleting stale ones, so the table is never left empty.
+   - **localStorage:** `backlog:theme`, `backlog:libs:<uid>` and `backlog:libsSeen:<uid>` have the same shape in both apps, so they are reused as-is (`lib/prefs.ts`) and need no migration. Trip keys come in phase 7.
+   - **No `LocalStore`:** legacy has no signed-out mode (it shows the login), so there is nothing to port.
+   - `/dev/`: a development-only page for sign-in, load state, export/import and pasting a prod localStorage dump. Remove it or gate it harder before cutover (it ships a stub in prod).
+   - Verified against prod Supabase anonymously: all 5 tables respond 200 with 0 rows (RLS). Sign-in with real accounts is for the user to check on `/dev/`.
 3. **Shell + home.** Login, library picker, settings, theme and accent per collection.
 4. **Games.** Table, modal, stats, roulette, share card and image, date picker. Checkpoint: parity with `/legacy/`.
 5. **Books, Movies, Wines, Expenses.** Mostly config. Checkpoint: `wines` sync.
