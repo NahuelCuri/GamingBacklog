@@ -1,14 +1,24 @@
 "use client";
 
-// Collection route shell. Phase 3 placeholder: themed header plus the data
-// state from the phase 2 layer; the table, stats and roulette land in phase 4.
+// Collection route: loads the data, owns the URL-synced view and filters, and
+// hosts the header, the active tab, the add/edit form and the library switcher.
+import { useCallback, useMemo, useState, type CSSProperties } from "react";
 import { AuthGate } from "@/components/auth/AuthGate";
-import { TopBar } from "@/components/shell/TopBar";
 import { useCollectionTheme } from "@/components/shell/useCollectionTheme";
 import { COLLECTIONS } from "@/config/collections";
-import type { CollectionKey } from "@/lib/collection/types";
+import { blankDraft, draftFromItem } from "@/lib/collection";
+import type { CollectionKey, Item } from "@/lib/collection/types";
+import type { CollectionStore } from "@/lib/data/store";
 import { useCollection } from "@/lib/data/useCollection";
 import { useStore } from "@/lib/data/useStore";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useUrlState } from "@/lib/hooks/useUrlState";
+import { usd } from "@/lib/spending";
+import { CollectionContext, type CollectionCtx } from "./CollectionContext";
+import { CollectionHeader } from "./CollectionHeader";
+import { ItemModal, type ModalState } from "./ItemModal";
+import { LibraryFab } from "./LibraryFab";
+import { LibraryView } from "./LibraryView";
 
 export function CollectionPage({ collection }: { collection: CollectionKey }) {
   useCollectionTheme(collection);
@@ -19,30 +29,61 @@ export function CollectionPage({ collection }: { collection: CollectionKey }) {
   );
 }
 
-function CollectionBody({ collection }: { collection: CollectionKey }) {
+const NEG = "#e6a09c";
+const alertStyle: CSSProperties = { color: NEG, borderColor: "rgba(230,160,156,.25)", background: "rgba(230,160,156,.08)" };
+
+/** The collection UI. `store` overrides the signed-in user's Supabase store (dev preview). */
+export function CollectionBody({ collection, store }: { collection: CollectionKey; store?: CollectionStore | null }) {
   const cfg = COLLECTIONS[collection];
-  const { state, actions } = useCollection(collection, useStore(collection));
+  const userStore = useStore(collection);
+  const { state: data, actions } = useCollection(collection, store === undefined ? userStore : store);
+  const isMobile = useIsMobile();
+  const [url, setUrl] = useUrlState();
+  const [modal, setModal] = useState<ModalState | null>(null);
+
+  const openAdd = useCallback(() => setModal({ mode: "add", draft: blankDraft(cfg) }), [cfg]);
+  const openEdit = useCallback((g: Item) => setModal({ mode: "edit", draft: draftFromItem(cfg, g) }), [cfg]);
+  const closeModal = useCallback(() => setModal(null), []);
+
+  const ctx = useMemo<CollectionCtx>(
+    () => ({
+      collection, cfg, data, items: data.items, actions, money: usd, isMobile, url, setUrl, openAdd, openEdit,
+      // Share card and stats image arrive in phase 4e.
+      openShare: () => {},
+      openStatsImage: () => {},
+    }),
+    [collection, cfg, data, actions, isMobile, url, setUrl, openAdd, openEdit],
+  );
 
   return (
-    <div className="min-h-dvh">
-      <TopBar kicker={cfg.kicker} />
-      <main className="mx-auto max-w-[1180px] px-[22px] pb-16">
-        {state.status === "loading" && <p className="font-mono text-[13px] text-dim">loading…</p>}
-        {state.status === "error" && (
-          <div role="alert" className="rounded-xl border px-4 py-3 text-sm" style={{ color: "#e6a09c", borderColor: "rgba(230,160,156,.25)", background: "rgba(230,160,156,.08)" }}>
-            Could not load your {cfg.nounPlural}: {state.loadError}{" "}
-            <button type="button" className="cursor-pointer underline" onClick={() => actions?.refresh()}>
-              Retry
-            </button>
-          </div>
-        )}
-        {state.status === "ready" && (
-          <div className="rounded-2xl border border-wf bg-surface p-6">
-            <div className="text-[26px] font-bold tracking-[-.02em]">{state.items.length}</div>
-            <div className="text-sm text-muted">{cfg.nounPlural} loaded — the library view arrives in phase 4.</div>
-          </div>
-        )}
-      </main>
-    </div>
+    <CollectionContext.Provider value={ctx}>
+      <div className="min-h-dvh" style={{ "--rowpad": "7px" } as CSSProperties}>
+        <CollectionHeader />
+        <main className="mx-auto max-w-[1180px]" style={{ padding: isMobile ? "0 14px 60px" : "0 26px 80px" }}>
+          {data.status === "error" && (
+            <div role="alert" className="mt-6 rounded-xl border px-4 py-3 text-sm" style={alertStyle}>
+              Could not load your {cfg.nounPlural}: {data.loadError}{" "}
+              <button type="button" className="cursor-pointer underline" onClick={() => actions?.refresh()}>
+                Retry
+              </button>
+            </div>
+          )}
+          {data.syncError && (
+            <div role="alert" className="mt-6 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm" style={alertStyle}>
+              <span className="flex-1">Some changes were not saved: {data.syncError}. The list shows what is stored now.</span>
+              <button type="button" className="cursor-pointer underline" onClick={() => actions?.dismissSyncError()}>
+                Dismiss
+              </button>
+            </div>
+          )}
+          {data.status !== "error" && url.view === "library" && <LibraryView />}
+          {data.status !== "error" && url.view !== "library" && (
+            <p className="py-16 text-center font-mono text-[13px] text-dim">This view is being ported — coming later in phase 4.</p>
+          )}
+        </main>
+        {modal && <ItemModal modal={modal} setModal={setModal} onClose={closeModal} />}
+        <LibraryFab current={collection} />
+      </div>
+    </CollectionContext.Provider>
   );
 }

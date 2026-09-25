@@ -61,6 +61,35 @@ export function LibraryIcon({ lib, size = 23, className }: IconProps & { lib: Li
   );
 }
 
+/** Library-switcher FAB glyphs (legacy libIcon): home stack, close, and a card for expenses. */
+export function FabIcon({ name, size = 21 }: { name: LibraryKey | "_home" | "_close"; size?: number }) {
+  let body: React.ReactNode;
+  if (name === "_home") {
+    body = (
+      <>
+        <path d="M4.5 8.2 12 4.8l7.5 3.4L12 11.6 4.5 8.2z" {...stroke} />
+        <path d="M4.5 12 12 15.4 19.5 12" {...stroke} />
+        <path d="M4.5 15.8 12 19.2l7.5-3.4" {...stroke} />
+      </>
+    );
+  } else if (name === "_close") {
+    body = <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" {...stroke} />;
+  } else if (name === "expenses") {
+    body = (
+      <>
+        <path d="M3.5 6.8h17a1 1 0 0 1 1 1v8.4a1 1 0 0 1-1 1h-17a1 1 0 0 1-1-1V7.8a1 1 0 0 1 1-1z" {...stroke} />
+        <path d="M2.5 10.4h19" {...stroke} />
+        <circle cx="17" cy="14.2" r="1.15" fill="currentColor" />
+      </>
+    );
+  } else body = LIBRARY_PATHS[name];
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden style={{ display: "block" }}>
+      {body}
+    </svg>
+  );
+}
+
 export function GearIcon({ size = 13, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={{ flexShrink: 0 }} aria-hidden>

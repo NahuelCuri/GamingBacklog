@@ -1,6 +1,6 @@
 "use client";
 
-// Minimal collection header until the real toolbar lands in phase 4:
+// Simple page header for routes without a collection toolbar (Trips):
 // brand + kicker, back to the picker, settings and sign out.
 import type { ReactNode } from "react";
 import { GearIcon } from "@/components/icons";

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 
 /**
  * Centered dialog over a blurred backdrop (legacy settings/modal look).
- * Closes on backdrop click and Escape, locks page scroll, and moves focus in.
+ * Closes on backdrop click and Escape, traps focus and locks page scroll.
  */
 export function Modal({
   onClose,
@@ -19,21 +20,7 @@ export function Modal({
 }) {
   const panel = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    const prevFocus = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = "hidden";
-    panel.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKey);
-      prevFocus?.focus?.();
-    };
-  }, [onClose]);
+  useDialog(panel, onClose, false);
 
   return (
     <div
