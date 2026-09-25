@@ -1,11 +1,20 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
 // Static export for GitHub Pages: https://nahuelcuri.github.io/GamingBacklog/
 const nextConfig: NextConfig = {
-  output: "export",
+  // Export only on build; in dev this lets the redirect below work.
+  output: isDev ? undefined : "export",
   basePath: "/GamingBacklog",
   trailingSlash: true,
   images: { unoptimized: true },
+  // Dev convenience: localhost:3000/ → /GamingBacklog/ instead of a 404.
+  ...(isDev && {
+    redirects: async () => [
+      { source: "/", destination: "/GamingBacklog/", basePath: false, permanent: false },
+    ],
+  }),
 };
 
 export default nextConfig;
