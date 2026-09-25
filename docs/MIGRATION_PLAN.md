@@ -34,7 +34,11 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
 ## Data contract to preserve
 
 - Auth: email/password `signUp` / `signInWithPassword` / `signOut` / `getSession`. The session lives in localStorage, so it is shared with legacy on the same origin.
-- Collections: `from(table).select('data')`. Shared writes go to `wines` (`upsert {id, data, added_by, updated_at}`).
+- Collections: one table per collection key, read with `from(table).select('data')`.
+  - Per-user tables (games, books, movies, expenses): upsert `{user_id, id, data}` on conflict `user_id,id`. Delete and clear filter by `user_id`.
+  - `wines` is a shared cellar: PK is `id` alone, upsert `{id, data, added_by, updated_at}` on conflict `id`, RLS via `wine_members`. Realtime channel `wines-shared` (`postgres_changes` on `public.wines`) keeps both members in sync.
+  - "Load starter" copies the collection seed into state and upserts it.
+  - Import replaces everything: `clearAll` then `putAll`. The export-first rule applies here.
 - Trips: `trips`, `trip_cards`, plus the localStorage keys `trip-planner-v1` and `trip-fx-pref`. Access is gated by RLS (`trip_members`) and the UI allowlist.
 - Admin: `rpc('admin_usage')`, only for `ADMIN_UID`.
 - localStorage keys: `backlog:theme` (shared as-is), `backlog:libs:<uid>`, `backlog:libsSeen:<uid>`. New keys go under `backlog:v2:*`. Never rewrite a legacy key in a different shape: read it, migrate once, write v2.
@@ -42,7 +46,13 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
 ## Phases
 
 0. **Setup.** ✅ Scaffold, tokens, fonts, theme, preview server, Vitest, legacy extracted.
-1. **Pure logic.** Types (`Item`, `CollectionConfig`, `Status`), `CollectionLib`, `SpendingSystem`, configs and seeds. Tests must match legacy output.
+1. **Pure logic.** ✅
+   - `lib/collection/*`: types, library (filter, sort, ledger cap, paging, cells), draft, roulette, stats, geo, months. Plus `lib/spending.ts`.
+   - `config/collections/*.ts` are generated from the legacy configs. `public/seeds/*.json` hold the seeds.
+   - `tests/parity.test.ts` runs the legacy JS in a VM and asserts identical output on every seed. Mutation-checked.
+   - Deliberate differences: currency is passed explicitly instead of via the `window.__CURRENCY` global, builders return data only (styles and handlers move into components), and detail values are always strings.
+   - Deferred to phase 4: the share-image and share-card builders (`buildShare` / `buildShareCard`), ported together with their components.
+   - Found: no config defines `currency`, so the Expenses currency toggle is currently inert in legacy.
 2. **Data layer.** Supabase client, auth, `DataProvider` with `LocalStore` / `SupabaseStore`, explicit `loading / error / ready` states, localStorage migration, dev import, and a safe JSON export (fixes the `[]` bug).
 3. **Shell + home.** Login, library picker, settings, theme and accent per collection.
 4. **Games.** Table, modal, stats, roulette, share card and image, date picker. Checkpoint: parity with `/legacy/`.

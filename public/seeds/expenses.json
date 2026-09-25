@@ -1,0 +1,975 @@
+[
+ {
+  "id": "e1",
+  "title": "Salary",
+  "type": "income",
+  "category": "Income",
+  "amount": 2200,
+  "date": "2026-05-01",
+  "notes": "Monthly paycheck"
+ },
+ {
+  "id": "e2",
+  "title": "Rent",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 900,
+  "date": "2026-05-03",
+  "notes": "Apartment"
+ },
+ {
+  "id": "e3",
+  "title": "Electricity",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 56.33,
+  "date": "2026-05-08",
+  "notes": "Edenor"
+ },
+ {
+  "id": "e4",
+  "title": "Internet",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 30,
+  "date": "2026-05-10",
+  "notes": "Fiber"
+ },
+ {
+  "id": "e5",
+  "title": "Netflix",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 15.99,
+  "date": "2026-05-05",
+  "notes": ""
+ },
+ {
+  "id": "e6",
+  "title": "Spotify",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 9.99,
+  "date": "2026-05-06",
+  "notes": ""
+ },
+ {
+  "id": "e7",
+  "title": "Gym",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 29,
+  "date": "2026-05-07",
+  "notes": "Membership"
+ },
+ {
+  "id": "e8",
+  "title": "Game Pass",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 16.99,
+  "date": "2026-05-12",
+  "notes": ""
+ },
+ {
+  "id": "e9",
+  "title": "Empanadas",
+  "type": "expense",
+  "category": "Food",
+  "amount": 34.18,
+  "date": "2026-05-10",
+  "notes": ""
+ },
+ {
+  "id": "e10",
+  "title": "Bakery",
+  "type": "expense",
+  "category": "Food",
+  "amount": 40.29,
+  "date": "2026-05-18",
+  "notes": ""
+ },
+ {
+  "id": "e11",
+  "title": "Cafe La Paz",
+  "type": "expense",
+  "category": "Food",
+  "amount": 33.24,
+  "date": "2026-05-28",
+  "notes": ""
+ },
+ {
+  "id": "e12",
+  "title": "Bakery",
+  "type": "expense",
+  "category": "Food",
+  "amount": 24.6,
+  "date": "2026-05-13",
+  "notes": ""
+ },
+ {
+  "id": "e13",
+  "title": "Empanadas",
+  "type": "expense",
+  "category": "Food",
+  "amount": 15.39,
+  "date": "2026-05-13",
+  "notes": ""
+ },
+ {
+  "id": "e14",
+  "title": "Verdulería",
+  "type": "expense",
+  "category": "Food",
+  "amount": 13.51,
+  "date": "2026-05-01",
+  "notes": ""
+ },
+ {
+  "id": "e15",
+  "title": "Grocery run",
+  "type": "expense",
+  "category": "Food",
+  "amount": 26.98,
+  "date": "2026-05-13",
+  "notes": ""
+ },
+ {
+  "id": "e16",
+  "title": "Pizza",
+  "type": "expense",
+  "category": "Food",
+  "amount": 41.36,
+  "date": "2026-05-07",
+  "notes": ""
+ },
+ {
+  "id": "e17",
+  "title": "Almuerzo",
+  "type": "expense",
+  "category": "Food",
+  "amount": 16.52,
+  "date": "2026-05-17",
+  "notes": ""
+ },
+ {
+  "id": "e18",
+  "title": "Pizza",
+  "type": "expense",
+  "category": "Food",
+  "amount": 24.93,
+  "date": "2026-05-28",
+  "notes": ""
+ },
+ {
+  "id": "e19",
+  "title": "Sushi night",
+  "type": "expense",
+  "category": "Food",
+  "amount": 17.6,
+  "date": "2026-05-10",
+  "notes": ""
+ },
+ {
+  "id": "e20",
+  "title": "Verdulería",
+  "type": "expense",
+  "category": "Food",
+  "amount": 39.25,
+  "date": "2026-05-30",
+  "notes": ""
+ },
+ {
+  "id": "e21",
+  "title": "Almuerzo",
+  "type": "expense",
+  "category": "Food",
+  "amount": 26.48,
+  "date": "2026-05-02",
+  "notes": ""
+ },
+ {
+  "id": "e22",
+  "title": "McDonald’s",
+  "type": "expense",
+  "category": "Food",
+  "amount": 19.79,
+  "date": "2026-05-14",
+  "notes": ""
+ },
+ {
+  "id": "e23",
+  "title": "Cafe La Paz",
+  "type": "expense",
+  "category": "Food",
+  "amount": 33.05,
+  "date": "2026-05-24",
+  "notes": ""
+ },
+ {
+  "id": "e24",
+  "title": "Uber",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 21.57,
+  "date": "2026-05-27",
+  "notes": ""
+ },
+ {
+  "id": "e25",
+  "title": "Colectivo",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 14.47,
+  "date": "2026-05-03",
+  "notes": ""
+ },
+ {
+  "id": "e26",
+  "title": "Colectivo",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 21.51,
+  "date": "2026-05-05",
+  "notes": ""
+ },
+ {
+  "id": "e27",
+  "title": "Taxi",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 2.91,
+  "date": "2026-05-02",
+  "notes": ""
+ },
+ {
+  "id": "e28",
+  "title": "Colectivo",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 15.97,
+  "date": "2026-05-14",
+  "notes": ""
+ },
+ {
+  "id": "e29",
+  "title": "Nafta",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 6.82,
+  "date": "2026-05-01",
+  "notes": ""
+ },
+ {
+  "id": "e30",
+  "title": "Subte SUBE",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 23.01,
+  "date": "2026-05-01",
+  "notes": ""
+ },
+ {
+  "id": "e31",
+  "title": "Nintendo eShop",
+  "type": "expense",
+  "category": "Games",
+  "amount": 17.14,
+  "date": "2026-05-13",
+  "notes": ""
+ },
+ {
+  "id": "e32",
+  "title": "Haircut",
+  "type": "expense",
+  "category": "Other",
+  "amount": 9.69,
+  "date": "2026-05-13",
+  "notes": ""
+ },
+ {
+  "id": "e33",
+  "title": "Gift",
+  "type": "expense",
+  "category": "Other",
+  "amount": 56.58,
+  "date": "2026-05-01",
+  "notes": ""
+ },
+ {
+  "id": "e34",
+  "title": "Salary",
+  "type": "income",
+  "category": "Income",
+  "amount": 2200,
+  "date": "2026-06-01",
+  "notes": "Monthly paycheck"
+ },
+ {
+  "id": "e35",
+  "title": "Rent",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 900,
+  "date": "2026-06-03",
+  "notes": "Apartment"
+ },
+ {
+  "id": "e36",
+  "title": "Electricity",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 44.68,
+  "date": "2026-06-08",
+  "notes": "Edenor"
+ },
+ {
+  "id": "e37",
+  "title": "Internet",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 30,
+  "date": "2026-06-10",
+  "notes": "Fiber"
+ },
+ {
+  "id": "e38",
+  "title": "Netflix",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 15.99,
+  "date": "2026-06-05",
+  "notes": ""
+ },
+ {
+  "id": "e39",
+  "title": "Spotify",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 9.99,
+  "date": "2026-06-06",
+  "notes": ""
+ },
+ {
+  "id": "e40",
+  "title": "Gym",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 29,
+  "date": "2026-06-07",
+  "notes": "Membership"
+ },
+ {
+  "id": "e41",
+  "title": "Game Pass",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 16.99,
+  "date": "2026-06-12",
+  "notes": ""
+ },
+ {
+  "id": "e42",
+  "title": "Sushi night",
+  "type": "expense",
+  "category": "Food",
+  "amount": 41.79,
+  "date": "2026-06-02",
+  "notes": ""
+ },
+ {
+  "id": "e43",
+  "title": "Grocery run",
+  "type": "expense",
+  "category": "Food",
+  "amount": 21.86,
+  "date": "2026-06-25",
+  "notes": ""
+ },
+ {
+  "id": "e44",
+  "title": "McDonald’s",
+  "type": "expense",
+  "category": "Food",
+  "amount": 33.03,
+  "date": "2026-06-22",
+  "notes": ""
+ },
+ {
+  "id": "e45",
+  "title": "Almuerzo",
+  "type": "expense",
+  "category": "Food",
+  "amount": 39.29,
+  "date": "2026-06-13",
+  "notes": ""
+ },
+ {
+  "id": "e46",
+  "title": "Almuerzo",
+  "type": "expense",
+  "category": "Food",
+  "amount": 15.03,
+  "date": "2026-06-10",
+  "notes": ""
+ },
+ {
+  "id": "e47",
+  "title": "Cafe La Paz",
+  "type": "expense",
+  "category": "Food",
+  "amount": 11.2,
+  "date": "2026-06-08",
+  "notes": ""
+ },
+ {
+  "id": "e48",
+  "title": "Starbucks",
+  "type": "expense",
+  "category": "Food",
+  "amount": 30.74,
+  "date": "2026-06-20",
+  "notes": ""
+ },
+ {
+  "id": "e49",
+  "title": "Almuerzo",
+  "type": "expense",
+  "category": "Food",
+  "amount": 39.61,
+  "date": "2026-06-29",
+  "notes": ""
+ },
+ {
+  "id": "e50",
+  "title": "Bakery",
+  "type": "expense",
+  "category": "Food",
+  "amount": 44.06,
+  "date": "2026-06-21",
+  "notes": ""
+ },
+ {
+  "id": "e51",
+  "title": "Pizza",
+  "type": "expense",
+  "category": "Food",
+  "amount": 23.54,
+  "date": "2026-06-14",
+  "notes": ""
+ },
+ {
+  "id": "e52",
+  "title": "Grocery run",
+  "type": "expense",
+  "category": "Food",
+  "amount": 35.67,
+  "date": "2026-06-21",
+  "notes": ""
+ },
+ {
+  "id": "e53",
+  "title": "Bakery",
+  "type": "expense",
+  "category": "Food",
+  "amount": 19.41,
+  "date": "2026-06-09",
+  "notes": ""
+ },
+ {
+  "id": "e54",
+  "title": "Subte SUBE",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 22.46,
+  "date": "2026-06-11",
+  "notes": ""
+ },
+ {
+  "id": "e55",
+  "title": "Uber",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 22.67,
+  "date": "2026-06-19",
+  "notes": ""
+ },
+ {
+  "id": "e56",
+  "title": "Colectivo",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 19.14,
+  "date": "2026-06-13",
+  "notes": ""
+ },
+ {
+  "id": "e57",
+  "title": "Uber",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 6.24,
+  "date": "2026-06-25",
+  "notes": ""
+ },
+ {
+  "id": "e58",
+  "title": "Colectivo",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 5.24,
+  "date": "2026-06-27",
+  "notes": ""
+ },
+ {
+  "id": "e59",
+  "title": "Taxi",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 19.52,
+  "date": "2026-06-20",
+  "notes": ""
+ },
+ {
+  "id": "e60",
+  "title": "Nafta",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 4.16,
+  "date": "2026-06-13",
+  "notes": ""
+ },
+ {
+  "id": "e61",
+  "title": "Subte SUBE",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 22.69,
+  "date": "2026-06-10",
+  "notes": ""
+ },
+ {
+  "id": "e62",
+  "title": "Steam",
+  "type": "expense",
+  "category": "Games",
+  "amount": 46.74,
+  "date": "2026-06-02",
+  "notes": ""
+ },
+ {
+  "id": "e63",
+  "title": "Clothes",
+  "type": "expense",
+  "category": "Other",
+  "amount": 31.15,
+  "date": "2026-06-30",
+  "notes": ""
+ },
+ {
+  "id": "e64",
+  "title": "Books",
+  "type": "expense",
+  "category": "Other",
+  "amount": 52.58,
+  "date": "2026-06-13",
+  "notes": ""
+ },
+ {
+  "id": "e65",
+  "title": "Haircut",
+  "type": "expense",
+  "category": "Other",
+  "amount": 18.09,
+  "date": "2026-06-21",
+  "notes": ""
+ },
+ {
+  "id": "e66",
+  "title": "Haircut",
+  "type": "expense",
+  "category": "Other",
+  "amount": 29.09,
+  "date": "2026-06-17",
+  "notes": ""
+ },
+ {
+  "id": "e67",
+  "title": "Salary",
+  "type": "income",
+  "category": "Income",
+  "amount": 2200,
+  "date": "2026-07-01",
+  "notes": "Monthly paycheck"
+ },
+ {
+  "id": "e68",
+  "title": "Rent",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 900,
+  "date": "2026-07-03",
+  "notes": "Apartment"
+ },
+ {
+  "id": "e69",
+  "title": "Electricity",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 51.08,
+  "date": "2026-07-08",
+  "notes": "Edenor"
+ },
+ {
+  "id": "e70",
+  "title": "Internet",
+  "type": "expense",
+  "category": "Housing",
+  "amount": 30,
+  "date": "2026-07-10",
+  "notes": "Fiber"
+ },
+ {
+  "id": "e71",
+  "title": "Netflix",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 15.99,
+  "date": "2026-07-05",
+  "notes": ""
+ },
+ {
+  "id": "e72",
+  "title": "Spotify",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 9.99,
+  "date": "2026-07-06",
+  "notes": ""
+ },
+ {
+  "id": "e73",
+  "title": "Gym",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 29,
+  "date": "2026-07-07",
+  "notes": "Membership"
+ },
+ {
+  "id": "e74",
+  "title": "Game Pass",
+  "type": "expense",
+  "category": "Subs",
+  "amount": 16.99,
+  "date": "2026-07-12",
+  "notes": ""
+ },
+ {
+  "id": "e75",
+  "title": "McDonald’s",
+  "type": "expense",
+  "category": "Food",
+  "amount": 17.07,
+  "date": "2026-07-06",
+  "notes": ""
+ },
+ {
+  "id": "e76",
+  "title": "Sushi night",
+  "type": "expense",
+  "category": "Food",
+  "amount": 42.62,
+  "date": "2026-07-01",
+  "notes": ""
+ },
+ {
+  "id": "e77",
+  "title": "Grocery run",
+  "type": "expense",
+  "category": "Food",
+  "amount": 15.86,
+  "date": "2026-07-06",
+  "notes": ""
+ },
+ {
+  "id": "e78",
+  "title": "Empanadas",
+  "type": "expense",
+  "category": "Food",
+  "amount": 26.08,
+  "date": "2026-07-09",
+  "notes": ""
+ },
+ {
+  "id": "e79",
+  "title": "Verdulería",
+  "type": "expense",
+  "category": "Food",
+  "amount": 32.87,
+  "date": "2026-07-16",
+  "notes": ""
+ },
+ {
+  "id": "e80",
+  "title": "Verdulería",
+  "type": "expense",
+  "category": "Food",
+  "amount": 20.48,
+  "date": "2026-07-12",
+  "notes": ""
+ },
+ {
+  "id": "e81",
+  "title": "Bakery",
+  "type": "expense",
+  "category": "Food",
+  "amount": 35.39,
+  "date": "2026-07-12",
+  "notes": ""
+ },
+ {
+  "id": "e82",
+  "title": "Starbucks",
+  "type": "expense",
+  "category": "Food",
+  "amount": 6.79,
+  "date": "2026-07-12",
+  "notes": ""
+ },
+ {
+  "id": "e83",
+  "title": "Verdulería",
+  "type": "expense",
+  "category": "Food",
+  "amount": 17.64,
+  "date": "2026-07-03",
+  "notes": ""
+ },
+ {
+  "id": "e84",
+  "title": "Bakery",
+  "type": "expense",
+  "category": "Food",
+  "amount": 31.26,
+  "date": "2026-07-02",
+  "notes": ""
+ },
+ {
+  "id": "e85",
+  "title": "Cafe La Paz",
+  "type": "expense",
+  "category": "Food",
+  "amount": 29.33,
+  "date": "2026-07-12",
+  "notes": ""
+ },
+ {
+  "id": "e86",
+  "title": "Nafta",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 10.77,
+  "date": "2026-07-12",
+  "notes": ""
+ },
+ {
+  "id": "e87",
+  "title": "Taxi",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 23.97,
+  "date": "2026-07-12",
+  "notes": ""
+ },
+ {
+  "id": "e88",
+  "title": "Colectivo",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 20.84,
+  "date": "2026-07-04",
+  "notes": ""
+ },
+ {
+  "id": "e89",
+  "title": "Nafta",
+  "type": "expense",
+  "category": "Transport",
+  "amount": 3.15,
+  "date": "2026-07-06",
+  "notes": ""
+ },
+ {
+  "id": "e90",
+  "title": "PS Store",
+  "type": "expense",
+  "category": "Games",
+  "amount": 17.12,
+  "date": "2026-07-04",
+  "notes": ""
+ },
+ {
+  "id": "e91",
+  "title": "Haircut",
+  "type": "expense",
+  "category": "Other",
+  "amount": 62.56,
+  "date": "2026-07-05",
+  "notes": ""
+ },
+ {
+  "id": "e92",
+  "title": "Books",
+  "type": "expense",
+  "category": "Other",
+  "amount": 56.97,
+  "date": "2026-07-02",
+  "notes": ""
+ },
+ {
+  "id": "e93",
+  "title": "Haircut",
+  "type": "expense",
+  "category": "Other",
+  "amount": 56.64,
+  "date": "2026-07-13",
+  "notes": ""
+ },
+ {
+  "id": "e94",
+  "title": "Haircut",
+  "type": "expense",
+  "category": "Other",
+  "amount": 42.5,
+  "date": "2026-07-13",
+  "notes": ""
+ },
+ {
+  "id": "e95",
+  "title": "RTX 6070",
+  "type": "expense",
+  "category": "Games",
+  "amount": 640,
+  "date": "2026-06-21",
+  "notes": "New GPU 🎮"
+ },
+ {
+  "id": "e96",
+  "title": "Transfer to savings",
+  "type": "transfer",
+  "category": "Other",
+  "amount": 300,
+  "date": "2026-06-02",
+  "notes": "",
+  "account": "Savings"
+ },
+ {
+  "id": "e97",
+  "title": "Freelance gig",
+  "type": "income",
+  "category": "Income",
+  "amount": 450,
+  "date": "2026-07-09",
+  "notes": "Logo design"
+ },
+ {
+  "id": "e99",
+  "title": "Transfer to savings",
+  "type": "transfer",
+  "category": "Other",
+  "account": "Savings",
+  "amount": 300,
+  "date": "2026-05-15",
+  "notes": "Monthly auto-transfer"
+ },
+ {
+  "id": "e100",
+  "title": "Brokerage deposit",
+  "type": "transfer",
+  "category": "Other",
+  "account": "Investing",
+  "amount": 200,
+  "date": "2026-05-20",
+  "notes": "Index fund"
+ },
+ {
+  "id": "e101",
+  "title": "Brokerage deposit",
+  "type": "transfer",
+  "category": "Other",
+  "account": "Investing",
+  "amount": 250,
+  "date": "2026-06-15",
+  "notes": "Index fund"
+ },
+ {
+  "id": "e102",
+  "title": "Retirement (IRA)",
+  "type": "transfer",
+  "category": "Other",
+  "account": "Retirement",
+  "amount": 150,
+  "date": "2026-06-25",
+  "notes": ""
+ },
+ {
+  "id": "e103",
+  "title": "Transfer to savings",
+  "type": "transfer",
+  "category": "Other",
+  "account": "Savings",
+  "amount": 350,
+  "date": "2026-07-02",
+  "notes": "Monthly auto-transfer"
+ },
+ {
+  "id": "e104",
+  "title": "Brokerage deposit",
+  "type": "transfer",
+  "category": "Other",
+  "account": "Investing",
+  "amount": 250,
+  "date": "2026-07-10",
+  "notes": "Index fund"
+ },
+ {
+  "id": "e105",
+  "title": "Emergency fund top-up",
+  "type": "transfer",
+  "category": "Other",
+  "account": "Emergency",
+  "amount": 100,
+  "date": "2026-07-14",
+  "notes": ""
+ },
+ {
+  "id": "e106",
+  "title": "USD savings (cash)",
+  "type": "transfer",
+  "category": "Other",
+  "account": "USD",
+  "amount": 100,
+  "date": "2026-06-18",
+  "notes": "Bought USD"
+ },
+ {
+  "id": "e107",
+  "title": "USD savings (cash)",
+  "type": "transfer",
+  "category": "Other",
+  "account": "USD",
+  "amount": 150,
+  "date": "2026-07-08",
+  "notes": "Bought USD"
+ },
+ {
+  "id": "e_sample",
+  "title": "⚠ Sample transaction (delete me)",
+  "type": "expense",
+  "category": "Other",
+  "amount": 1,
+  "date": "2026-07-16",
+  "notes": "This row is here so you can test deleting. Safe to remove."
+ }
+]
