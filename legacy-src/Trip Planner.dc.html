@@ -1,0 +1,2275 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  ::-webkit-scrollbar { height: 10px; width: 10px; }
+  ::-webkit-scrollbar-thumb { background: #2a3033; border-radius: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #6fc9c0; }
+  a:hover { color: #93ddd5; }
+  @keyframes slotIn { from { opacity: 0; transform: scaleY(.6); } to { opacity: 1; transform: scaleY(1); } }
+  @keyframes pulseGlow { 0%,100% { box-shadow: inset 0 0 0 1px rgba(111,201,192,.22); } 50% { box-shadow: inset 0 0 0 1px rgba(111,201,192,.6); } }
+  @keyframes drawerRise { from { transform: translateY(101%); opacity: .35; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes compBtnIn { from { transform: scale(.6) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  :focus-visible { outline: 2px solid #5fb8b0; outline-offset: 2px; }
+  input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #5fb8b0; outline-offset: 1px; border-color: #5fb8b0 !important; }
+  button, [role=button], [role=tab], a, label, input, select, textarea { touch-action: manipulation; }
+  button { font-family: inherit; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</helmet>
+
+<div style="min-height:100dvh;background:#0c0e0f;color:#e9edee;font-family:'Hanken Grotesk',sans-serif;-webkit-font-smoothing:antialiased">
+
+<a href="#tp-main" style="position:absolute;left:-9999px;top:8px;z-index:999;background:#5fb8b0;color:#06201e;font-weight:700;font-size:13px;padding:9px 14px;border-radius:8px" style-focus="left:12px">Skip to content</a>
+
+<!-- ==================== HOME: ALL TRIPS ==================== -->
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div>
+
+<!-- ===== TOP BAR (matches the other libraries) ===== -->
+<header style="position:sticky;top:0;z-index:20;background:rgba(12,14,15,.86);backdrop-filter:blur(10px);border-bottom:1px solid #1d2224">
+  <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:14px 28px;flex-wrap:wrap">
+    <button onClick="{{ onHome }}" title="All libraries" aria-label="All libraries" style="display:flex;align-items:baseline;gap:10px;cursor:pointer;background:none;border:none;padding:0;font:inherit;color:inherit">
+      <span translate="no" style="font-size:18px;font-weight:700;letter-spacing:-.02em;color:#e9edee">{{ brandName }}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#59605b">// trips</span>
+    </button>
+    <div style="flex:1"></div>
+    <button onClick="{{ onOpenSettings }}" title="Settings & admin" aria-label="Settings and admin" style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b938d;max-width:190px;cursor:pointer;padding:6px 10px;border-radius:8px;background:#151816;border:1px solid rgba(255,255,255,.08);transition:color .2s,border-color .2s" style-hover="color:#e8ebe8;border-color:#5fb8b0">
+      <svg width="12.5" height="12.5" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="flex-shrink:0"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ userEmail }}</span>
+    </button>
+    <button onClick="{{ onSignOut }}" title="Sign out" style="font:inherit;white-space:nowrap;font-size:12px;color:#8b938d;cursor:pointer;padding:7px 10px;border-radius:7px;background:#151816;border:1px solid rgba(255,255,255,.06)">Sign out</button>
+  </div>
+</header>
+
+<main id="tp-main" style="max-width:1080px;margin:0 auto;padding:36px 28px 80px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+    <div>
+      <h1 style="font-size:34px;font-weight:800;letter-spacing:-.02em;margin:0;text-wrap:balance">Where to next?</h1>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4b5558;margin-top:6px;font-variant-numeric:tabular-nums">{{ tripCountLabel }}</div>
+    </div>
+    <button onClick="{{ newTrip }}" style="font:inherit;cursor:pointer;background:#5fb8b0;color:#06201e;font-weight:700;font-size:14px;padding:11px 18px;border:none;border-radius:10px;box-shadow:0 4px 16px rgba(95,184,176,.25)">+ New trip</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:18px">
+    <sc-for list="{{ trips }}" as="t" hint-placeholder-count="3">
+      <div onClick="{{ t.onOpen }}" onKeyDown="{{ t.onKey }}" role="button" tabindex="0" aria-label="{{ t.openLabel }}" style="cursor:pointer;background:#14181a;border:1px solid #222829;border-radius:16px;overflow:hidden;transition:border-color .15s" style-hover="border-color:#3a6b66">
+        <div style="position:relative;height:96px;background:{{ t.cover }};display:flex;align-items:flex-end;padding:14px 16px">
+          <button onClick="{{ t.onEdit }}" title="Edit trip" aria-label="{{ t.editLabel }}" style="cursor:pointer;position:absolute;top:10px;right:10px;width:28px;height:28px;border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.34);color:#fff;font-size:13px;backdrop-filter:blur(3px)">✎</button>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:rgba(255,255,255,.9);background:rgba(0,0,0,.28);padding:4px 9px;border-radius:6px;backdrop-filter:blur(3px)">{{ t.dateRange }}</div>
+        </div>
+        <div style="padding:16px">
+          <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;margin-bottom:3px">{{ t.name }}</div>
+          <div style="font-size:13px;color:#8a9693;margin-bottom:14px">{{ t.subtitle }}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:14px;font-size:12.5px;color:#7a8683">
+              <span><b style="color:#c6cfcc;font-weight:600">{{ t.count }}</b> cards</span>
+              <span><b style="color:#c6cfcc;font-weight:600">{{ t.scheduledCount }}</b> planned</span>
+            </div>
+            <div style="display:flex">
+              <sc-for list="{{ t.companions }}" as="c" hint-placeholder-count="2">
+                <div style="width:24px;height:24px;border-radius:50%;background:{{ c.color }};color:#0c0e0f;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-left:-6px;border:2px solid #14181a">{{ c.initial }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="margin-top:12px;height:6px;border-radius:4px;background:#0c0e0f;overflow:hidden">
+            <div style="height:100%;width:{{ t.budgetPct }};background:{{ t.budgetColor }}"></div>
+          </div>
+          <div style="margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b7673;font-variant-numeric:tabular-nums">{{ t.budgetLabel }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</main>
+</div>
+</sc-if>
+
+<!-- ==================== BOARD: ONE TRIP ==================== -->
+<sc-if value="{{ isBoard }}" hint-placeholder-val="{{ false }}">
+<div style="height:100dvh;display:flex;flex-direction:column">
+
+  <!-- trip header -->
+  <header style="{{ headerStyle }}">
+    <button onClick="{{ goHome }}" aria-label="Back to all trips" style="cursor:pointer;flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:#191d1f;border:1px solid #262c2e;display:flex;align-items:center;justify-content:center;color:#9aa7a4;font-size:17px">‹</button>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap">
+        <h1 style="{{ titleStyle }}">{{ trip.name }}</h1>
+        <sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b7673;background:#161a1b;padding:3px 8px;border-radius:6px">{{ trip.dateRange }}</div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}">
+      <div style="font-size:12.5px;color:#7a8683;margin-top:2px">{{ trip.subtitle }}</div>
+      </sc-if>
+    </div>
+    <!-- budget rollup (desktop) -->
+    <sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}">
+    <div style="text-align:right;flex:0 0 auto">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-variant-numeric:tabular-nums"><span style="color:#e9edee;font-weight:600">{{ trip.spentDisp }}</span><span style="color:#5f6b68"> / {{ trip.budgetDisp }}</span></div>
+      <div style="margin-top:5px;height:6px;width:180px;border-radius:4px;background:#1a1f20;overflow:hidden;margin-left:auto">
+        <div style="height:100%;width:{{ trip.budgetPct }};background:{{ trip.budgetColor }}"></div>
+      </div>
+    </div>
+    </sc-if>
+    <!-- cost only (mobile) -->
+    <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+    <div style="text-align:right;flex:0 0 auto">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#c9a56e;line-height:1;font-variant-numeric:tabular-nums">{{ trip.spentDisp }}</div>
+      <div style="font-size:10px;color:#6b7673;margin-top:3px">of {{ trip.budgetDisp }}</div>
+    </div>
+    </sc-if>
+  </header>
+
+  <!-- ===== TAB BAR ===== -->
+  <nav aria-label="Trip views" role="tablist" style="flex:0 0 auto;display:flex;padding:0 24px;border-bottom:1px solid #1d2224;background:#0e1112">
+    <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="2">
+      <button role="tab" aria-selected="{{ tb.sel }}" onClick="{{ tb.onClick }}" style="{{ tb.style }}">{{ tb.label }}</button>
+    </sc-for>
+  </nav>
+
+  <main id="tp-main" style="flex:1;min-height:0;display:flex;flex-direction:column">
+  <!-- ===== CARDS TAB (collect & compare) ===== -->
+  <sc-if value="{{ isCards }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1;min-height:0;overflow-y:auto;background:#0c0e0f">
+    <div style="max-width:1180px;margin:0 auto;padding:20px 24px 100px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+        <input type="search" value="{{ searchText }}" onInput="{{ onSearchText }}" aria-label="Search cards" autocomplete="off" spellcheck="false" placeholder="Search cards — title, tag or place…" style="flex:1;min-width:220px;background:#0e1112;border:1px solid #262c2e;border-radius:10px;padding:11px 14px;color:#e9edee;font-size:13.5px;font-family:inherit;outline:none" />
+        <button onClick="{{ toggleFxPanel }}" title="Currency converter" aria-expanded="{{ fxPanelSel }}" style="{{ fxToggleStyle }}">⇄ Convert</button>
+        <button onClick="{{ newCard }}" style="font:inherit;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;gap:6px;background:#5fb8b0;color:#06201e;font-weight:700;font-size:13.5px;padding:11px 16px;border:none;border-radius:10px;box-shadow:0 4px 16px rgba(95,184,176,.22)">+ New card</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
+        <sc-for list="{{ gridFilters }}" as="f" hint-placeholder-count="5">
+          <button onClick="{{ f.onClick }}" aria-pressed="{{ f.pressed }}" style="font:inherit;white-space:nowrap;cursor:pointer;font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;background:{{ f.bg }};color:{{ f.color }};border:1px solid {{ f.border }}">{{ f.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,244px),1fr));gap:14px">
+        <sc-for list="{{ gridCards }}" as="card" hint-placeholder-count="8">
+          <div onClick="{{ card.onOpen }}" onKeyDown="{{ card.onKey }}" role="button" tabindex="0" aria-label="{{ card.openLabel }}" style="{{ card.gridStyle }}">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div style="font-size:14.5px;font-weight:700;line-height:1.3;color:#e9edee">{{ card.title }}</div>
+              <div style="flex:0 0 auto;display:flex;align-items:center;gap:8px;margin-top:2px">
+                <button onClick="{{ card.onEditClick }}" title="Edit card" aria-label="{{ card.editLabel }}" style="cursor:pointer;width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#8a9693;background:#0e1214;border:1px solid #23292b;font-size:12px" style-hover="color:#e9edee;border-color:#5fb8b0">✎</button>
+                <div style="flex:0 0 auto;width:9px;height:9px;border-radius:50%;background:{{ card.statusDot }};box-shadow:{{ card.statusGlow }}"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ card.typeColor }}">{{ card.typeLabel }}</span>
+              <span style="font-size:11px;font-weight:600;color:{{ card.statusText }}">{{ card.statusLabel }}</span>
+              <sc-if value="{{ card.hasPrice }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#c9a56e">{{ card.priceDisp }}</span></sc-if>
+            </div>
+            <sc-if value="{{ card.hasRegion }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px;color:#8a9693">{{ card.region }}</div>
+            </sc-if>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <sc-if value="{{ card.hasDuration }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:#7a8683">◷ {{ card.durationDisp }}</span></sc-if>
+              <sc-if value="{{ card.hasTags }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:#6b7673">{{ card.tagStr }}</span></sc-if>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:{{ card.dayBadgeColor }}">{{ card.dayBadge }}</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <sc-if value="{{ card.mustDo }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:700;color:#e0a86b">★ must</span></sc-if>
+                <sc-if value="{{ card.isOpen }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#06201e;background:#5fb8b0;padding:2px 6px;border-radius:5px">Open</span></sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ gridEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;color:#4f5a57;font-size:13px;padding:60px 10px">No cards yet — quick-add above to start collecting ideas.</div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===== ITINERARY TAB ===== -->
+  <sc-if value="{{ isItinerary }}" hint-placeholder-val="{{ false }}">
+  <div style="{{ boardBodyStyle }}">
+
+    <!-- ===== POOL / INBOX ===== -->
+    <div data-dropzone data-day="pool" style="{{ poolWrapStyle }}">
+      <div style="flex:0 0 auto;padding:16px 16px 10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#7f8c89">Pool · {{ poolCount }}</div>
+          <div style="font-size:11.5px;color:#5f6b68">unscheduled</div>
+        </div>
+        <input value="{{ quickText }}" onInput="{{ onQuickText }}" onKeyDown="{{ onQuickKey }}" aria-label="Quick add a card" autocomplete="off" spellcheck="false" placeholder="Quick add — paste a link or title, Enter" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:10px 12px;color:#e9edee;font-size:13px;font-family:inherit;outline:none" />
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px">
+          <sc-for list="{{ typeFilters }}" as="f" hint-placeholder-count="5">
+            <button onClick="{{ f.onClick }}" aria-pressed="{{ f.pressed }}" style="font:inherit;white-space:nowrap;cursor:pointer;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px;background:{{ f.bg }};color:{{ f.color }};border:1px solid {{ f.border }}">{{ f.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="{{ poolListStyle }}">
+        <sc-for list="{{ poolCards }}" as="card" hint-placeholder-count="6">
+          <div data-flip="{{ card.id }}" onPointerDown="{{ card.onDown }}" onKeyDown="{{ card.onKey }}" role="button" tabindex="0" aria-label="{{ card.openLabel }}" style="{{ card.poolStyle }}">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div style="font-size:13.5px;font-weight:600;line-height:1.3;color:#e9edee">{{ card.title }}</div>
+              <div style="flex:0 0 auto;width:9px;height:9px;border-radius:50%;margin-top:4px;background:{{ card.statusDot }};box-shadow:{{ card.statusGlow }}"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ card.typeColor }}">{{ card.typeLabel }}</span>
+              <sc-if value="{{ card.hasPrice }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#c9a56e">{{ card.priceDisp }}</span></sc-if>
+              <sc-if value="{{ card.hasTags }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:#6b7673">{{ card.tagStr }}</span></sc-if>
+              <sc-if value="{{ card.mustDo }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:700;color:#e0a86b">★ must</span></sc-if>
+            </div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ poolShowGhost }}" hint-placeholder-val="{{ false }}">
+          <div style="height:52px;border:1.5px dashed #3a6b66;border-radius:10px;background:rgba(95,184,176,.09);animation:slotIn .16s ease;transform-origin:top"></div>
+        </sc-if>
+        <sc-if value="{{ poolEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;color:#4f5a57;font-size:12.5px;padding:30px 10px">Nothing here — quick-add above,<br>or drag a card back from a day.</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- ===== ITINERARY CANVAS ===== -->
+    <div ref="{{ setCanvas }}" onPointerDown="{{ canvasDown }}" style="{{ canvasStyle }}">
+      <sc-if value="{{ showZoom }}" hint-placeholder-val="{{ true }}">
+      <div onPointerDown="{{ stop }}" style="position:absolute;top:12px;right:14px;z-index:30;display:flex;align-items:center;gap:2px;background:rgba(14,17,18,.92);border:1px solid #232a2b;border-radius:10px;padding:4px;backdrop-filter:blur(6px)">
+        <button onClick="{{ zoomOut }}" aria-label="Zoom out" style="cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:7px;color:#c6cfcc;font-size:18px">−</button>
+        <button onClick="{{ zoomFit }}" aria-label="Reset zoom" style="cursor:pointer;background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9aa7a4;padding:0 6px;min-width:44px;text-align:center">{{ zoomLabel }}</button>
+        <button onClick="{{ zoomIn }}" aria-label="Zoom in" style="cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:7px;color:#c6cfcc;font-size:17px">+</button>
+      </div>
+      </sc-if>
+      <div style="{{ worldStyle }}">
+        <sc-for list="{{ lanes }}" as="lane" hint-placeholder-count="3">
+        <div data-dropzone data-day="{{ lane.day }}" style="{{ lane.style }}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <div style="font-size:14px;font-weight:700">{{ lane.title }}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6b7673;margin-top:1px">{{ lane.meta }}</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b7673;background:#0e1112;padding:3px 7px;border-radius:6px">{{ lane.count }}</div>
+          </div>
+          <div style="min-height:40px;display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{ lane.items }}" as="card" hint-placeholder-count="2">
+              <sc-if value="{{ card.isGhost }}" hint-placeholder-val="{{ false }}">
+                <div style="height:46px;border:1.5px dashed #3a6b66;border-radius:9px;background:rgba(95,184,176,.09);animation:slotIn .16s ease;transform-origin:top"></div>
+              </sc-if>
+              <sc-if value="{{ card.isCard }}" hint-placeholder-val="{{ true }}">
+              <div data-flip="{{ card.id }}" onPointerDown="{{ card.onDown }}" onKeyDown="{{ card.onKey }}" role="button" tabindex="0" aria-label="{{ card.openLabel }}" style="{{ card.laneStyle }}">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
+                  <div style="font-size:12.5px;font-weight:600;line-height:1.3">{{ card.title }}</div>
+                  <div style="flex:0 0 auto;width:8px;height:8px;border-radius:50%;margin-top:4px;background:{{ card.statusDot }};box-shadow:{{ card.statusGlow }}"></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:7px;margin-top:6px;flex-wrap:wrap">
+                  <sc-if value="{{ card.hasTime }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:#93ddd5">{{ card.timeDisp }}</span></sc-if>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:{{ card.typeColor }}">{{ card.typeLabel }}</span>
+                  <sc-if value="{{ card.hasDuration }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;color:#7a8683">{{ card.durationDisp }}</span></sc-if>
+                  <sc-if value="{{ card.hasPrice }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#c9a56e">{{ card.priceDisp }}</span></sc-if>
+                </div>
+              </div>
+              </sc-if>
+            </sc-for>
+            <sc-if value="{{ lane.empty }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1.5px dashed #2a3234;border-radius:9px;color:#4f5a57;font-size:11.5px;text-align:center;padding:16px 8px">Drop cards here</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+        <button onClick="{{ addDay }}" onPointerDown="{{ stop }}" style="{{ addDayStyle }}">+ Add day</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===== MAP TAB ===== -->
+  <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:#0a0c0d">
+    <div style="flex:0 0 auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:11px 24px;border-bottom:1px solid #1d2224;background:#0e1112">
+      <sc-for list="{{ mapDayChips }}" as="d" hint-placeholder-count="4">
+        <button onClick="{{ d.onClick }}" aria-pressed="{{ d.sel }}" style="{{ d.style }}">{{ d.label }}</button>
+      </sc-for>
+      <div style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b7673">{{ mapStatus }}</div>
+    </div>
+    <div style="flex:1;min-height:0;display:flex">
+    <div style="position:relative;flex:1;min-width:0;min-height:0;overflow:hidden">
+      <div ref="{{ setMapEl }}" style="position:absolute;inset:0;cursor:grab;touch-action:none"></div>
+      <div ref="{{ setMapTip }}" style="position:absolute;top:0;left:0;display:none;transform:translate(-50%,-150%);pointer-events:none;z-index:7;background:rgba(15,18,19,.96);border:1px solid #2a3234;border-radius:9px;padding:7px 10px;box-shadow:0 10px 28px rgba(0,0,0,.55)"></div>
+      <sc-if value="{{ mapBusy }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b7673;pointer-events:none">drawing the streets…</div>
+      </sc-if>
+      <sc-if value="{{ mapEmpty }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 30px;text-align:center">
+          <div style="font-size:14px;color:#7a8683">No stops have coordinates yet</div>
+          <div style="font-size:12.5px;color:#4f5a57;max-width:380px;text-wrap:pretty">Open a card and paste a Google Maps link — or type <span style="font-family:'JetBrains Mono',monospace;color:#6b7673">35.6764, 139.6500</span> — into its Location field.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ mapHasError }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center">
+          <button onClick="{{ mapRetry }}" style="font:inherit;cursor:pointer;font-size:12px;color:#d98a6a;background:rgba(15,18,19,.94);border:1px solid #3a2f28;border-radius:8px;padding:7px 12px">Street data unavailable — pins shown on plain ground. Retry</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ mapHasPins }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ mapReset }}" style="position:absolute;top:12px;right:14px;z-index:6;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9aa7a4;background:rgba(14,17,18,.9);border:1px solid #232a2b;border-radius:8px;padding:6px 11px;white-space:nowrap">reset view</button>
+        <div style="position:absolute;left:14px;bottom:12px;z-index:6;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#4f5a57;pointer-events:none">drag to pan · scroll to zoom · click a pin</div>
+      </sc-if>
+    </div>
+    <sc-if value="{{ mapShowList }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:0 0 262px;border-left:1px solid #1d2224;background:#0e1112;overflow-y:auto;padding:6px 16px 26px">
+        <sc-for list="{{ mapList }}" as="r" hint-placeholder-count="6">
+          <sc-if value="{{ r.isHeader }}" hint-placeholder-val="{{ false }}">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5f6b68;padding:15px 0 7px">{{ r.label }}</div>
+          </sc-if>
+          <sc-if value="{{ r.isStop }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ r.onClick }}" aria-label="{{ r.openLabel }}" style="font:inherit;width:100%;text-align:left;background:none;display:flex;gap:10px;align-items:flex-start;padding:9px 0;cursor:pointer;border:none;border-bottom:1px solid #171c1d">
+              <div style="{{ r.numStyle }}">{{ r.num }}</div>
+              <div style="min-width:0;flex:1">
+                <div style="font-size:12.5px;font-weight:600;color:#c6cfcc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.title }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b7673;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.meta }}</div>
+              </div>
+            </button>
+          </sc-if>
+        </sc-for>
+      </div>
+    </sc-if>
+    </div>
+  </div>
+  </sc-if>
+  </main>
+
+</div>
+</sc-if>
+
+<!-- ===== CURRENCY QUICK-CONVERT (side panel, cards tab) ===== -->
+<sc-if value="{{ fxPanelOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;right:max(env(safe-area-inset-right,0px),18px);bottom:calc(env(safe-area-inset-bottom,0px) + 86px);z-index:320;width:min(calc(100vw - 36px),320px);background:#14181a;border:1px solid #2a3234;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.55);animation:compBtnIn .22s cubic-bezier(.22,1,.36,1);transform-origin:bottom right">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #1d2224">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7f8c89">Convert</div>
+    <button onClick="{{ toggleFxPanel }}" title="Close" aria-label="Close converter" style="cursor:pointer;width:24px;height:24px;border:none;background:none;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#8a9693;font-size:15px" style-hover="color:#e9edee">✕</button>
+  </div>
+  <div style="padding:14px">
+    <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">
+      <input value="{{ fxAmount }}" onInput="{{ onFxAmount }}" inputmode="decimal" aria-label="Amount to convert" autocomplete="off" placeholder="0.00" style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;outline:none" />
+      <div style="position:relative;flex:0 0 96px">
+        <button onClick="{{ openFxFromDrop }}" aria-haspopup="listbox" aria-expanded="{{ fxDropFromSel }}" aria-label="Convert from {{ fxFrom }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;height:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:0 10px;cursor:pointer;transition:border-color .15s" style-hover="border-color:#3a6b66">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#e9edee">{{ fxFrom }}</span>
+          <span style="font-size:11px;color:#5f6b68">{{ fxFromSym }}</span>
+        </button>
+        <sc-if value="{{ fxDropFrom }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:calc(100% + 6px);right:0;width:236px;max-height:260px;display:flex;flex-direction:column;background:#171c1e;border:1px solid #2a3234;border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.6);z-index:5;overflow:hidden;animation:compBtnIn .16s ease">
+          <div style="padding:8px;border-bottom:1px solid #1d2224">
+            <input type="search" value="{{ fxSearch }}" onInput="{{ onFxSearch }}" aria-label="Search currency" autocomplete="off" spellcheck="false" placeholder="Search currency…" style="width:100%;box-sizing:border-box;background:#0c0e0f;border:1px solid #262c2e;border-radius:8px;padding:8px 10px;color:#e9edee;font-size:12.5px;font-family:inherit;outline:none" />
+          </div>
+          <div style="overflow-y:auto;padding:6px">
+            <sc-for list="{{ fxListFrom }}" as="o" hint-placeholder-count="6">
+              <button onClick="{{ o.onSelect }}" aria-label="{{ o.code }} — {{ o.name }}" style="{{ o.rowStyle }}" style-hover="background:rgba(95,184,176,.08)">
+                <span style="{{ o.codeStyle }}">{{ o.code }}</span>
+                <span style="flex:1;min-width:0;font-size:12.5px;color:#a9b3b0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ o.name }}</span>
+                <span style="{{ o.symStyle }}">{{ o.sym }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:9px;margin:2px 0 8px">
+      <div style="flex:1;height:1px;background:#222829"></div>
+      <button onClick="{{ swapFx }}" title="Swap" aria-label="Swap currencies" style="cursor:pointer;flex:0 0 auto;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0c0e0f;border:1px solid #2a3234;color:#5fb8b0;font-size:15px;transition:border-color .15s" style-hover="border-color:#5fb8b0">⇅</button>
+      <div style="flex:1;height:1px;background:#222829"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:stretch">
+      <div style="flex:1;min-width:0;background:#0e1512;border:1px solid #274b45;border-radius:9px;padding:9px 11px;display:flex;align-items:center;font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;color:#7fe3d8;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ fxResultDisp }}</div>
+      <div style="position:relative;flex:0 0 96px">
+        <button onClick="{{ openFxToDrop }}" aria-haspopup="listbox" aria-expanded="{{ fxDropToSel }}" aria-label="Convert to {{ fxTo }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;height:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:0 10px;cursor:pointer;transition:border-color .15s" style-hover="border-color:#3a6b66">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#e9edee">{{ fxTo }}</span>
+          <span style="font-size:11px;color:#5f6b68">{{ fxToSym }}</span>
+        </button>
+        <sc-if value="{{ fxDropTo }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;bottom:calc(100% + 6px);right:0;width:236px;max-height:260px;display:flex;flex-direction:column;background:#171c1e;border:1px solid #2a3234;border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.6);z-index:5;overflow:hidden;animation:compBtnIn .16s ease">
+          <div style="padding:8px;border-bottom:1px solid #1d2224">
+            <input type="search" value="{{ fxSearch }}" onInput="{{ onFxSearch }}" aria-label="Search currency" autocomplete="off" spellcheck="false" placeholder="Search currency…" style="width:100%;box-sizing:border-box;background:#0c0e0f;border:1px solid #262c2e;border-radius:8px;padding:8px 10px;color:#e9edee;font-size:12.5px;font-family:inherit;outline:none" />
+          </div>
+          <div style="overflow-y:auto;padding:6px">
+            <sc-for list="{{ fxListTo }}" as="o" hint-placeholder-count="6">
+              <button onClick="{{ o.onSelect }}" aria-label="{{ o.code }} — {{ o.name }}" style="{{ o.rowStyle }}" style-hover="background:rgba(95,184,176,.08)">
+                <span style="{{ o.codeStyle }}">{{ o.code }}</span>
+                <span style="flex:1;min-width:0;font-size:12.5px;color:#a9b3b0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ o.name }}</span>
+                <span style="{{ o.symStyle }}">{{ o.sym }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+    <div style="margin-top:11px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="min-width:0">
+        <sc-if value="{{ fxLoading }}" hint-placeholder-val="{{ false }}"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7a8683">Fetching…</div></sc-if>
+        <sc-if value="{{ fxHasError }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:#d98a6a;text-wrap:pretty">Rate unavailable — retry</div></sc-if>
+        <sc-if value="{{ fxHasRate }}" hint-placeholder-val="{{ false }}"><div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#8a9693;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ fxRateLine }}</div></sc-if>
+      </div>
+      <button onClick="{{ fetchFx }}" title="Refresh rate" aria-label="Refresh exchange rate" style="cursor:pointer;flex:0 0 auto;color:#9aa7a4;background:#0c0e0f;border:1px solid #262c2e;border-radius:8px;padding:6px 9px;font-size:13px" style-hover="border-color:#5fb8b0;color:#e9edee">↻</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ==================== COMPARE DRAWER ==================== -->
+<sc-if value="{{ compareOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none">
+  <div onClick="{{ stop }}" ref="{{ setCompareEl }}" style="pointer-events:auto;background:#0f1213;border-top:1px solid #262c2e;border-radius:18px 18px 0 0;height:{{ compareHeight }};max-height:{{ compareMaxH }};min-height:{{ compareMinH }};display:flex;flex-direction:column;box-shadow:0 -20px 60px rgba(0,0,0,.55);transform-origin:bottom left;animation:drawerRise .34s cubic-bezier(.22,1,.36,1)">
+    <div onPointerDown="{{ onCompareResizeDown }}" title="Drag to resize" style="flex:0 0 auto;display:flex;flex-direction:column;cursor:ns-resize;touch-action:none;border-bottom:1px solid #1a1f20">
+    <div style="display:flex;align-items:center;justify-content:center;padding:7px 0 2px">
+      <div style="width:42px;height:4px;border-radius:3px;background:#3a4245"></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 20px 12px">
+      <button onPointerDown="{{ stop }}" onClick="{{ toggleCompareMin }}" aria-expanded="{{ compareExpandedSel }}" style="font:inherit;background:none;border:none;color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px">
+        <span aria-hidden="true" style="color:#7a8683;font-size:13px;line-height:1;transform:rotate({{ compareChevron }});transition:transform .15s">⌃</span>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7f8c89">Compare</div>
+        <div style="font-size:13px;color:#c6cfcc;font-weight:600">{{ compareCountLabel }}</div>
+      </button>
+      <div onPointerDown="{{ stop }}" style="display:flex;align-items:center;gap:8px">
+        <sc-if value="{{ compareCount }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ closeAllCompare }}" style="font:inherit;background:none;cursor:pointer;font-size:12.5px;font-weight:600;color:#9aa7a4;padding:7px 13px;border-radius:8px;border:1px solid #2a3234">Clear</button>
+        </sc-if>
+        <button onClick="{{ toggleCompareMin }}" style="font:inherit;background:none;cursor:pointer;font-size:12.5px;font-weight:600;color:#9aa7a4;padding:7px 13px;border-radius:8px;border:1px solid #2a3234">{{ compareMinLabel }}</button>
+        <button onClick="{{ exitCompare }}" style="font:inherit;cursor:pointer;font-size:12.5px;font-weight:700;color:#06201e;background:#5fb8b0;border:none;padding:7px 15px;border-radius:8px">Done</button>
+      </div>
+    </div>
+    </div>
+    <sc-if value="{{ compareExpanded }}" hint-placeholder-val="{{ true }}">
+    <div ref="{{ setCompareCanvas }}" style="{{ compareCanvasStyle }}">
+      <sc-if value="{{ compareShowZoom }}" hint-placeholder-val="{{ false }}">
+      <div style="position:sticky;top:12px;float:right;margin-right:14px;z-index:30;display:inline-flex;align-items:center;gap:2px;background:rgba(14,17,18,.92);border:1px solid #232a2b;border-radius:10px;padding:4px;backdrop-filter:blur(6px)">
+        <button onClick="{{ compareZoomOut }}" title="Zoom out" aria-label="Zoom out" style="cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:7px;color:#c6cfcc;font-size:18px">−</button>
+        <button onClick="{{ compareZoomReset }}" title="Reset zoom" aria-label="Reset zoom" style="cursor:pointer;background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9aa7a4;padding:0 6px;min-width:44px;text-align:center">{{ compareZoomLabel }}</button>
+        <button onClick="{{ compareZoomIn }}" title="Zoom in" aria-label="Zoom in" style="cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:7px;color:#c6cfcc;font-size:17px">+</button>
+      </div>
+      </sc-if>
+      <sc-if value="{{ compareEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#5f6b68;text-align:center;padding:20px">
+        <div style="font-size:24px;color:#5fb8b0">⇄</div>
+        <div style="font-size:13.5px;color:#c6cfcc;font-weight:700">Compare mode is on</div>
+        <div style="font-size:12.5px;color:#5f6b68;max-width:300px">Tap any card above to add it here, then drag by the header to arrange and pull the corner to resize. Shift + scroll to zoom. Press Done to exit.</div>
+      </div>
+      </sc-if>
+      <div style="{{ compareWorldStyle }}">
+      <sc-for list="{{ openCols }}" as="col" hint-placeholder-count="2">
+        <div onPointerDown="{{ col.onCardDown }}" style="{{ col.colStyle }}">
+          <div data-cmp-handle style="flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 14px;border-bottom:1px solid #1a1f20;cursor:move;touch-action:none">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ col.typeColor }}">{{ col.typeLabel }}</span>
+            <button onPointerDown="{{ stop }}" onClick="{{ col.onClose }}" aria-label="{{ col.closeLabel }}" style="cursor:pointer;background:none;border:none;color:#7a8683;font-size:16px;line-height:1">✕</button>
+          </div>
+          <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:15px 15px 0">
+            <div style="font-size:16px;font-weight:700;color:#e9edee;line-height:1.3;margin-bottom:11px">{{ col.title }}</div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid #262c2e;color:#c6cfcc"><span style="width:7px;height:7px;border-radius:50%;background:{{ col.statusDot }}"></span>{{ col.statusLabel }}</div>
+              <div style="font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:20px;background:rgba(224,168,107,.1);border:1px solid rgba(224,168,107,.28);color:#e0a86b">{{ col.prioLabel }}</div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-bottom:11px">
+              <sc-if value="{{ col.hasPrice }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #232a2b;border-radius:9px;padding:8px 10px"><div style="font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6b7673;margin-bottom:3px">Price</div><div style="font-size:14px;color:#e9edee;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ col.price }}</div></div>
+              </sc-if>
+              <sc-if value="{{ col.hasStart }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #232a2b;border-radius:9px;padding:8px 10px"><div style="font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6b7673;margin-bottom:3px">Start</div><div style="font-size:14px;color:#e9edee;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ col.startTime }}</div></div>
+              </sc-if>
+              <sc-if value="{{ col.hasDuration }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #232a2b;border-radius:9px;padding:8px 10px"><div style="font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6b7673;margin-bottom:3px">Duration</div><div style="font-size:14px;color:#e9edee;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ col.duration }}</div></div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ col.hasRegion }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#9aa7a4;margin-bottom:11px"><span style="color:#5fb8b0">◉</span>{{ col.region }}</div>
+            </sc-if>
+
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#6b7673;margin-bottom:5px">Notes</div>
+            <div style="flex:1;min-height:0;overflow-y:auto;font-size:13px;color:#c6cfcc;line-height:1.6;white-space:pre-wrap">{{ col.notesDisplay }}</div>
+            <sc-if value="{{ col.hasAttribution }}" hint-placeholder-val="{{ false }}">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#5f6b68;margin-top:8px">added by {{ col.addedBy }}</div>
+            </sc-if>
+          </div>
+          <div style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid #1a1f20">
+            <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;overflow:hidden">
+              <sc-if value="{{ col.hasTags }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:5px;overflow:hidden">
+                <sc-for list="{{ col.tagChips }}" as="t" hint-placeholder-count="2">
+                  <div style="flex:0 0 auto;font-size:11px;padding:3px 8px;border-radius:20px;color:#9fd8d1;background:rgba(95,184,176,.12);border:1px solid rgba(95,184,176,.32);white-space:nowrap">{{ t.tag }}</div>
+                </sc-for>
+              </div>
+              </sc-if>
+              <sc-if value="{{ col.hasSource }}" hint-placeholder-val="{{ false }}">
+              <a href="{{ col.source }}" target="_blank" rel="noopener" title="{{ col.source }}" style="min-width:0;display:flex;align-items:center;gap:5px;font-size:12px;color:#5fb8b0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="flex:0 0 auto">↗</span><span style="overflow:hidden;text-overflow:ellipsis">{{ col.sourceShort }}</span></a>
+              </sc-if>
+            </div>
+            <button onClick="{{ col.onEdit }}" aria-label="{{ col.editLabel }}" style="font:inherit;cursor:pointer;flex:0 0 auto;font-size:12.5px;font-weight:700;color:#06201e;background:#5fb8b0;border:none;padding:8px 18px;border-radius:8px">Edit</button>
+          </div>
+          <sc-if value="{{ col.showResize }}" hint-placeholder-val="{{ true }}">
+          <div onPointerDown="{{ col.onResizeDown }}" title="Drag to resize" aria-hidden="true" style="position:absolute;right:0;bottom:0;width:20px;height:20px;cursor:nwse-resize;touch-action:none;z-index:6">
+            <div style="position:absolute;right:4px;bottom:4px;width:8px;height:8px;border-right:2px solid #46504d;border-bottom:2px solid #46504d;border-bottom-right-radius:2px"></div>
+          </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      </div>
+    </div>
+    </sc-if>
+    <sc-if value="{{ compareCollapsed }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:0 0 auto;display:flex;gap:8px;overflow-x:auto;padding:12px 20px 16px">
+      <sc-for list="{{ openCols }}" as="col" hint-placeholder-count="2">
+        <div style="flex:0 0 auto;max-width:210px;display:flex;align-items:center;gap:8px;background:#14181a;border:1px solid #262c2e;border-top:3px solid {{ col.typeColor }};border-radius:10px;padding:8px 11px">
+          <button onClick="{{ col.onExpand }}" style="font:inherit;background:none;border:none;cursor:pointer;min-width:0;font-size:13px;font-weight:600;color:#e9edee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ col.title }}</button>
+          <button onClick="{{ col.onClose }}" aria-label="{{ col.closeLabel }}" style="cursor:pointer;background:none;border:none;color:#7a8683;font-size:14px;line-height:1;flex:0 0 auto">✕</button>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ==================== CARD VIEW (READ-ONLY) ==================== -->
+<sc-if value="{{ hasView }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeView }}" style="position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(6,8,9,.62);backdrop-filter:blur(3px);overscroll-behavior:contain">
+  <div onClick="{{ stop }}" ref="{{ dialogRef }}" role="dialog" aria-modal="true" aria-label="{{ vv.title }}" style="width:100%;max-width:460px;max-height:88vh;display:flex;flex-direction:column;background:#0f1213;border:1px solid #262c2e;border-top:3px solid {{ vv.typeColor }};border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.6)">
+    <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 18px;border-bottom:1px solid #1a1f20">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ vv.typeColor }}">{{ vv.typeLabel }}</span>
+      <button onClick="{{ closeView }}" aria-label="Close" style="cursor:pointer;background:none;border:none;color:#7a8683;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:18px">
+      <div style="font-size:20px;font-weight:800;letter-spacing:-.01em;color:#e9edee;line-height:1.25;margin-bottom:13px">{{ vv.title }}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid #262c2e;color:#c6cfcc"><span style="width:7px;height:7px;border-radius:50%;background:{{ vv.statusDot }}"></span>{{ vv.statusLabel }}</div>
+        <div style="font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:20px;background:rgba(224,168,107,.1);border:1px solid rgba(224,168,107,.28);color:#e0a86b">{{ vv.prioLabel }}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;padding:5px 10px;border-radius:20px;background:rgba(95,184,176,.1);border:1px solid rgba(95,184,176,.28);color:#7fd0c8">{{ vv.dayBadge }}</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:15px">
+        <sc-if value="{{ vv.hasPrice }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #232a2b;border-radius:9px;padding:9px 11px"><div style="font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6b7673;margin-bottom:3px">Price</div><div style="font-size:15px;color:#e9edee;font-weight:700">{{ vv.price }}</div></div>
+        </sc-if>
+        <sc-if value="{{ vv.hasStart }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #232a2b;border-radius:9px;padding:9px 11px"><div style="font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6b7673;margin-bottom:3px">Start</div><div style="font-size:15px;color:#e9edee;font-weight:600">{{ vv.startTime }}</div></div>
+        </sc-if>
+        <sc-if value="{{ vv.hasDuration }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #232a2b;border-radius:9px;padding:9px 11px"><div style="font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6b7673;margin-bottom:3px">Duration</div><div style="font-size:15px;color:#e9edee;font-weight:600">{{ vv.duration }}</div></div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ vv.hasRegion }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#9aa7a4;margin-bottom:15px"><span style="color:#5fb8b0">◉</span>{{ vv.region }}</div>
+      </sc-if>
+      <sc-if value="{{ vv.hasTags }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:15px">
+        <sc-for list="{{ vv.tagChips }}" as="t" hint-placeholder-count="2">
+          <div style="font-size:11.5px;padding:4px 9px;border-radius:20px;color:#9fd8d1;background:rgba(95,184,176,.12);border:1px solid rgba(95,184,176,.32)">{{ t.tag }}</div>
+        </sc-for>
+      </div>
+      </sc-if>
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#6b7673;margin-bottom:5px">Notes</div>
+      <div style="font-size:13.5px;color:#c6cfcc;line-height:1.6;white-space:pre-wrap">{{ vv.notesDisplay }}</div>
+      <sc-if value="{{ vv.hasSource }}" hint-placeholder-val="{{ false }}">
+      <a href="{{ vv.source }}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#5fb8b0;margin-top:14px"><span>↗</span>{{ vv.sourceShort }}</a>
+      </sc-if>
+      <sc-if value="{{ vv.hasAttribution }}" hint-placeholder-val="{{ false }}">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#5f6b68;margin-top:12px">added by {{ vv.addedBy }}</div>
+      </sc-if>
+    </div>
+    <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid #1a1f20">
+      <button onClick="{{ closeView }}" style="font:inherit;background:none;cursor:pointer;font-size:12.5px;font-weight:600;color:#9aa7a4;padding:9px 15px;border-radius:8px;border:1px solid #2a3234">Close</button>
+      <button onClick="{{ editFromView }}" style="font:inherit;cursor:pointer;font-size:12.5px;font-weight:700;color:#06201e;background:#5fb8b0;border:none;padding:9px 20px;border-radius:8px">Edit</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ==================== FULL CARD EDITOR MODAL ==================== -->
+<sc-if value="{{ hasModal }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(6,8,9,.62);backdrop-filter:blur(3px);overscroll-behavior:contain">
+  <div onClick="{{ stop }}" ref="{{ dialogRef }}" role="dialog" aria-modal="true" aria-label="{{ m.headerLabel }}" style="width:100%;max-width:460px;max-height:88vh;display:flex;flex-direction:column;background:#0f1213;border:1px solid #262c2e;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.6)">
+    <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 18px;border-bottom:1px solid #1a1f20">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7f8c89">{{ m.headerLabel }}</div>
+      <button onClick="{{ closeModal }}" aria-label="Close" style="cursor:pointer;background:none;border:none;color:#7a8683;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:18px">
+      <input value="{{ m.title }}" onInput="{{ onMTitle }}" aria-label="Card title" autocomplete="off" placeholder="Title" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:11px 13px;color:#e9edee;font-size:15px;font-weight:600;font-family:inherit;outline:none;margin-bottom:15px" />
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Type</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px">
+        <sc-for list="{{ m.typeOpts }}" as="o" hint-placeholder-count="6">
+          <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" style="font:inherit;cursor:pointer;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:7px;background:{{ o.bg }};color:{{ o.color }};border:1px solid {{ o.border }}">{{ o.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Status</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px">
+        <sc-for list="{{ m.statusOpts }}" as="o" hint-placeholder-count="5">
+          <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" style="font:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:7px;background:{{ o.bg }};color:{{ o.color }};border:1px solid {{ o.border }}"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{ o.dot }}"></span>{{ o.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Price</div>
+          <input value="{{ m.price }}" onInput="{{ onMPrice }}" aria-label="Price" placeholder="0" inputmode="decimal" autocomplete="off" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none" />
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Start time</div>
+          <input type="time" value="{{ m.startTime }}" onInput="{{ onMStart }}" aria-label="Start time" placeholder="09:30" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none" />
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Priority</div>
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <sc-for list="{{ m.prioOpts }}" as="o" hint-placeholder-count="3">
+          <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" style="font:inherit;cursor:pointer;flex:1;text-align:center;font-size:12px;font-weight:600;padding:9px 6px;border-radius:8px;background:{{ o.bg }};color:{{ o.color }};border:1px solid {{ o.border }}">{{ o.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Region / place</div>
+      <input value="{{ m.region }}" onInput="{{ onMRegion }}" aria-label="Region or place" autocomplete="off" placeholder="Neighborhood, City" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none;margin-bottom:14px" />
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:600;color:#8a9693">Location</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ m.locColor }};white-space:nowrap">{{ m.locHint }}</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input value="{{ m.locText }}" onInput="{{ onMLoc }}" onKeyDown="{{ onMLocKey }}" aria-label="Location — place name, Maps link or coordinates" autocomplete="off" spellcheck="false" placeholder="Place name, Maps link, or 35.6764, 139.6500" style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none" />
+        <button onClick="{{ lookupLoc }}" style="font:inherit;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;font-size:12.5px;font-weight:600;color:#9fd8d1;background:rgba(95,184,176,.12);border:1px solid rgba(95,184,176,.32);border-radius:9px;padding:0 13px;white-space:nowrap">{{ m.locBtn }}</button>
+      </div>
+      <div style="font-size:11px;color:#5f6b68;line-height:1.5;margin-bottom:14px;text-wrap:pretty">{{ m.locNote }}</div>
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Time to allow</div>
+      <input value="{{ m.duration }}" onInput="{{ onMDuration }}" aria-label="Time to allow" autocomplete="off" placeholder="e.g. 2h · half day" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none;margin-bottom:14px" />
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Tags</div>
+      <sc-if value="{{ m.hasTags }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
+        <sc-for list="{{ m.tagChips }}" as="t" hint-placeholder-count="2">
+          <button onClick="{{ t.onRemove }}" aria-label="{{ t.removeLabel }}" style="font:inherit;cursor:pointer;font-size:11.5px;padding:4px 9px;border-radius:20px;color:#9fd8d1;background:rgba(95,184,176,.12);border:1px solid rgba(95,184,176,.32)">{{ t.tag }} <span aria-hidden="true" style="color:#6b8f8a">✕</span></button>
+        </sc-for>
+      </div>
+      </sc-if>
+      <input value="{{ m.tagInput }}" onInput="{{ onMTagInput }}" onKeyDown="{{ onMTagKey }}" aria-label="Add a tag" autocomplete="off" spellcheck="false" placeholder="Type a tag, Enter…" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none;margin-bottom:9px" />
+      <sc-if value="{{ m.hasTagSuggest }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px">
+        <sc-for list="{{ m.tagSuggest }}" as="t" hint-placeholder-count="3">
+          <button onClick="{{ t.onAdd }}" aria-label="{{ t.addLabel }}" style="font:inherit;background:none;cursor:pointer;font-size:11px;padding:4px 9px;border-radius:20px;color:#8a9693;border:1px solid #2a3234">+ {{ t.tag }}</button>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Source link</div>
+      <input type="url" value="{{ m.source }}" onInput="{{ onMSource }}" aria-label="Source link" autocomplete="off" spellcheck="false" placeholder="https://" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none;margin-bottom:14px" />
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Day</div>
+      <div role="group" aria-label="Schedule this card" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+        <sc-for list="{{ m.dayOpts }}" as="o" hint-placeholder-count="4">
+          <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" style="font:inherit;cursor:pointer;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:7px;background:{{ o.bg }};color:{{ o.color }};border:1px solid {{ o.border }}">{{ o.label }}</button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ m.scheduled }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <button onClick="{{ m.onMoveUp }}" style="font:inherit;background:none;cursor:pointer;font-size:11.5px;font-weight:600;color:#9aa7a4;padding:6px 11px;border-radius:7px;border:1px solid #2a3234">↑ Move earlier</button>
+        <button onClick="{{ m.onMoveDown }}" style="font:inherit;background:none;cursor:pointer;font-size:11.5px;font-weight:600;color:#9aa7a4;padding:6px 11px;border-radius:7px;border:1px solid #2a3234">↓ Move later</button>
+      </div>
+      </sc-if>
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Notes</div>
+      <textarea value="{{ m.notes }}" onInput="{{ onMNotes }}" aria-label="Notes" placeholder="Tips, why it made the list…" style="width:100%;min-height:90px;resize:vertical;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:10px 12px;color:#e9edee;font-size:13px;line-height:1.55;font-family:inherit;outline:none"></textarea>
+    </div>
+    <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid #1a1f20">
+      <sc-if value="{{ m.canDelete }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ deleteCard }}" style="font:inherit;background:none;cursor:pointer;font-size:12px;font-weight:600;color:{{ m.delColor }};padding:9px 13px;border-radius:8px;border:1px solid {{ m.delBorder }}">{{ m.delLabel }}</button>
+      </sc-if>
+      <sc-if value="{{ m.isNew }}" hint-placeholder-val="{{ false }}"><div></div></sc-if>
+      <div style="display:flex;gap:8px">
+        <button onClick="{{ closeModal }}" style="font:inherit;background:none;cursor:pointer;font-size:12.5px;font-weight:600;color:#9aa7a4;padding:9px 15px;border-radius:8px;border:1px solid #2a3234">Cancel</button>
+        <button onClick="{{ saveModal }}" style="font:inherit;cursor:pointer;font-size:12.5px;font-weight:700;color:#06201e;background:#5fb8b0;border:none;padding:9px 20px;border-radius:8px">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ==================== TRIP EDITOR MODAL ==================== -->
+<sc-if value="{{ tripModalOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeTripModal }}" style="position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(6,8,9,.62);backdrop-filter:blur(3px);overscroll-behavior:contain">
+  <div onClick="{{ stop }}" ref="{{ dialogRef }}" role="dialog" aria-modal="true" aria-label="{{ tm.headerLabel }}" style="width:100%;max-width:440px;max-height:88vh;display:flex;flex-direction:column;background:#0f1213;border:1px solid #262c2e;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.6)">
+    <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 18px;border-bottom:1px solid #1a1f20">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7f8c89">{{ tm.headerLabel }}</div>
+      <button onClick="{{ closeTripModal }}" aria-label="Close" style="cursor:pointer;background:none;border:none;color:#7a8683;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:18px">
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Trip name</div>
+      <input value="{{ tm.name }}" onInput="{{ onTMName }}" aria-label="Trip name" autocomplete="off" placeholder="e.g. Japan · Cherry Season" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:11px 13px;color:#e9edee;font-size:15px;font-weight:600;font-family:inherit;outline:none;margin-bottom:15px" />
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Route / subtitle</div>
+      <input value="{{ tm.subtitle }}" onInput="{{ onTMSub }}" aria-label="Route or subtitle" autocomplete="off" placeholder="Tokyo → Kyoto → Osaka" style="width:100%;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none;margin-bottom:14px" />
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;--accent:#5fb8b0;--inset:#0c0e0f;--card:#14181a;--bg:#0c0e0f;--chip:#161a1b;--text:#e9edee;--text2:#c6cfcc;--muted:#8a9693;--dim:#59605b;--wh:#262c2e;--wi:#2a3234;--we:#1a1f20">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Start date</div>
+          <dc-import name="DatePicker" value="{{ tm.start }}" placeholder="Pick a date" onChange="{{ onTMStartIso }}" hint-size="100%,42px"></dc-import>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">End date</div>
+          <dc-import name="DatePicker" value="{{ tm.end }}" placeholder="Pick a date" onChange="{{ onTMEndIso }}" hint-size="100%,42px"></dc-import>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Budget</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="flex:0 0 auto;font-size:14px;font-weight:700;color:#8a9693;padding:9px 13px;border-radius:8px;background:#0c0e0f;border:1px solid #262c2e">$</div>
+        <input value="{{ tm.budget }}" onInput="{{ onTMBudget }}" aria-label="Budget in dollars" placeholder="2000" inputmode="decimal" autocomplete="off" style="flex:1;min-width:0;background:#0c0e0f;border:1px solid #262c2e;border-radius:9px;padding:9px 11px;color:#e9edee;font-size:13px;font-family:inherit;outline:none" />
+      </div>
+    </div>
+    <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid #1a1f20">
+      <sc-if value="{{ tm.canDelete }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ askDeleteTrip }}" style="font:inherit;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#d98a8a;padding:9px 13px;border-radius:8px;border:1px solid #3a2828">Delete trip</button>
+      </sc-if>
+      <sc-if value="{{ tm.isNew }}" hint-placeholder-val="{{ true }}"><div></div></sc-if>
+      <div style="display:flex;gap:8px">
+        <button onClick="{{ closeTripModal }}" style="font:inherit;background:none;cursor:pointer;font-size:12.5px;font-weight:600;color:#9aa7a4;padding:9px 15px;border-radius:8px;border:1px solid #2a3234">Cancel</button>
+        <button onClick="{{ saveTrip }}" style="font:inherit;cursor:pointer;font-size:12.5px;font-weight:700;color:#06201e;background:#5fb8b0;border:none;padding:9px 20px;border-radius:8px">{{ tm.saveLabel }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ==================== DELETE TRIP CONFIRM ==================== -->
+<sc-if value="{{ delTripOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ cancelDelTrip }}" style="position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(6,8,9,.72);backdrop-filter:blur(3px);overscroll-behavior:contain">
+  <div onClick="{{ stop }}" ref="{{ dialogRef }}" role="dialog" aria-modal="true" aria-label="Delete this trip?" style="width:100%;max-width:400px;background:#0f1213;border:1px solid #3a2828;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.6)">
+    <div style="padding:20px 20px 16px">
+      <div style="font-size:16px;font-weight:700;color:#e9edee;margin-bottom:8px">Delete this trip?</div>
+      <div style="font-size:13px;color:#9aa7a4;line-height:1.55;margin-bottom:16px">This permanently deletes <b style="color:#e9edee">{{ dc.name }}</b> and every card, note and plan in it. This can’t be undone.</div>
+      <div style="font-size:11px;font-weight:600;color:#8a9693;margin-bottom:6px">Type the trip name to confirm</div>
+      <input value="{{ dc.input }}" onInput="{{ onDelTripInput }}" aria-label="Type the trip name to confirm" autocomplete="off" spellcheck="false" placeholder="{{ dc.name }}" style="width:100%;background:#0c0e0f;border:1px solid #3a2828;border-radius:9px;padding:10px 12px;color:#e9edee;font-size:13px;font-family:inherit;outline:none" />
+    </div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid #1a1f20">
+      <button onClick="{{ cancelDelTrip }}" style="font:inherit;background:none;cursor:pointer;font-size:12.5px;font-weight:600;color:#9aa7a4;padding:9px 15px;border-radius:8px;border:1px solid #2a3234">Cancel</button>
+      <button onClick="{{ confirmDelTrip }}" style="{{ dc.btnStyle }}">Delete trip</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<div aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">{{ liveMsg }}</div>
+
+<sc-if value="{{ hasUndo }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 24px);z-index:400;display:flex;align-items:center;gap:14px;background:#171b1d;border:1px solid #2a3234;border-radius:12px;padding:11px 14px;box-shadow:0 14px 40px rgba(0,0,0,.55)">
+  <span style="font-size:13px;color:#c6cfcc">{{ undoLabel }}</span>
+  <button onClick="{{ undoDelete }}" style="font:inherit;font-size:12.5px;font-weight:700;color:#06201e;background:#5fb8b0;border:none;border-radius:8px;padding:7px 14px;cursor:pointer">Undo</button>
+  <button onClick="{{ dismissUndo }}" aria-label="Dismiss" style="font:inherit;background:none;border:none;color:#7a8683;font-size:15px;line-height:1;cursor:pointer">✕</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ dragging }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;left:{{ ghostX }};top:{{ ghostY }};pointer-events:none;z-index:200;background:#1b2123;border:1px solid #3a6b66;border-left:3px solid {{ ghostColor }};border-radius:9px;padding:9px 12px;box-shadow:0 14px 34px rgba(0,0,0,.55);transform:rotate(-2deg);max-width:240px">
+  <div style="font-size:13px;font-weight:600;color:#e9edee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ghostTitle }}</div>
+</div>
+</sc-if>
+
+<!-- ===== COMPARE MODE TOGGLE (bottom-left; morphs into the compare drawer) ===== -->
+<sc-if value="{{ showCompareBtn }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ enterCompare }}" title="Compare cards side by side" style="font:inherit;position:fixed;left:max(env(safe-area-inset-left,0px),22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:55;display:flex;align-items:center;gap:9px;cursor:pointer;background:#141210;color:#5fb8b0;border:1.5px solid color-mix(in srgb, #5fb8b0 45%, transparent);border-radius:999px;padding:12px 18px;font-size:13.5px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.5);transform-origin:bottom left;animation:compBtnIn .28s cubic-bezier(.22,1,.36,1)">
+  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:block"><path d="M8 4 4 8l4 4M4 8h13M16 20l4-4-4-4M20 16H7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  Compare
+</button>
+</sc-if>
+
+<!-- ===== LIBRARY SWITCHER FAB (hidden while comparing so it can't cover the drawer controls) ===== -->
+<sc-if value="{{ fabVisible }}" hint-placeholder-val="{{ true }}">
+<div style="position:fixed;right:max(env(safe-area-inset-right,0px),22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:300;display:flex;flex-direction:column-reverse;align-items:center;gap:12px">
+  <button onClick="{{ toggleFab }}" title="Switch library" aria-label="Switch library" aria-expanded="{{ fabExpanded }}" style="{{ fabMainStyle }}">{{ fabMainIcon }}</button>
+  <sc-for list="{{ fabItems }}" as="it" hint-placeholder-count="0">
+    <button onClick="{{ it.onClick }}" title="{{ it.label }}" aria-label="{{ it.label }}" style="{{ it.style }}">{{ it.icon }}</button>
+  </sc-for>
+</div>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:820}}">
+class Component extends DCLogic {
+  TYPES = [
+    { value:'place',     label:'Place',     color:'#6cc6c0' },
+    { value:'food',      label:'Food',      color:'#e0a86b' },
+    { value:'activity',  label:'Activity',  color:'#9ce6b0' },
+    { value:'lodging',   label:'Lodging',   color:'#c6a9d6' },
+    { value:'transport', label:'Transport', color:'#8ec5e6' },
+    { value:'watch',     label:'To watch',  color:'#e69bb0' },
+    { value:'research',  label:'Look into', color:'#9aa7b5' },
+    { value:'todo',      label:'To-do',     color:'#d8d06a' },
+    { value:'important', label:'Important',  color:'#e0a86b' },
+  ];
+  STATUSES = [
+    { value:'idea',       label:'Idea',       dot:'transparent', glow:'inset 0 0 0 1.5px #4a514c', text:'#8b938d' },
+    { value:'researched', label:'Researched', dot:'#7a8fb0',     glow:'none',                       text:'#9fb0c8' },
+    { value:'confirmed',  label:'Confirmed',  dot:'#5fb8b0',     glow:'0 0 7px rgba(95,184,176,.6)', text:'#5fb8b0' },
+    { value:'booked',     label:'Booked',     dot:'#7fd39a',     glow:'0 0 7px rgba(127,211,154,.55)', text:'#7fd39a' },
+  ];
+  PRIOS = [
+    { value:'must',   label:'Must-do' },
+    { value:'nice',   label:'Nice' },
+    { value:'backup', label:'Backup' },
+  ];
+
+  state = {
+    view:'home', tripId:null,
+    trips:[], cards:[],
+    poolFilter:'all', quickText:'', searchText:'',
+    modal:null, tripModal:null, delTrip:null, dragOverDay:null, confirmDel:false, undo:null, liveMsg:'',
+    boardTab:'cards', open:[], compareMode:false, viewCard:null,
+    zoom:1, panX:0, panY:0, drag:null, dragOverIndex:0,
+    fabOpen:false,
+    isMobile: (typeof window!=='undefined' && window.innerWidth<760),
+    // currency converter
+    fxOpen:false, fxDrop:null, fxSearch:'', fxAmount:'100', fxRate:null, fxLoading:false, fxError:null, fxUpdated:null,
+    ...(() => {
+      try { const p = JSON.parse(localStorage.getItem('trip-fx-pref') || 'null');
+        if (p && p.f && p.t) return { fxFrom:p.f, fxTo:p.t }; } catch(e){}
+      return { fxFrom:'EUR', fxTo:'USD' };
+    })(),
+  };
+
+  // Frankfurter-supported currencies (ECB reference set).
+  FX_CCY = [
+    {c:'USD',n:'US Dollar',s:'$'},{c:'EUR',n:'Euro',s:'€'},{c:'GBP',n:'British Pound',s:'£'},{c:'JPY',n:'Japanese Yen',s:'¥'},
+    {c:'AUD',n:'Australian Dollar',s:'A$'},{c:'CAD',n:'Canadian Dollar',s:'C$'},{c:'CHF',n:'Swiss Franc',s:'Fr'},{c:'CNY',n:'Chinese Yuan',s:'¥'},
+    {c:'HKD',n:'Hong Kong Dollar',s:'HK$'},{c:'NZD',n:'New Zealand Dollar',s:'NZ$'},{c:'SGD',n:'Singapore Dollar',s:'S$'},{c:'KRW',n:'South Korean Won',s:'₩'},
+    {c:'INR',n:'Indian Rupee',s:'₹'},{c:'MXN',n:'Mexican Peso',s:'$'},{c:'BRL',n:'Brazilian Real',s:'R$'},{c:'ZAR',n:'South African Rand',s:'R'},
+    {c:'THB',n:'Thai Baht',s:'฿'},{c:'IDR',n:'Indonesian Rupiah',s:'Rp'},{c:'MYR',n:'Malaysian Ringgit',s:'RM'},{c:'PHP',n:'Philippine Peso',s:'₱'},
+    {c:'TRY',n:'Turkish Lira',s:'₺'},{c:'ILS',n:'Israeli Shekel',s:'₪'},{c:'SEK',n:'Swedish Krona',s:'kr'},{c:'NOK',n:'Norwegian Krone',s:'kr'},
+    {c:'DKK',n:'Danish Krone',s:'kr'},{c:'PLN',n:'Polish Zloty',s:'zł'},{c:'CZK',n:'Czech Koruna',s:'Kč'},{c:'HUF',n:'Hungarian Forint',s:'Ft'},
+    {c:'RON',n:'Romanian Leu',s:'lei'},{c:'BGN',n:'Bulgarian Lev',s:'лв'},{c:'ISK',n:'Icelandic Krona',s:'kr'},
+  ];
+
+  _saveFxPref(f, t){ try { localStorage.setItem('trip-fx-pref', JSON.stringify({ f, t })); } catch(e){} }
+  setFxFrom = (e) => { const v = e.target.value; this._saveFxPref(v, this.state.fxTo); this.setState({ fxFrom:v, fxRate:null, fxError:null }, () => this.fetchFx()); };
+  setFxTo   = (e) => { const v = e.target.value; this._saveFxPref(this.state.fxFrom, v); this.setState({ fxTo:v, fxRate:null, fxError:null }, () => this.fetchFx()); };
+  swapFx = () => this.setState(s => ({ fxFrom:s.fxTo, fxTo:s.fxFrom, fxRate:null, fxError:null }), () => { this._saveFxPref(this.state.fxFrom, this.state.fxTo); this.fetchFx(); });
+  onFxAmount = (e) => this.setState({ fxAmount: e.target.value });
+  fetchFx = () => {
+    const { fxFrom, fxTo } = this.state;
+    if (!fxFrom || !fxTo) return;
+    if (fxFrom === fxTo) { this.setState({ fxRate:1, fxLoading:false, fxError:null, fxUpdated:'same currency' }); return; }
+    this.setState({ fxLoading:true, fxError:null });
+    fetch(`https://open.er-api.com/v6/latest/${fxFrom}`)
+      .then(r => { if (!r.ok) throw new Error('http'); return r.json(); })
+      .then(d => { const rate = d && d.rates && d.rates[fxTo]; if (rate == null) throw new Error('norate');
+        const utc = d.time_last_update_utc || '';
+        const parts = utc.split(' '); const date = parts.length >= 4 ? parts.slice(1,4).join(' ') : (d.time_last_update_utc || '');
+        this.setState({ fxRate:rate, fxLoading:false, fxUpdated:date }); })
+      .catch(() => this.setState({ fxLoading:false, fxError:'Couldn\u2019t fetch the rate — check your connection and hit refresh.' }));
+  };
+
+  TRIP_ACCENT = '#5fb8b0';
+  toggleFab = () => this.setState(s => ({ fabOpen: !s.fabOpen }));
+  fabPick = (key) => {
+    this.setState({ fabOpen: false });
+    if (key === '_settings') { this.props.onOpenSettings && this.props.onOpenSettings(); }
+    else if (key === '_home') { this.props.onHome && this.props.onHome(); }
+    else if (this.props.onSwitch) { this.props.onSwitch(key); }
+  };
+
+  fabVals() {
+    const open = this.state.fabOpen;
+    const acc = this.TRIP_ACCENT;
+    const cur = this.props.activeCollection || 'trips';
+    const fabMainStyle = `width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#141210;color:${acc};box-shadow:0 6px 20px rgba(0,0,0,.5);border:1.5px solid color-mix(in srgb, ${acc} 45%, transparent);transition:transform .3s cubic-bezier(.22,1,.36,1);transform:rotate(${open ? '90deg' : '0deg'})`;
+    const fabMainIcon = this.libIcon(open ? '_close' : cur, 24);
+    const enabled = Array.isArray(this.props.enabledLibs) ? this.props.enabledLibs : ['games', 'books', 'wines', 'movies', 'expenses'];
+    const defs = [
+      { key: '_home', label: 'All libraries', bg: '#d6d8d6' },
+      { key: 'games', label: 'Games', bg: '#9ce6b0' },
+      { key: 'books', label: 'Books', bg: '#d8b98f' },
+      { key: 'wines', label: 'Wines', bg: '#c6a9d6' },
+      { key: 'movies', label: 'Movies', bg: '#a9aee0' },
+      { key: 'expenses', label: 'Expenses', bg: '#8ecfd6' },
+    ].filter(d => d.key === '_home' || enabled.includes(d.key) || d.key === cur);
+    const fabItems = defs.map((d, i) => {
+      const ring = d.key === cur ? `2px solid ${d.bg}` : '1.5px solid rgba(255,255,255,.09)';
+      const op = open ? '1' : '0';
+      const tf = open ? 'translateY(0) scale(1)' : 'translateY(16px) scale(.4)';
+      const pe = open ? 'auto' : 'none';
+      const delay = (open ? i : (defs.length - 1 - i)) * 45;
+      const style = `width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#141210;color:${d.bg};box-shadow:0 4px 14px rgba(0,0,0,.45);border:${ring};opacity:${op};transform:${tf};pointer-events:${pe};transition:opacity .3s cubic-bezier(.22,1,.36,1) ${delay}ms, transform .3s cubic-bezier(.22,1,.36,1) ${delay}ms`;
+      return { key: d.key, icon: this.libIcon(d.key, 21), label: d.label, style, onClick: () => this.fabPick(d.key) };
+    });
+    return { fabMainStyle, fabMainIcon, fabItems, toggleFab: this.toggleFab };
+  }
+
+  libIcon(name, size) {
+    const h = React.createElement;
+    const base = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' };
+    const path = (d, extra) => h('path', Object.assign({ key: d, d }, base, extra || {}));
+    const dot = (cx, cy, k) => h('circle', { key: k, cx, cy, r: 1.15, fill: 'currentColor', stroke: 'none' });
+    let kids;
+    switch (name) {
+      case 'games':
+        kids = [
+          path('M8 8.5h8a4.5 4.5 0 0 1 4.4 3.6l.8 4.3a2.4 2.4 0 0 1-4.3 1.9L15.6 16H8.4l-1.1 2.3a2.4 2.4 0 0 1-4.3-1.9l.8-4.3A4.5 4.5 0 0 1 8 8.5z'),
+          path('M6.4 11.6v3M4.9 13.1h3'),
+          dot(16.4, 12.4, 'a'), dot(18.2, 14.2, 'b'),
+        ]; break;
+      case 'books':
+        kids = [
+          path('M12 6.3C10 4.9 7.3 4.6 4.8 5.4v11.9c2.5-.8 5.2-.5 7.2.9 2-1.4 4.7-1.7 7.2-.9V5.4c-2.5-.8-5.2-.5-7.2.9z'),
+          path('M12 6.3v13.4'),
+        ]; break;
+      case 'wines':
+        kids = [
+          path('M10 3.5h4v3.1l1.5 3.1c.3.6.5 1.3.5 2v7.3a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 19v-7.3c0-.7.2-1.4.5-2L10 6.6V3.5z'),
+          path('M8 14.2h8'),
+        ]; break;
+      case 'movies':
+        kids = [
+          path('M3.6 11.3h16.8v6.6a1.4 1.4 0 0 1-1.4 1.4H5a1.4 1.4 0 0 1-1.4-1.4z'),
+          path('M4 11.1 18.6 6l.5-2.1L4.5 9z'),
+          path('M9 9.4 9.5 7.3M13 8l.5-2.1'),
+        ]; break;
+      case 'expenses':
+        kids = [
+          path('M3.5 6.8h17a1 1 0 0 1 1 1v8.4a1 1 0 0 1-1 1h-17a1 1 0 0 1-1-1V7.8a1 1 0 0 1 1-1z'),
+          path('M2.5 10.4h19'),
+          dot(17, 14.2, 'e'),
+        ]; break;
+      case 'trips':
+        kids = [
+          path('M12 21s6.5-5.4 6.5-10.2A6.5 6.5 0 0 0 5.5 10.8C5.5 15.6 12 21 12 21z'),
+          path('M12 13.2a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z'),
+        ]; break;
+      case '_close':
+        kids = [ path('M6.5 6.5l11 11M17.5 6.5l-11 11') ]; break;
+      default:
+        kids = [
+          path('M4.5 8.2 12 4.8l7.5 3.4L12 11.6 4.5 8.2z'),
+          path('M4.5 12 12 15.4 19.5 12'),
+          path('M4.5 15.8 12 19.2l7.5-3.4'),
+        ];
+    }
+    return h('svg', { width: size, height: size, viewBox: '0 0 24 24', style: { display: 'block' } }, kids);
+  }
+
+  dialog = React.createRef();
+
+  // The element that had focus before an overlay opened. Tracked continuously
+  // (a document focusin listener) rather than sampled in each open handler, so
+  // it is correct no matter which path opened the dialog.
+  _onFocusIn = (e) => {
+    const el=e.target;
+    if(!el || el===document.body) return;
+    if(el.closest && el.closest('[role="dialog"]')) return;
+    this._lastFocused=el;
+  };
+  _rememberTrigger(){ const a=document.activeElement; this._prevFocus=(a && a!==document.body) ? a : this._lastFocused; }
+  _restoreTrigger(){
+    const el=this._prevFocus || this._lastFocused;
+    this._prevFocus=null;
+    if(!el || !el.focus) return;
+    // setTimeout, not rAF: a backgrounded or unfocused document never runs
+    // animation frames, which would silently drop the restore.
+    const tryFocus=(n)=>{
+      try { el.focus(); } catch(_){}
+      if(document.activeElement!==el && n<4) setTimeout(()=>tryFocus(n+1), 30);
+    };
+    tryFocus(0);
+  }
+  _anyDialog(){ const st=this.state; return !!(st.modal || st.viewCard || st.tripModal || st.delTrip); }
+  _closeTopDialog(){
+    const st=this.state;
+    if(st.delTrip) return this.cancelDelTrip();
+    if(st.modal) return this.closeModal();
+    if(st.tripModal) return this.closeTripModal();
+    if(st.viewCard) return this.closeView();
+    if(st.fxOpen) return this.toggleFxPanel();
+  }
+  _dialogKey = (e) => {
+    if(e.key==='Escape'){ if(this._anyDialog() || this.state.fxOpen){ e.stopPropagation(); this._closeTopDialog(); } return; }
+    if(e.key!=='Tab' || !this._anyDialog()) return;
+    const root=this.dialog.current; if(!root) return;
+    const f=[...root.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.offsetParent!==null);
+    if(!f.length) return;
+    const first=f[0], last=f[f.length-1];
+    if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  };
+
+  // ---------- URL state ----------
+  // trip / tab / open card live in the query string, so any view is linkable
+  // and survives a refresh or a back-button press.
+  readUrl(){
+    try {
+      const p=new URLSearchParams(location.search);
+      const patch={};
+      const trip=p.get('trip');
+      if(trip){ patch.view='board'; patch.tripId=trip; }
+      const tab=p.get('tab');
+      if(['cards','itinerary','map'].includes(tab)) patch.boardTab=tab;
+      const card=p.get('card');
+      if(card) patch.viewCard=card;
+      return patch;
+    } catch(e){ return {}; }
+  }
+  urlFor(st){
+    const p=new URLSearchParams(location.search);
+    ['trip','tab','card'].forEach(k=>p.delete(k));
+    if(st.view==='board' && st.tripId){ p.set('trip', st.tripId); p.set('tab', st.boardTab); }
+    if(st.viewCard) p.set('card', st.viewCard);
+    const q=p.toString();
+    return location.pathname + (q?('?'+q):'') + location.hash;
+  }
+  syncUrl(prev){
+    const st=this.state;
+    if(prev && prev.view===st.view && prev.tripId===st.tripId && prev.boardTab===st.boardTab && prev.viewCard===st.viewCard) return;
+    const url=this.urlFor(st);
+    if(url===location.pathname+location.search+location.hash) return;
+    try { history.pushState({ tp:1 }, '', url); } catch(e){}
+  }
+  _onPop = () => { const patch=this.readUrl(); this.setState({ view:'home', tripId:null, viewCard:null, boardTab:'cards', ...patch }); };
+
+  componentDidMount() {
+    document.addEventListener('keydown', this._dialogKey, true);
+    document.addEventListener('focusin', this._onFocusIn, true);
+    window.addEventListener('popstate', this._onPop);
+    this._wheelH = (e) => {
+      // Compare canvas: shift+wheel zooms.
+      const cc=this._compareCanvas;
+      if(this.state.compareMode && !this.state.compareMin && cc && cc.contains(e.target) && e.shiftKey){
+        e.preventDefault();
+        const f = e.deltaY>0 ? -0.1 : 0.1;
+        this.setState(s=>({ compareZoom:Math.min(1.4,Math.max(0.4,+(( (s.compareZoom||1)+f ).toFixed(2)))) }));
+        return;
+      }
+      if(this.state.view!=='board' || this.state.isMobile) return;
+      const cv=this._canvas; if(!cv || !cv.contains(e.target)) return;
+      e.preventDefault();
+      if(e.ctrlKey || e.metaKey){
+        const f = e.deltaY<0?0.1:-0.1;
+        this.setState(s=>({ zoom:Math.min(1.6,Math.max(0.4,+(s.zoom+f).toFixed(2))) }));
+      } else {
+        this.setState(s=>({ panX:s.panX - e.deltaX, panY:s.panY - e.deltaY }));
+      }
+    };
+    window.addEventListener('wheel', this._wheelH, { passive:false });
+    this._resize = () => { const m=window.innerWidth<760; if(m!==this.state.isMobile) this.setState({isMobile:m}); };
+    window.addEventListener('resize', this._resize);
+    this._resize();
+    // Shared cloud mode: the shell hands us its Supabase client + the signed-in
+    // user id. Trips + cards live in shared tables (RLS-scoped to the two brothers)
+    // so either of us sees the other's edits live — same pattern as the wine cellar.
+    if (this.props.sb && this.props.uid) {
+      this.sb = this.props.sb; this.uid = this.props.uid;
+      this.loadCloud();
+      setTimeout(()=>{ const patch=this.readUrl(); if(Object.keys(patch).length) this.setState(patch); }, 0);
+      return;
+    }
+    const urlPatch=this.readUrl();
+    // Standalone / preview fallback: local-only storage.
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('trip-planner-v1')); } catch(e){}
+    if (saved && saved.trips && saved.trips.length) { this.setState({ ...saved, ...urlPatch }); return; }
+    this.setState({ ...this.seed(), ...urlPatch });
+  }
+  componentWillUnmount(){ document.removeEventListener('keydown', this._dialogKey, true); document.removeEventListener('focusin', this._onFocusIn, true); window.removeEventListener('popstate', this._onPop); clearTimeout(this._undoT); if(this._wheelH) window.removeEventListener('wheel', this._wheelH); if(this._resize) window.removeEventListener('resize', this._resize); this._stopAuto(); this.unsubscribeCloud(); }
+
+  // ---------- shared cloud storage (Supabase) ----------
+  async loadCloud() {
+    try {
+      const [tr, cr] = await Promise.all([
+        this.sb.from('trips').select('data'),
+        this.sb.from('trip_cards').select('data'),
+      ]);
+      if (tr.error) throw tr.error; if (cr.error) throw cr.error;
+      const trips = (tr.data || []).map(r => r.data).filter(Boolean);
+      const cards = (cr.data || []).map(r => r.data).filter(Boolean);
+      if (trips.length || cards.length) {
+        this.setState({ trips, cards });
+      } else {
+        // First run on an empty shared space — seed the example trip and push it up.
+        // Seed rows use fixed ids, so if both of us load at once, upserts dedupe.
+        const s = this.seed();
+        this.setState(s, () => this.syncToCloud([], [], this.state.trips, this.state.cards));
+      }
+      this.subscribeCloud();
+    } catch (e) {
+      console.error('trip load error', e);
+      this.setState(this.seed());
+    }
+  }
+
+  syncToCloud(prevT, prevC, nextT, nextC) {
+    if (!this.sb || !this.uid) return;
+    this._syncTable('trips', prevT, nextT);
+    this._syncTable('trip_cards', prevC, nextC);
+  }
+  _syncTable(table, prev, next) {
+    const now = new Date().toISOString();
+    const nextIds = new Set(next.map(x => x.id));
+    const changed = next.filter(x => {
+      const p = prev.find(y => y.id === x.id);
+      return !p || JSON.stringify(p) !== JSON.stringify(x);
+    });
+    if (changed.length) {
+      this.sb.from(table).upsert(
+        changed.map(x => ({ id: x.id, data: x, added_by: this.uid, updated_at: now })),
+        { onConflict: 'id' }
+      ).then(r => { if (r.error) console.error('sync upsert', table, r.error); });
+    }
+    const removed = prev.filter(x => !nextIds.has(x.id)).map(x => x.id);
+    if (removed.length) {
+      this.sb.from(table).delete().in('id', removed)
+        .then(r => { if (r.error) console.error('sync delete', table, r.error); });
+    }
+  }
+
+  subscribeCloud() {
+    if (!this.sb || this._chan) return;
+    this._chan = this.sb.channel('trips-shared')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, p => this._applyRemote('trips', p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_cards' }, p => this._applyRemote('cards', p))
+      .subscribe();
+  }
+  unsubscribeCloud() { if (this._chan && this.sb) { this.sb.removeChannel(this._chan); this._chan = null; } }
+  _applyRemote(kind, payload) {
+    const key = kind === 'trips' ? 'trips' : 'cards';
+    this.setState(s => {
+      let list = s[key].slice();
+      if (payload.eventType === 'DELETE') {
+        const id = payload.old && payload.old.id;
+        list = list.filter(x => x.id !== id);
+      } else {
+        const row = payload.new && payload.new.data; if (!row) return null;
+        const i = list.findIndex(x => x.id === row.id);
+        if (i >= 0) list[i] = row; else list.push(row);
+      }
+      return { [key]: list };
+    });
+  }
+
+  _startAuto(el,dir){ this._autoEl=el; this._autoDir=dir; if(this._autoRaf) return; const step=()=>{ if(!this._autoDir){ this._autoRaf=null; return; } this._autoEl.scrollTop += this._autoDir*11; this._autoRaf=requestAnimationFrame(step); }; this._autoRaf=requestAnimationFrame(step); }
+  _stopAuto(){ this._autoDir=0; if(this._autoRaf){ cancelAnimationFrame(this._autoRaf); this._autoRaf=null; } }
+
+  getSnapshotBeforeUpdate(){
+    const map={};
+    document.querySelectorAll('[data-flip]').forEach(el=>{ map[el.getAttribute('data-flip')]=el.getBoundingClientRect(); });
+    return map;
+  }
+  componentDidUpdate(_p,_s,snap){
+    this.syncUrl(_s);
+    const wasDlg=!!(_s && (_s.modal||_s.viewCard||_s.tripModal||_s.delTrip));
+    const nowDlg=this._anyDialog();
+    if(nowDlg && !wasDlg) setTimeout(()=>{ const r=this.dialog.current; const el=r&&r.querySelector('input,textarea,button'); el&&el.focus(); },30);
+    if(!nowDlg && wasDlg) this._restoreTrigger();
+    this._mapSync();
+    if(!snap) return;
+    document.querySelectorAll('[data-flip]').forEach(el=>{
+      const id=el.getAttribute('data-flip'); const first=snap[id]; if(!first) return;
+      const last=el.getBoundingClientRect();
+      const dx=first.left-last.left, dy=first.top-last.top;
+      if(!dx && !dy) return;
+      el.style.transition='none';
+      el.style.transform=`translate(${dx}px,${dy}px)`;
+      el.getBoundingClientRect();
+      requestAnimationFrame(()=>{ el.style.transition='transform .18s cubic-bezier(.2,.8,.2,1)'; el.style.transform=''; });
+    });
+  }
+
+  persist(patch) {
+    const prevT = this.state.trips, prevC = this.state.cards;
+    this.setState(patch, () => {
+      const { trips, cards } = this.state;
+      try { localStorage.setItem('trip-planner-v1', JSON.stringify({ trips, cards })); } catch(e){}
+      // Push only what changed to the shared tables (no-op in standalone mode).
+      this.syncToCloud(prevT, prevC, trips, cards);
+    });
+  }
+
+  seed() {
+    const trips = [{
+      id:'t1', name:'Japan · Cherry Season', subtitle:'Tokyo → Kyoto → Osaka',
+      start:'2026-04-03', end:'2026-04-14', dayCount:4,
+      budget:4200, currency:'$',
+      cover:'linear-gradient(120deg,#c76b7e,#6b4b8a)',
+      companions:[{ initial:'M', color:'#e0a86b' },{ initial:'L', color:'#6cc6c0' }],
+    }];
+    const c = (o) => Object.assign({ trip:'t1', tags:[], status:'idea', price:null, region:'', notes:'', source:'', startTime:'', duration:'', priority:'nice', day:null, addedBy:'Me' }, o);
+    const cards = [
+      c({ id:'c1', title:'teamLab Planets', type:'activity', status:'confirmed', price:3800, region:'Toyosu, Tokyo', startTime:'09:30', duration:'2h', priority:'must', day:1, tags:['book ahead'], source:'https://example.com' }),
+      c({ id:'c2', title:'Ichiran Ramen — Shibuya', type:'food', status:'researched', price:1200, region:'Shibuya, Tokyo', startTime:'12:30', duration:'1h', priority:'nice', day:1, tags:['solo booths'] }),
+      c({ id:'c3', title:'Shinjuku Gyoen — sakura', type:'place', status:'confirmed', price:500, region:'Shinjuku, Tokyo', startTime:'09:00', duration:'half day', priority:'must', day:2, tags:['picnic'] }),
+      c({ id:'c4', title:'Golden Gai bar crawl', type:'activity', status:'idea', region:'Shinjuku, Tokyo', duration:'evening', priority:'nice', day:2 }),
+      c({ id:'c5', title:'Shinkansen to Kyoto', type:'transport', status:'booked', price:13320, region:'Tokyo → Kyoto', duration:'2h15', priority:'must', day:3, tags:['reserved seat'] }),
+      c({ id:'c6', title:'Fushimi Inari at dawn', type:'place', status:'confirmed', region:'Fushimi, Kyoto', duration:'3h', priority:'must', day:3, tags:['go early'] }),
+      c({ id:'c7', title:'Nishiki Market crawl', type:'food', status:'idea', region:'Nakagyo, Kyoto', duration:'2h', priority:'nice' }),
+      c({ id:'c8', title:'Arashiyama bamboo grove', type:'place', status:'researched', region:'Arashiyama, Kyoto', duration:'half day', priority:'nice' }),
+      c({ id:'c9', title:'Osaka Dotonbori street food', type:'food', status:'idea', region:'Namba, Osaka', priority:'must', tags:['takoyaki'] }),
+      c({ id:'c10', title:'Watch: Kyoto in 4 min', type:'watch', status:'idea', source:'https://youtube.com', priority:'backup', notes:'Sent by Lu — scout temples' }),
+      c({ id:'c11', title:'Pocket wifi vs eSIM?', type:'research', status:'idea', priority:'nice', notes:'Compare Ubigi eSIM vs airport wifi rental' }),
+      c({ id:'c12', title:'Buy JR Pass before flying', type:'todo', status:'idea', priority:'must' }),
+    ];
+    return { trips, cards, view:'home', tripId:null };
+  }
+
+  typeMeta(v){ return this.TYPES.find(t=>t.value===v) || this.TYPES[0]; }
+  statusMeta(v){ return this.STATUSES.find(s=>s.value===v) || this.STATUSES[0]; }
+  money(n,cur){ if(n==null||n==='') return ''; const c=cur||'$'; return c==='$'? '$'+Number(n).toLocaleString() : c+' '+Number(n).toLocaleString(); }
+  trip(){ return this.state.trips.find(t=>t.id===this.state.tripId); }
+  tripCards(){ return this.state.cards.filter(c=>c.trip===this.state.tripId); }
+
+  // ---------- navigation ----------
+  openTrip = (id) => this.setState({ view:'board', tripId:id, poolFilter:'all', boardTab:'cards', open:[] });
+  goHome = () => this.setState({ view:'home', tripId:null, open:[] });
+  setTab = (k) => this.setState({ boardTab:k });
+  toggleFxPanel = () => this.setState(s => ({ fxOpen: !s.fxOpen, fxDrop:null }), () => { if (this.state.fxOpen && this.state.fxRate == null && !this.state.fxLoading) this.fetchFx(); });
+  openFxDrop = (which) => this.setState(s => ({ fxDrop: s.fxDrop === which ? null : which, fxSearch:'' }));
+  onFxSearch = (e) => this.setState({ fxSearch: e.target.value });
+  chooseFx = (which, code) => {
+    if (which === 'from') { this._saveFxPref(code, this.state.fxTo); this.setState({ fxFrom:code, fxDrop:null, fxRate:null, fxError:null }, () => this.fetchFx()); }
+    else { this._saveFxPref(this.state.fxFrom, code); this.setState({ fxTo:code, fxDrop:null, fxRate:null, fxError:null }, () => this.fetchFx()); }
+  };
+
+  // ---------- compare drawer (open N cards side-by-side) ----------
+  toggleCompare = (id) => { if(this.state.open.some(o=>o.id===id)) this.closeOpen(id); else this.openCompare(id); };
+  openCompare = (id) => this.setState(s => {
+    if(s.open.some(o=>o.id===id)) return {};
+    const c=s.cards.find(x=>x.id===id); if(!c) return {};
+    const fresh=s.open.length===0;
+    const n=s.open.length, W=322, H=310, cols=3;
+    const x=20+(n%cols)*(W+18), y=20+Math.floor(n/cols)*(H+18);
+    return { ...(fresh?{compareMin:false}:{}), open:[...s.open, { id:c.id, x, y, w:W, h:H }] };
+  });
+  // Free-arrange a compare card (drag from its header) + resize (drag corner).
+  compareCardDown = (id) => (e) => {
+    if(this.state.isMobile) return; // mobile: cards are a simple stacked list
+    if(e.button!==undefined && e.button!==0) return;
+    const handle = e.target.closest && e.target.closest('[data-cmp-handle]');
+    if(!e.ctrlKey && !e.metaKey && !handle) return; // move only from header, or ctrl/⌘-drag anywhere
+    e.preventDefault(); e.stopPropagation();
+    const o=this.state.open.find(v=>v.id===id); if(!o) return;
+    const sx=e.clientX, sy=e.clientY, ox=o.x||0, oy=o.y||0, z=this.state.compareZoom||1;
+    this.setState(s=>{ const t=s.open.find(v=>v.id===id); return { open:[...s.open.filter(v=>v.id!==id), t] }; });
+    const move=(ev)=>this.setState(s=>({ open:s.open.map(v=>v.id===id?{...v,x:Math.max(0,ox+(ev.clientX-sx)/z),y:Math.max(0,oy+(ev.clientY-sy)/z)}:v) }));
+    const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); document.body.style.userSelect=''; };
+    window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); document.body.style.userSelect='none';
+  };
+  compareResizeDown = (id) => (e) => {
+    if(e.button!==undefined && e.button!==0) return;
+    e.preventDefault(); e.stopPropagation();
+    const o=this.state.open.find(v=>v.id===id); if(!o) return;
+    const sx=e.clientX, sy=e.clientY, ow=o.w||322, oh=o.h||310, z=this.state.compareZoom||1;
+    const move=(ev)=>this.setState(s=>({ open:s.open.map(v=>v.id===id?{...v,w:Math.max(230,ow+(ev.clientX-sx)/z),h:Math.max(190,oh+(ev.clientY-sy)/z)}:v) }));
+    const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); document.body.style.userSelect=''; };
+    window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); document.body.style.userSelect='none';
+  };
+  toggleCompareMin = () => this.setState(s => ({ compareMin:!s.compareMin }));
+  setCompareEl = (el) => { this._compareEl = el; };
+  setCompareCanvas = (el) => { this._compareCanvas = el; };
+  compareZoomIn = () => this.setState(s=>({ compareZoom:Math.min(1.4,+(((s.compareZoom||1)+0.1).toFixed(2))) }));
+  compareZoomOut = () => this.setState(s=>({ compareZoom:Math.max(0.4,+(((s.compareZoom||1)-0.1).toFixed(2))) }));
+  compareZoomReset = () => this.setState({ compareZoom:1 });
+  onCompareResizeDown = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const startY = e.clientY;
+    const startH = this._compareEl ? this._compareEl.getBoundingClientRect().height : (this.state.compareH || window.innerHeight*0.5);
+    const move = (ev) => {
+      const raw = startH + (startY - ev.clientY);
+      if (raw < 240) { this.setState({ compareMin:true }); return; }
+      const h = Math.min(window.innerHeight*0.92, raw);
+      this.setState({ compareH:h, compareMin:false });
+    };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.style.userSelect=''; };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    document.body.style.userSelect='none';
+  };
+  setOpenM = (id, patch) => this.setState(s => ({ open:s.open.map(o=>o.id===id?{...o,...patch}:o) }));
+  addOpenTag = (id, raw) => { const t=(raw||'').trim(); this.setState(s => ({ open:s.open.map(o=>{ if(o.id!==id) return o; const cur=o.tags||[]; if(!t||cur.includes(t)) return {...o,tagInput:''}; return {...o,tags:[...cur,t],tagInput:''}; }) })); };
+  removeOpenTag = (id, t) => this.setState(s => ({ open:s.open.map(o=>o.id===id?{...o,tags:(o.tags||[]).filter(x=>x!==t)}:o) }));
+  _cleanDraft(d){ const { tagInput, ...rest } = d; return { ...rest, tags:(d.tags||[]).map(s=>String(s).trim()).filter(Boolean), price:(d.price===''||d.price==null)?null:Number(d.price) }; }
+  saveOpen = (id) => { const d=this.state.open.find(o=>o.id===id); if(!d) return; const clean=this._cleanDraft(d); this.persist({ cards:this.state.cards.map(c=>c.id===id?clean:c) }); };
+  closeOpen = (id) => this.setState(s => ({ open:s.open.filter(o=>o.id!==id) }));
+  closeAllCompare = () => this.setState({ open:[], compareMin:false });
+  openEdit = (id) => { this._rememberTrigger(); const c=this.state.cards.find(x=>x.id===id); if(!c) return; this.setState({ modal:{ ...c, tags:[...(c.tags||[])], tagInput:'', price:c.price==null?'':String(c.price) } }); };
+  delOpen = (id) => { this.persist({ cards:this.state.cards.filter(c=>c.id!==id) }); this.setState(s => ({ open:s.open.filter(o=>o.id!==id) })); };
+  // ---------- trip CRUD ----------
+  newTrip = () => {
+    this._rememberTrigger();
+    this.setState({ tripModal:{ id:'t'+Date.now(), name:'', subtitle:'', start:'', end:'', dayCount:3, budget:'', currency:'$', cover:'linear-gradient(120deg,#3a6b66,#274a6b)', companions:[{initial:'M',color:'#5fb8b0'}], __new:true } });
+  };
+  openTripEdit = (id) => { this._rememberTrigger(); const t=this.state.trips.find(x=>x.id===id); if(!t) return; this.setState({ tripModal:{ ...t, budget:(t.budget==null?'':String(t.budget)), __new:false } }); };
+  onTM = (patch) => this.setState(s=>({ tripModal:{ ...s.tripModal, ...patch } }));
+  onTMName=(e)=>this.onTM({name:e.target.value});
+  onTMSub=(e)=>this.onTM({subtitle:e.target.value});
+  onTMStart=(e)=>this.onTM({start:e.target.value});
+  onTMEnd=(e)=>this.onTM({end:e.target.value});
+  onTMStartIso=(iso)=>this.onTM({start:iso});
+  onTMEndIso=(iso)=>this.onTM({end:iso});
+  onTMBudget=(e)=>this.onTM({budget:e.target.value});
+  closeTripModal = () => { this.setState({ tripModal:null }); this._restoreTrigger(); };
+  saveTrip = () => {
+    const d=this.state.tripModal; if(!d) return;
+    const { __new, ...rest } = d;
+    const clean = { ...rest, name:(d.name||'').trim()||'Untitled trip', budget:(d.budget===''||d.budget==null)?0:Number(d.budget), dayCount:Number(d.dayCount)||1 };
+    if(__new) this.persist({ trips:[...this.state.trips, clean], tripModal:null, view:'board', tripId:clean.id, boardTab:'cards', open:[] });
+    else this.persist({ trips:this.state.trips.map(x=>x.id===clean.id?clean:x), tripModal:null });
+  };
+  askDeleteTrip = () => { this._rememberTrigger(); const d=this.state.tripModal; if(!d||d.__new) return; this.setState({ delTrip:{ id:d.id, name:d.name||'Untitled trip', input:'' } }); };
+  onDelTripInput = (e) => this.setState(s=>({ delTrip:{ ...s.delTrip, input:e.target.value } }));
+  cancelDelTrip = () => { this.setState({ delTrip:null }); this._restoreTrigger(); };
+  confirmDelTrip = () => {
+    const dc=this.state.delTrip; if(!dc) return;
+    if((dc.input||'').trim() !== (dc.name||'').trim()) return;
+    this.persist({ trips:this.state.trips.filter(x=>x.id!==dc.id), cards:this.state.cards.filter(c=>c.trip!==dc.id), tripModal:null, delTrip:null, view:'home', tripId:null, open:[] });
+  };
+  // ---------- card create ----------
+  newCard = () => {
+    this._rememberTrigger();
+    this.setState({ modal:{ id:'c'+Date.now(), trip:this.state.tripId, title:'', type:'place', status:'idea', tags:[], tagInput:'', price:'', region:'', notes:'', source:'', startTime:'', duration:'', priority:'nice', day:null, addedBy:'Me', __new:true } });
+  };
+  addDay = () => {
+    const t = this.trip(); if(!t) return;
+    this.persist({ trips:this.state.trips.map(x=>x.id===t.id?{...x,dayCount:(x.dayCount||0)+1}:x) });
+  };
+
+  // ---------- quick add ----------
+  onQuickText = (e) => this.setState({ quickText:e.target.value });
+  onSearchText = (e) => this.setState({ searchText:e.target.value });
+  onQuickKey = (e) => {
+    if (e.key!=='Enter') return;
+    const raw = (this.state.quickText||'').trim(); if(!raw) return;
+    const isUrl = /^https?:\/\//i.test(raw);
+    const card = { id:'c'+Date.now(), trip:this.state.tripId, title:isUrl?'Untitled link':raw, type:isUrl?'research':'place', status:'idea', tags:[], price:null, region:'', notes:'', source:isUrl?raw:'', duration:'', priority:'nice', day:null, addedBy:'Me' };
+    this.persist({ cards:[...this.state.cards, card], quickText:'' });
+  };
+
+  // ---------- keyboard scheduling (non-drag path) ----------
+  // Arrow keys move a focused card between days and within a day, so the board
+  // is fully usable without pointer dragging.
+  dayMax(){ const t=this.trip(); return t ? (t.dayCount||0) : 0; }
+  moveCardDay = (id, dir) => {
+    const c=this.state.cards.find(x=>x.id===id); if(!c) return;
+    const max=this.dayMax();
+    const cur = c.day==null ? 0 : c.day;
+    let next = cur + dir;
+    if(next < 0 || next > max) return;
+    this.persist({ cards:this.state.cards.map(x=>x.id===id?{...x, day: next===0?null:next}:x) });
+    this.announce((c.title||'Card')+' moved to '+(next===0?'the pool':('day '+next)));
+    this.refocusCard(id);
+  };
+  setCardDay = (id, day) => {
+    const c=this.state.cards.find(x=>x.id===id); if(!c) return;
+    this.persist({ cards:this.state.cards.map(x=>x.id===id?{...x, day}:x) });
+  };
+  moveCardOrder = (id, dir) => {
+    const list=[...this.state.cards];
+    const i=list.findIndex(x=>x.id===id); if(i<0) return;
+    const day=list[i].day==null?null:list[i].day;
+    const sibs=list.map((c,idx)=>({c,idx})).filter(o=>(o.c.day==null?null:o.c.day)===day && o.c.trip===list[i].trip);
+    const at=sibs.findIndex(o=>o.idx===i);
+    const target=sibs[at+dir]; if(!target) return;
+    const [moved]=list.splice(i,1);
+    list.splice(target.idx, 0, moved);
+    this.persist({ cards:list });
+    this.announce((moved.title||'Card')+' moved '+(dir<0?'earlier':'later'));
+    this.refocusCard(id);
+  };
+  refocusCard(id){ setTimeout(()=>{ const el=document.querySelector('[data-flip="'+id+'"]'); el && el.focus(); }, 30); }
+  announce(msg){ this.setState({ liveMsg: msg }); }
+  cardKey = (id) => (e) => {
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); this.openCard(id)(); return; }
+    if(e.key==='ArrowRight'){ e.preventDefault(); this.moveCardDay(id, 1); }
+    else if(e.key==='ArrowLeft'){ e.preventDefault(); this.moveCardDay(id, -1); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); this.moveCardOrder(id, 1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); this.moveCardOrder(id, -1); }
+  };
+
+  // ---------- pointer drag & canvas ----------
+  setCanvas = (el) => { this._canvas = el; };
+
+  // On mobile a card only starts dragging after a short hold — otherwise the
+  // touch scrolls the pool / itinerary natively. On desktop drag arms instantly.
+  onCardDown = (id) => (e) => {
+    if(e.button!==undefined && e.button!==0) return;
+    const mob = this.state.isMobile;
+    e.stopPropagation();
+    this._pending = { id, sx:e.clientX, sy:e.clientY, moved:false, armed:!mob };
+    window.addEventListener('pointermove', this._pmove);
+    window.addEventListener('pointerup', this._pup);
+    window.addEventListener('pointercancel', this._pup);
+    if(mob){
+      this._tmove = (ev)=>{ if(this._pending && this._pending.armed) ev.preventDefault(); };
+      window.addEventListener('touchmove', this._tmove, { passive:false });
+      this._holdT = setTimeout(()=>{
+        const p=this._pending; if(!p) return;
+        p.armed=true;
+        document.body.style.userSelect='none';
+        if(navigator.vibrate){ try{ navigator.vibrate(12); }catch(_){} }
+        this.setState({ drag:{ id:p.id, x:p.sx, y:p.sy }, dragOverDay:'none', dragOverIndex:0 });
+      }, 260);
+    } else {
+      e.preventDefault();
+      document.body.style.userSelect='none';
+    }
+  };
+  _teardownDrag(){
+    clearTimeout(this._holdT);
+    window.removeEventListener('pointermove', this._pmove);
+    window.removeEventListener('pointerup', this._pup);
+    window.removeEventListener('pointercancel', this._pup);
+    if(this._tmove){ window.removeEventListener('touchmove', this._tmove); this._tmove=null; }
+    document.body.style.userSelect='';
+    this._stopAuto();
+  }
+  _cancelPending = () => {
+    this._teardownDrag();
+    this._pending=null;
+    if(this.state.drag) this.setState({drag:null,dragOverDay:null});
+  };
+  _pmove = (e) => {
+    const p=this._pending; if(!p) return;
+    const dist=Math.hypot(e.clientX-p.sx, e.clientY-p.sy);
+    // Not yet armed (hold pending): a real move means the user wants to scroll — bail out.
+    if(!p.armed){ if(dist>10) this._cancelPending(); return; }
+    if(this.state.isMobile){ if(dist>3) p.moved=true; }
+    else { if(!p.moved){ if(dist<5) return; p.moved=true; } }
+    if(this.state.isMobile){ const cv=this._canvas; if(cv){ const r=cv.getBoundingClientRect(), edge=72; if(e.clientY < r.top+edge) this._startAuto(cv,-1); else if(e.clientY > r.bottom-edge) this._startAuto(cv,1); else this._stopAuto(); } }
+    const tg=this.hitTarget(e.clientX,e.clientY);
+    this.setState({ drag:{ id:p.id, x:e.clientX, y:e.clientY }, dragOverDay:(tg?tg.day:'none'), dragOverIndex:(tg?tg.index:0) });
+  };
+  _pup = (e) => {
+    const cancel = e && e.type==='pointercancel';
+    this._teardownDrag();
+    const p=this._pending; this._pending=null; if(!p) return;
+    if(cancel){ if(this.state.drag) this.setState({drag:null,dragOverDay:null}); return; }
+    if(!p.armed || !p.moved){ this.setState({drag:null,dragOverDay:null}); this.openCard(p.id)(); return; }
+    const over=this.hitDay(e.clientX,e.clientY);
+    if(over!==undefined){ this.persist({ cards:this.state.cards.map(c=>c.id===p.id?{...c,day:over}:c), drag:null, dragOverDay:null }); }
+    else this.setState({drag:null,dragOverDay:null});
+  };
+  hitDay(x,y){ const el=document.elementFromPoint(x,y); const z=el&&el.closest?el.closest('[data-dropzone]'):null; if(!z) return undefined; const d=z.getAttribute('data-day'); return d==='pool'?null:Number(d); }
+  hitTarget(x,y){
+    const el=document.elementFromPoint(x,y); const z=el&&el.closest?el.closest('[data-dropzone]'):null; if(!z) return null;
+    const d=z.getAttribute('data-day'); if(d==='pool') return { day:null, index:0 };
+    const cards=[...z.querySelectorAll('[data-flip]')];
+    let idx=cards.length;
+    for(let i=0;i<cards.length;i++){ const r=cards[i].getBoundingClientRect(); if(y < r.top + r.height/2){ idx=i; break; } }
+    return { day:Number(d), index:idx };
+  }
+
+  canvasDown = (e) => {
+    if(this.state.isMobile) return;
+    this._pan={ sx:e.clientX, sy:e.clientY, ox:this.state.panX, oy:this.state.panY };
+    window.addEventListener('pointermove', this._panMove);
+    window.addEventListener('pointerup', this._panUp);
+  };
+  _panMove=(e)=>{ const p=this._pan; if(!p) return; this.setState({ panX:p.ox+(e.clientX-p.sx), panY:p.oy+(e.clientY-p.sy) }); };
+  _panUp=()=>{ window.removeEventListener('pointermove',this._panMove); window.removeEventListener('pointerup',this._panUp); this._pan=null; };
+
+  zoomIn=()=>this.setState(s=>({zoom:Math.min(1.6,+(s.zoom+0.15).toFixed(2))}));
+  zoomOut=()=>this.setState(s=>({zoom:Math.max(0.4,+(s.zoom-0.15).toFixed(2))}));
+  zoomFit=()=>this.setState({zoom:1,panX:0,panY:0});
+
+  // ---------- compare mode + read-only view ----------
+  enterCompare = () => this.setState({ compareMode:true, compareMin:false });
+  exitCompare = () => this.setState({ compareMode:false, open:[], compareMin:false });
+  openView = (id) => { this._rememberTrigger(); this.setState({ viewCard:id }); };
+  closeView = () => { this.setState({ viewCard:null }); this._restoreTrigger(); };
+  editFromView = () => { const id=this.state.viewCard; this.setState({ viewCard:null }); if(id) this.openEdit(id); };
+
+  // ---------- modal ----------
+  openCard = (id) => () => { if(this.state.compareMode) this.openCompare(id); else this.openView(id); };
+  closeModal = () => { this.setState({ modal:null, confirmDel:false }); this._restoreTrigger(); };
+  stop = (e) => e.stopPropagation();
+  setM = (patch) => this.setState(s=>({ modal:{ ...s.modal, ...patch } }));
+  onMTitle=(e)=>this.setM({title:e.target.value});
+  onMPrice=(e)=>this.setM({price:e.target.value});
+  onMRegion=(e)=>this.setM({region:e.target.value});
+  onMDuration=(e)=>this.setM({duration:e.target.value});
+  onMStart=(e)=>this.setM({startTime:e.target.value});
+
+  onMTagInput=(e)=>this.setM({tagInput:e.target.value});
+  onMTagKey=(e)=>{ if(e.key==='Enter'||e.key===','){ e.preventDefault(); this.addTag(this.state.modal&&this.state.modal.tagInput); } };
+  addTag=(raw)=>{ const t=(raw||'').trim(); this.setState(s=>{ if(!s.modal) return {}; const cur=s.modal.tags||[]; if(!t||cur.includes(t)) return { modal:{...s.modal, tagInput:''} }; return { modal:{...s.modal, tags:[...cur,t], tagInput:''} }; }); };
+  removeTag=(t)=>this.setState(s=>({ modal:{...s.modal, tags:(s.modal.tags||[]).filter(x=>x!==t)} }));
+  onMLoc=(e)=>this.setM({locText:e.target.value, locErr:null});
+  onMLocKey=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); this.lookupLoc(); } };
+  // Short maps.app.goo.gl links carry no coordinates, so fall back to a name search.
+  lookupLoc = () => {
+    const md=this.state.modal; if(!md) return;
+    const raw=String(md.locText==null?this.locStr(md.loc):md.locText).trim();
+    if(!raw || this.parseLoc(raw)) return;
+    let q=raw;
+    const nice=raw.match(/\/place\/([^\/@?]+)/);
+    if(nice) q=decodeURIComponent(nice[1]).replace(/\+/g,' ');
+    else if(/^https?:\/\//i.test(raw)) q='';
+    if(!q && md.title) q=[md.title, md.region].filter(Boolean).join(', ');
+    if(!q){ this.setM({ locErr:'noquery' }); return; }
+    this.setM({ locBusy:true, locErr:null });
+    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),{ headers:{ 'Accept':'application/json' } })
+      .then(r=>r.json())
+      .then(j=>{
+        const hit=j&&j[0];
+        if(!hit) throw new Error('none');
+        this.setM({ locText:(+hit.lat).toFixed(5)+', '+(+hit.lon).toFixed(5), locBusy:false, locErr:null, locFound:hit.display_name });
+      })
+      .catch(()=>this.setM({ locBusy:false, locErr:'none' }));
+  };
+  onMSource=(e)=>this.setM({source:e.target.value});
+  onMNotes=(e)=>this.setM({notes:e.target.value});
+  saveModal = () => {
+    const m=this.state.modal; if(!m) return;
+    const { tagInput, __new, ...rest } = m;
+    const { locText, locBusy, locErr, locFound, ...core } = rest;
+    const clean = { ...core, loc:this.parseLoc(locText), tags:(m.tags||[]).map(s=>String(s).trim()).filter(Boolean), price:(m.price===''||m.price==null)?null:Number(m.price) };
+    if(__new) this.persist({ cards:[...this.state.cards, clean], modal:null });
+    else this.persist({ cards:this.state.cards.map(c=>c.id===m.id?clean:c), modal:null });
+  };
+  deleteCard = () => {
+    const m=this.state.modal; if(!m) return;
+    if(!this.state.confirmDel){ this.setState({ confirmDel:true }); return; }
+    const removed=this.state.cards.find(c=>c.id===m.id);
+    const before=this.state.cards;
+    this.persist({ cards:before.filter(c=>c.id!==m.id), modal:null, confirmDel:false });
+    clearTimeout(this._undoT);
+    this.setState({ undo:{ label:((removed&&removed.title)||'Card')+' deleted', cards:before } });
+    this._undoT=setTimeout(()=>this.setState({ undo:null }), 8000);
+  };
+  undoDelete = () => {
+    const u=this.state.undo; if(!u) return;
+    clearTimeout(this._undoT);
+    this.persist({ cards:u.cards });
+    this.setState({ undo:null });
+  };
+  dismissUndo = () => { clearTimeout(this._undoT); this.setState({ undo:null }); };
+
+  // ==================== MAP TAB ====================
+  // Stops carry a { lat, lng } written by parseLoc; the basemap is real OSM way
+  // geometry fetched once per bounding box from Overpass and cached locally.
+  parseLoc(raw){
+    if(raw==null) return null;
+    if(typeof raw==='object') return (isFinite(raw.lat)&&isFinite(raw.lng))?{lat:+raw.lat,lng:+raw.lng}:null;
+    const s=String(raw).trim(); if(!s) return null;
+    const mk=(a,b)=>{ const lat=+a,lng=+b; return (isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180)?{lat,lng}:null; };
+    let m;
+    if((m=s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/))) return mk(m[1],m[2]);
+    if((m=s.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/))) return mk(m[1],m[2]);
+    if((m=s.match(/[?&](?:q|query|ll|sll|center|destination|daddr)=(-?\d+(?:\.\d+)?)(?:,|%2C)(-?\d+(?:\.\d+)?)/i))) return mk(m[1],m[2]);
+    if((m=s.match(/^\(?\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*\)?$/))) return mk(m[1],m[2]);
+    if((m=s.match(/(-?\d{1,3}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/))) return mk(m[1],m[2]);
+    return null;
+  }
+  locStr(loc){ return loc ? loc.lat.toFixed(5)+', '+loc.lng.toFixed(5) : ''; }
+
+  setMapDay = (v) => () => { this.setState({ mapDay:v }); };
+  setMapTip = (el) => { this.mapTip = el; };
+  setMapEl = (el) => {
+    this.mapEl = el;
+    if(this._ro){ this._ro.disconnect(); this._ro=null; }
+    if(!el) return;
+    this._mv = { k:1, tx:0, ty:0 };
+    if(window.ResizeObserver){
+      this._ro = new ResizeObserver(()=>{
+        const svg = this.mapEl && this.mapEl.querySelector('svg');
+        if(!svg) return;
+        if(+svg.getAttribute('width')===this.mapEl.clientWidth && +svg.getAttribute('height')===this.mapEl.clientHeight) return;
+        this.drawMap();
+      });
+      this._ro.observe(el);
+    }
+    requestAnimationFrame(()=>{ this._mapSig=null; this._mapSync(); });
+  };
+  mapRetry = () => {
+    try{ if(this._geoCacheKey) localStorage.removeItem(this._geoCacheKey); }catch(e){}
+    this._geoKey=null; this.geo=null; this._mapSig=null;
+    this.setState({ mapError:null }, ()=>this._mapSync());
+  };
+  mapReset = () => { this._mv={ k:1, tx:0, ty:0 }; this._applyMapView(); };
+
+  // Located stops for this trip, in itinerary order (day, then card order).
+  mapStops(){
+    const all=this.tripCards();
+    const idx=new Map(all.map((c,i)=>[c.id,i]));
+    const loc=all.filter(c=>c.loc&&isFinite(c.loc.lat)&&isFinite(c.loc.lng));
+    const sched=loc.filter(c=>c.day!=null).sort((a,b)=>(a.day-b.day)||(idx.get(a.id)-idx.get(b.id)));
+    const un=loc.filter(c=>c.day==null).sort((a,b)=>idx.get(a.id)-idx.get(b.id));
+    return { all, loc, sched, un };
+  }
+
+  // Numbering restarts each day: the 4th stop of day 2 is “4”.
+  mapPlan(){
+    const st=this.state, day=st.mapDay==null?'all':st.mapDay;
+    const { sched, un } = this.mapStops();
+    const src = day==='all' ? sched : day==='none' ? [] : sched.filter(c=>c.day===day);
+    const cnt={};
+    const numbered=src.map(c=>{ cnt[c.day]=(cnt[c.day]||0)+1; return { c, n:cnt[c.day] }; });
+    return { numbered, ghosts:(day==='all'||day==='none')?un:[], day };
+  }
+
+  _mercY(lat){ return (180/Math.PI)*Math.log(Math.tan(Math.PI/4 + (Math.max(-85,Math.min(85,lat))*Math.PI)/360)); }
+
+  _mapBBox(list){
+    let s=90,n=-90,w=180,e=-180;
+    list.forEach(c=>{ s=Math.min(s,c.loc.lat); n=Math.max(n,c.loc.lat); w=Math.min(w,c.loc.lng); e=Math.max(e,c.loc.lng); });
+    const cy=(n+s)/2, cx=(e+w)/2;
+    const dy=Math.max(n-s,0.014)*1.35, dx=Math.max(e-w,0.014)*1.35;
+    return { s:cy-dy/2, n:cy+dy/2, w:cx-dx/2, e:cx+dx/2 };
+  }
+
+  _mapSync(){
+    const st=this.state;
+    if(st.view!=='board' || st.boardTab!=='map' || !this.mapEl){ this._mapSig=null; return; }
+    const { loc } = this.mapStops();
+    const sig = st.tripId+'|'+(st.mapDay==null?'all':st.mapDay)+'|'+loc.map(c=>c.id+':'+c.loc.lat.toFixed(5)+','+c.loc.lng.toFixed(5)+':'+c.day).join('|');
+    if(sig===this._mapSig) return;
+    this._mapSig=sig;
+    if(!loc.length){ this._bbox=null; this.mapEl.innerHTML=''; return; }
+    const bbox=this._mapBBox(loc);
+    const key=[bbox.s,bbox.w,bbox.n,bbox.e].map(v=>v.toFixed(3)).join(',');
+    this._bbox=bbox;
+    if(key===this._geoKey){ this.drawMap(); return; }
+    this.drawMap();
+    this.loadGeo(bbox,key);
+  }
+
+  loadGeo(bbox,key){
+    const cacheKey='trip-map-osm:'+key;
+    this._geoCacheKey=cacheKey;
+    try{
+      const c=localStorage.getItem(cacheKey);
+      if(c){
+        const g=JSON.parse(c);
+        const n=(g.a||[]).length+(g.b||[]).length+(g.c||[]).length;
+        if(n>0){ this.geo=g; this._geoKey=key; this.drawMap(); return; }
+        localStorage.removeItem(cacheKey); // an empty result is a failed result
+      }
+    }catch(e){}
+    const span=Math.max(bbox.n-bbox.s, bbox.e-bbox.w);
+    const hw = span>0.30 ? 'motorway|trunk|primary'
+             : span>0.10 ? 'motorway|trunk|primary|secondary'
+             : span>0.035 ? 'motorway|trunk|primary|secondary|tertiary'
+             : 'motorway|trunk|primary|secondary|tertiary|residential';
+    const b=`${bbox.s},${bbox.w},${bbox.n},${bbox.e}`;
+    const geo={ a:[], b:[], c:[], w:[], p:[], k:[] };
+    const sort=(el)=>{
+      if(!el.geometry || el.geometry.length<2) return;
+      const t=el.tags||{};
+      const g=el.geometry.map(p=>[+p.lon.toFixed(5), +p.lat.toFixed(5)]);
+      if(t.natural==='water') geo.p.push({g});
+      else if(t.waterway) geo.w.push({g});
+      else if(t.highway==='motorway'||t.highway==='trunk') geo.a.push({g});
+      else if(t.highway==='primary') geo.b.push({g});
+      else if(t.highway) geo.c.push({g});
+    };
+    this.setState({ mapBusy:true, mapError:null });
+
+    // Roads first, on their own — bundling water/park clauses times Overpass out.
+    this._overpass(`[out:json][timeout:25];way["highway"~"^(${hw})$"](${b});out geom;`)
+      .then(j=>{
+        (j.elements||[]).forEach(sort);
+        if(!(geo.a.length+geo.b.length+geo.c.length)) throw new Error('empty');
+        this.geo=geo; this._geoKey=key;
+        this._cacheGeo(cacheKey, geo);
+        this.setState({ mapBusy:false }, ()=>this.drawMap());
+        // Water is a nice-to-have second pass; failure here is silent.
+        const wq = span>0.12
+          ? `[out:json][timeout:20];way["waterway"~"^(river|canal)$"](${b});out geom;`
+          : `[out:json][timeout:20];(way["waterway"~"^(river|canal)$"](${b});way["natural"="water"](${b}););out geom;`;
+        this._overpass(wq).then(wj=>{
+          (wj.elements||[]).forEach(sort);
+          if(this._geoKey===key){ this._cacheGeo(cacheKey, geo); this.drawMap(); }
+        }).catch(()=>{});
+      })
+      .catch(()=>{ this.setState({ mapBusy:false, mapError:'load' }); });
+  }
+
+  _cacheGeo(cacheKey, geo){
+    try{ const s=JSON.stringify(geo); if(s.length<3.2e6) localStorage.setItem(cacheKey,s); }catch(e){}
+  }
+
+  // Overpass mirrors go down or block CORS individually; try them in turn.
+  OVERPASS = ['https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.osm.ch/api/interpreter','https://overpass-api.de/api/interpreter'];
+  _overpass(q, i){
+    i = i || 0;
+    if(i >= this.OVERPASS.length) return Promise.reject(new Error('all mirrors failed'));
+    const ctl = window.AbortController ? new AbortController() : null;
+    const timer = setTimeout(()=>{ if(ctl) ctl.abort(); }, 35000);
+    return fetch(this.OVERPASS[i], {
+      method:'POST', signal: ctl?ctl.signal:undefined,
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'data='+encodeURIComponent(q)
+    })
+      .then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
+      .then(j=>{
+        clearTimeout(timer);
+        // A 200 with no elements means that mirror has no data loaded — keep going.
+        if(!j || !j.elements || !j.elements.length) throw new Error('empty');
+        return j;
+      })
+      .catch(err=>{ clearTimeout(timer); return this._overpass(q, i+1); });
+  }
+
+  drawMap(){
+    const el=this.mapEl, bbox=this._bbox;
+    if(!el) return;
+    if(!bbox){ el.innerHTML=''; return; }
+    const W=el.clientWidth||900, H=el.clientHeight||600;
+    if(!W||!H) return;
+    const y0=this._mercY(bbox.n), y1=this._mercY(bbox.s);
+    const sc=Math.min(W/(bbox.e-bbox.w), H/(y0-y1));
+    const ox=W/2 - ((bbox.w+bbox.e)/2)*sc, oy=H/2 + ((y0+y1)/2)*sc;
+    const PX=(lon)=>lon*sc+ox, PY=(lat)=>oy - this._mercY(lat)*sc;
+    const geo=this.geo||{a:[],b:[],c:[],w:[],p:[],k:[]};
+    const path=(feats,close)=>{ let d=''; const f=feats||[];
+      for(let i=0;i<f.length;i++){ const g=f[i].g;
+        d+='M'+PX(g[0][0]).toFixed(1)+' '+PY(g[0][1]).toFixed(1);
+        for(let j=1;j<g.length;j++) d+='L'+PX(g[j][0]).toFixed(1)+' '+PY(g[j][1]).toFixed(1);
+        if(close) d+='Z';
+      } return d; };
+
+    const { numbered, ghosts } = this.mapPlan();
+
+    const esc=(t)=>String(t==null?'':t).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+    const pins=[];
+    numbered.forEach(o=>pins.push({ c:o.c, n:o.n, color:this.typeMeta(o.c.type).color, x:PX(o.c.loc.lng), y:PY(o.c.loc.lat) }));
+    ghosts.forEach(c=>pins.push({ c, n:0, color:this.typeMeta(c.type).color, x:PX(c.loc.lng), y:PY(c.loc.lat) }));
+
+    let route='', prevDay=null;
+    numbered.forEach(o=>{ const cmd=(o.c.day===prevDay)?'L':'M'; prevDay=o.c.day; route+=cmd+PX(o.c.loc.lng).toFixed(1)+' '+PY(o.c.loc.lat).toFixed(1); });
+
+    let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block"><rect width="${W}" height="${H}" fill="#0a0c0d"/><g id="vp">`;
+    s+=`<path d="${path(geo.k,true)}" fill="#0e1412" stroke="none"/>`;
+    s+=`<path d="${path(geo.p,true)}" fill="#0d1719" stroke="none"/>`;
+    s+=`<g fill="none" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">`;
+    s+=`<path d="${path(geo.c)}" stroke="#1a2123" stroke-width="0.8" vector-effect="non-scaling-stroke"/>`;
+    s+=`<path d="${path(geo.b)}" stroke="#252d2f" stroke-width="1.2" vector-effect="non-scaling-stroke"/>`;
+    s+=`<path d="${path(geo.a)}" stroke="#313b3d" stroke-width="1.7" vector-effect="non-scaling-stroke"/>`;
+    s+=`<path d="${path(geo.w)}" stroke="#17292c" stroke-width="2.2" vector-effect="non-scaling-stroke"/>`;
+    s+=`</g>`;
+    if(route) s+=`<path d="${route}" fill="none" stroke="#5fb8b0" stroke-width="1.5" stroke-dasharray="6 6" opacity=".5" vector-effect="non-scaling-stroke"/>`;
+    pins.forEach(p=>{
+      s+=`<g class="pin" data-id="${esc(p.c.id)}" data-x="${p.x.toFixed(1)}" data-y="${p.y.toFixed(1)}" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})" style="cursor:pointer">`;
+      if(p.n){
+        s+=`<circle r="14" fill="${p.color||'#5fb8b0'}" stroke="#0a0c0d" stroke-width="2.5"/>`;
+        s+=`<text y="4.6" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12.5" font-weight="700" fill="#0a0c0d">${p.n}</text>`;
+      } else {
+        s+=`<circle r="7" fill="#0a0c0d" stroke="${p.color||'#5f6b68'}" stroke-width="2.4"/>`;
+      }
+      s+=`</g>`;
+    });
+    s+=`</g></svg>`;
+    el.innerHTML=s;
+
+    this._vp=el.querySelector('#vp');
+    this._pinEls=Array.prototype.slice.call(el.querySelectorAll('.pin'));
+    const byId={}; pins.forEach(p=>byId[p.c.id]=p);
+    this._pinEls.forEach(g=>{
+      const p=byId[g.getAttribute('data-id')]; if(!p) return;
+      g.addEventListener('pointerenter',()=>this._showTip(p));
+      g.addEventListener('pointerleave',()=>this._hideTip());
+      g.addEventListener('click',(e)=>{ e.stopPropagation(); if(this._dragged) return; this._hideTip(); this.openCard(p.c.id)(); });
+    });
+    this._applyMapView();
+    this._bindMapPan(el);
+  }
+
+  _showTip(p){
+    const tip=this.mapTip; if(!tip) return;
+    const c=p.c, tm=this.typeMeta(c.type);
+    const bits=[];
+    bits.push(`<div style="font-size:12.5px;font-weight:600;color:#e9edee">${p.n?p.n+'. ':''}${(c.title||'Untitled').replace(/</g,'&lt;')}</div>`);
+    const sub=[tm.label, c.day!=null?('Day '+c.day):'Unscheduled', c.startTime||'', c.duration||''].filter(Boolean).join(' · ');
+    bits.push(`<div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8a9693;margin-top:3px">${sub.replace(/</g,'&lt;')}</div>`);
+    tip.innerHTML=bits.join('');
+    const v=this._mv||{k:1,tx:0,ty:0};
+    tip.style.left=(p.x*v.k+v.tx)+'px';
+    tip.style.top=(p.y*v.k+v.ty)+'px';
+    tip.style.display='block';
+  }
+  _hideTip(){ if(this.mapTip) this.mapTip.style.display='none'; }
+
+  _applyMapView(){
+    const v=this._mv||(this._mv={k:1,tx:0,ty:0});
+    if(this._vp) this._vp.setAttribute('transform',`translate(${v.tx},${v.ty}) scale(${v.k})`);
+    if(this._pinEls) this._pinEls.forEach(g=>{
+      g.setAttribute('transform',`translate(${g.getAttribute('data-x')},${g.getAttribute('data-y')}) scale(${(1/v.k).toFixed(4)})`);
+    });
+  }
+
+  _bindMapPan(el){
+    el.onwheel=(e)=>{
+      e.preventDefault();
+      const v=this._mv||(this._mv={k:1,tx:0,ty:0});
+      const r=el.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+      const f=Math.min(1.25,Math.max(0.8, Math.pow(0.9985, e.deltaY)));
+      const nk=Math.min(16,Math.max(0.7, v.k*f)), rf=nk/v.k;
+      v.tx = mx - (mx-v.tx)*rf; v.ty = my - (my-v.ty)*rf; v.k = nk;
+      this._hideTip(); this._applyMapView();
+    };
+    el.onpointerdown=(e)=>{
+      const v=this._mv||(this._mv={k:1,tx:0,ty:0});
+      const sx=e.clientX, sy=e.clientY, otx=v.tx, oty=v.ty;
+      this._dragged=false;
+      el.style.cursor='grabbing';
+      const move=(ev)=>{
+        const dx=ev.clientX-sx, dy=ev.clientY-sy;
+        if(Math.abs(dx)+Math.abs(dy)>3){ this._dragged=true; this._hideTip(); }
+        v.tx=otx+dx; v.ty=oty+dy; this._applyMapView();
+      };
+      const up=()=>{
+        window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up);
+        el.style.cursor='grab';
+        setTimeout(()=>{ this._dragged=false; },0);
+      };
+      window.addEventListener('pointermove',move); window.addEventListener('pointerup',up);
+    };
+  }
+
+  // ---------- filters ----------
+  setPoolFilter = (v) => () => this.setState({ poolFilter:v });
+
+  cardVal(c){
+    const tm=this.typeMeta(c.type), sm=this.statusMeta(c.status);
+    const imp = c.type==='important';
+    return {
+      id:c.id, title:c.title,
+      typeLabel:tm.label, typeColor:tm.color,
+      statusDot:sm.dot, statusGlow:sm.glow,
+      hasPrice:c.price!=null, priceDisp:this.money(c.price, (this.trip()||{}).currency),
+      hasTags:(c.tags||[]).length>0, tagStr:(c.tags||[]).slice(0,2).join(' · '),
+      hasTime:!!c.startTime, timeDisp:c.startTime,
+      hasDuration:!!c.duration, durationDisp:c.duration,
+      mustDo:c.priority==='must', isCard:true, important:imp,
+      poolStyle:`cursor:grab;${this.state.isMobile?'touch-action:auto;flex:0 0 auto;width:212px;':'touch-action:none;'}background:#171b1d;border:1px solid #23292b;border-left:3px solid ${tm.color};border-radius:10px;padding:10px 12px${imp?';animation:pulseGlow 2.6s ease-in-out infinite':''}`,
+      laneStyle:`cursor:grab;${this.state.isMobile?'touch-action:auto;':'touch-action:none;'}background:#161a1b;border:1px solid #232a2b;border-left:3px solid ${tm.color};border-radius:9px;padding:9px 10px${imp?';animation:pulseGlow 2.6s ease-in-out infinite':''}`,
+      onDown:this.onCardDown(c.id),
+      onKey:this.cardKey(c.id),
+      openLabel:(c.title||'Card')+(c.day!=null?(' — day '+c.day):' — in the pool')+'. Enter opens it; left and right arrows change day; up and down reorder.',
+    };
+  }
+
+  gridCardVal(c, isOpen){
+    const tm=this.typeMeta(c.type), sm=this.statusMeta(c.status);
+    const imp=c.type==='important';
+    return {
+      id:c.id, title:c.title, typeLabel:tm.label, typeColor:tm.color,
+      statusDot:sm.dot, statusGlow:sm.glow, statusLabel:sm.label, statusText:sm.text,
+      hasPrice:c.price!=null, priceDisp:this.money(c.price,(this.trip()||{}).currency),
+      hasRegion:!!c.region, region:c.region,
+      hasDuration:!!c.duration, durationDisp:c.duration,
+      hasTags:(c.tags||[]).length>0, tagStr:(c.tags||[]).slice(0,3).join(' · '),
+      mustDo:c.priority==='must',
+      dayBadge:c.day!=null?('Day '+c.day):'Pool',
+      dayBadgeColor:c.day!=null?'#5fb8b0':'#6b7673',
+      isOpen,
+      onOpen:()=> this.state.compareMode ? this.toggleCompare(c.id) : this.openView(c.id),
+      onKey:(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); this.state.compareMode ? this.toggleCompare(c.id) : this.openView(c.id); } },
+      openLabel:(c.title||'Card')+' — open',
+      editLabel:'Edit '+(c.title||'card'),
+      onEditClick:(e)=>{ e.stopPropagation(); this.openEdit(c.id); },
+      gridStyle:`cursor:pointer;background:#14181a;border:1px solid ${isOpen?'#5fb8b0':'#232a2b'};border-left:3px solid ${tm.color};border-radius:12px;padding:13px 14px;display:flex;flex-direction:column;gap:9px;transition:border-color .15s${imp?';animation:pulseGlow 2.6s ease-in-out infinite':''}`,
+    };
+  }
+
+  renderVals() {
+    const st=this.state;
+
+    // ---------- HOME ----------
+    const trips = st.trips.map(t=>{
+      const cs = st.cards.filter(c=>c.trip===t.id);
+      const scheduled = cs.filter(c=>c.day!=null).length;
+      const spent = cs.reduce((a,c)=>a+(Number(c.price)||0),0);
+      const rawPct = t.budget? spent/t.budget*100 : 0;
+      const pct = Math.min(100, rawPct);
+      const dr = (t.start&&t.end)? this.fmtRange(t.start,t.end) : 'Dates TBD';
+      return {
+        id:t.id, name:t.name, subtitle:t.subtitle, cover:t.cover, dateRange:dr,
+        count:cs.length, scheduledCount:scheduled,
+        companions:(t.companions||[]).map(c=>({ initial:c.initial, color:c.color })),
+        budgetPct:pct+'%', budgetColor: rawPct>100?'#d98a8a':'#5fb8b0',
+        budgetLabel:`${this.money(spent,t.currency)} of ${this.money(t.budget,t.currency)}`,
+        onOpen:()=>this.openTrip(t.id),
+        onKey:(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); this.openTrip(t.id); } },
+        openLabel:'Open '+(t.name||'trip'),
+        editLabel:'Edit '+(t.name||'trip'),
+        onEdit:(e)=>{ e.stopPropagation(); this.openTripEdit(t.id); },
+      };
+    });
+
+    // ---------- BOARD ----------
+    const t=this.trip();
+    const mob=!!st.isMobile;
+    const dragId = st.drag ? st.drag.id : null;
+    let tripVal=null, lanes=[], poolCards=[], typeFilters=[], poolCount=0, poolShowGhost=false;
+    if (t) {
+      const cs=this.tripCards();
+      const spent=cs.reduce((a,c)=>a+(Number(c.price)||0),0);
+      const rawPct=t.budget?spent/t.budget*100:0; const pct=Math.min(100,rawPct);
+      tripVal={ name:t.name, subtitle:t.subtitle, dateRange:(t.start&&t.end)?this.fmtRange(t.start,t.end):'Dates TBD',
+        spentDisp:this.money(spent,t.currency), budgetDisp:this.money(t.budget,t.currency),
+        budgetPct:pct+'%', budgetColor:rawPct>100?'#d98a8a':'#5fb8b0' };
+
+      // pool = day==null, filtered by type
+      const inPool = cs.filter(c=>c.day==null && c.id!==dragId).filter(c=> st.poolFilter==='all'||c.type===st.poolFilter);
+      poolCount = cs.filter(c=>c.day==null).length;
+      poolCards = inPool.map(c=>this.cardVal(c));
+      poolShowGhost = !!st.drag && st.dragOverDay===null;
+
+      // type filter chips (only types present in pool)
+      const present = new Set(cs.filter(c=>c.day==null).map(c=>c.type));
+      const mk=(v,label,color)=>{ const on=st.poolFilter===v; return { label, onClick:this.setPoolFilter(v),
+        bg:on?(color||'#5fb8b0'):'transparent', color:on?'#06201e':(color||'#8a9693'), border:on?'transparent':'#2a3234' }; };
+      typeFilters=[ mk('all','All') , ...this.TYPES.filter(ty=>present.has(ty.value)).map(ty=>mk(ty.value,ty.label,ty.color)) ];
+
+      // lanes
+      const n=t.dayCount||0;
+      for(let d=1; d<=n; d++){
+        const dc=cs.filter(c=>c.day===d && c.id!==dragId).map(c=>this.cardVal(c));
+        const over = st.dragOverDay===d;
+        const total = cs.filter(c=>c.day===d).length;
+        let items=dc;
+        if(over){ const idx=Math.max(0,Math.min(st.dragOverIndex, dc.length)); items=[...dc.slice(0,idx), {isGhost:true}, ...dc.slice(idx)]; }
+        const bg=over?'#182422':'#101414', bd=over?'#5fb8b0':'#1d2426';
+        lanes.push({ day:d, title:'Day '+d, meta:this.dayHint(t,d), count:total, items, empty:dc.length===0 && !over,
+          style:`${mob?'width:100%;':'flex:0 0 268px;'}background:${bg};border:1px solid ${bd};border-radius:14px;padding:12px;display:flex;flex-direction:column;transition:border-color .12s,background .12s` });
+      }
+    }
+
+    // ---------- CARDS GRID + COMPARE ----------
+    const chip=(active,color)=>({ pressed:active?'true':'false', bg:active?(color||'#5fb8b0'):'transparent', color:active?'#06201e':(color||'#9aa7a4'), border:active?'transparent':'#2a3234' });
+    let gridCards=[], gridFilters=[];
+    if(t){
+      const all=this.tripCards();
+      const q=(st.searchText||'').trim().toLowerCase();
+      const src=all.filter(c=> st.poolFilter==='all'||c.type===st.poolFilter)
+        .filter(c=> !q || (c.title||'').toLowerCase().includes(q) || (c.region||'').toLowerCase().includes(q) || (c.tags||[]).join(' ').toLowerCase().includes(q) || (c.notes||'').toLowerCase().includes(q));
+      gridCards=src.map(c=>this.gridCardVal(c, st.open.some(o=>o.id===c.id)));
+      const presentAll=new Set(all.map(c=>c.type));
+      const mkf=(v,label,color)=>{ const on=st.poolFilter===v; return { label, onClick:this.setPoolFilter(v), bg:on?(color||'#5fb8b0'):'transparent', color:on?'#06201e':(color||'#8a9693'), border:on?'transparent':'#2a3234' }; };
+      gridFilters=[ mkf('all','All'), ...this.TYPES.filter(ty=>presentAll.has(ty.value)).map(ty=>mkf(ty.value,ty.label,ty.color)) ];
+    }
+    const tagCountsAll={}; st.cards.forEach(c=>(c.tags||[]).forEach(v=>{ tagCountsAll[v]=(tagCountsAll[v]||0)+1; }));
+    const openCols = st.open.map(o=>{
+      const d=st.cards.find(c=>c.id===o.id)||{};
+      const tm=this.typeMeta(d.type);
+      const sm=this.STATUSES.find(s=>s.value===d.status)||{};
+      const pm=this.PRIOS.find(p=>p.value===d.priority)||{};
+      const tags=d.tags||[];
+      return {
+        id:d.id, title:d.title||'Untitled',
+        colStyle: mob
+          ? `position:relative;width:100%;flex:0 0 auto;height:${o.h||360}px;display:flex;flex-direction:column;background:#14181a;border:1px solid #262c2e;border-top:3px solid ${tm.color};border-radius:14px;overflow:hidden;user-select:none;-webkit-user-select:none`
+          : `position:absolute;left:${o.x||0}px;top:${o.y||0}px;width:${o.w||322}px;height:${o.h||310}px;display:flex;flex-direction:column;background:#14181a;border:1px solid #262c2e;border-top:3px solid ${tm.color};border-radius:14px;overflow:hidden;box-shadow:0 10px 34px rgba(0,0,0,.45);user-select:none;-webkit-user-select:none`,
+        mobCompare: mob,
+        showResize: !mob,
+        onCardDown:this.compareCardDown(d.id),
+        onResizeDown:this.compareResizeDown(d.id),
+        typeLabel:tm.label, typeColor:tm.color,
+        statusLabel:sm.label||'—', statusDot:(!sm.dot||sm.dot==='transparent')?'#4a514c':sm.dot,
+        prioLabel:pm.label||'—',
+        price:(d.price==null||d.price==='')?'':('$'+d.price), hasPrice:d.price!=null&&d.price!=='',
+        region:d.region||'', hasRegion:!!d.region,
+        startTime:d.startTime||'', hasStart:!!d.startTime,
+        duration:d.duration||'', hasDuration:!!d.duration,
+        notes:d.notes||'', hasNotes:!!d.notes,
+        notesDisplay:d.notes?d.notes:'No notes yet.',
+        source:d.source||'', hasSource:!!d.source, noSource:!d.source,
+        sourceShort:(d.source||'').replace(/^https?:\/\//,'').replace(/\/$/,''),
+        hasTags:tags.length>0, tagChips:tags.map(x=>({ tag:x })),
+        addedBy:d.addedBy, hasAttribution:!!d.addedBy,
+        onClose:()=>this.closeOpen(d.id),
+        closeLabel:'Remove '+(d.title||'card')+' from compare',
+        editLabel:'Edit '+(d.title||'card'),
+        onExpand:()=>this.setState({compareMin:false}),
+        onEdit:()=>this.openEdit(d.id),
+      };
+    });
+    const totalCards = t? this.tripCards().length : 0;
+    const schedCount = t? this.tripCards().filter(c=>c.day!=null).length : 0;
+    const locatedCount = t? this.tripCards().filter(c=>c.loc&&isFinite(c.loc.lat)).length : 0;
+    const tabs = [{k:'cards',label:'Cards',cnt:totalCards},{k:'itinerary',label:'Itinerary',cnt:schedCount},{k:'map',label:'Map',cnt:locatedCount}].map(td=>{ const on=st.boardTab===td.k; return { label: td.cnt==null?td.label:(td.label+' · '+td.cnt), sel:on?'true':'false', onClick:()=>this.setTab(td.k), style:`background:none;border:none;cursor:pointer;padding:12px 2px;margin-right:24px;font-size:13.5px;font-weight:${on?'700':'600'};color:${on?'#e9edee':'#7a8683'};border-bottom:2px solid ${on?'#5fb8b0':'transparent'};transition:color .15s` }; });
+
+    // ---------- MAP TAB ----------
+    const mapVals = {};
+    {
+      const ms = t ? this.mapStops() : { loc:[], sched:[], un:[] };
+      const day = st.mapDay==null ? 'all' : st.mapDay;
+      const days=[]; ms.sched.forEach(c=>{ if(!days.includes(c.day)) days.push(c.day); });
+      const chip=(v,label)=>{ const on=day===v; return { label, sel:on?'true':'false', onClick:this.setMapDay(v),
+        style:`cursor:pointer;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;padding:6px 11px;border-radius:7px;background:${on?'#5fb8b0':'transparent'};color:${on?'#06201e':'#8a9693'};border:1px solid ${on?'transparent':'#2a3234'}` }; };
+      const chips=[chip('all','All stops'), ...days.map(d=>chip(d,'Day '+d))];
+      if(ms.un.length) chips.push(chip('none','Unscheduled'));
+      const shown = day==='all' ? ms.sched.length : day==='none' ? 0 : ms.sched.filter(c=>c.day===day).length;
+      mapVals.mapDayChips = chips;
+      const plan = t ? this.mapPlan() : { numbered:[], ghosts:[] };
+      const rows=[]; let hdr=null;
+      const numSty=(bg)=>`flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;background:${bg};color:#0a0c0d`;
+      plan.numbered.forEach(o=>{
+        const c=o.c, tmeta=this.typeMeta(c.type);
+        if(day==='all' && c.day!==hdr){ hdr=c.day; rows.push({ isHeader:true, isStop:false, label:'Day '+c.day }); }
+        rows.push({ isHeader:false, isStop:true, num:o.n, numStyle:numSty(tmeta.color),
+          title:c.title||'Untitled', meta:[tmeta.label, c.startTime, c.duration].filter(Boolean).join(' · '),
+          openLabel:'Open '+(c.title||'stop'), onClick:this.openCard(c.id) });
+      });
+      if(plan.ghosts.length){
+        rows.push({ isHeader:true, isStop:false, label:'Unscheduled' });
+        plan.ghosts.forEach(c=>{
+          const tmeta=this.typeMeta(c.type);
+          rows.push({ isHeader:false, isStop:true, num:'·',
+            numStyle:`flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:#6b7673;border:2px solid ${tmeta.color}`,
+            title:c.title||'Untitled', meta:[tmeta.label, c.duration].filter(Boolean).join(' · '),
+            onClick:this.openCard(c.id) });
+        });
+      }
+      mapVals.mapList = rows;
+      mapVals.mapShowList = !st.isMobile && rows.length>0;
+      mapVals.mapStatus = ms.loc.length ? `${shown} numbered \u00b7 ${ms.loc.length} of ${totalCards} cards located` : '';
+      mapVals.mapBusy = !!st.mapBusy;
+      mapVals.mapEmpty = ms.loc.length===0;
+      mapVals.mapHasPins = ms.loc.length>0;
+      mapVals.mapHasError = !!st.mapError;
+      mapVals.setMapEl = this.setMapEl;
+      mapVals.setMapTip = this.setMapTip;
+      mapVals.mapReset = this.mapReset;
+      mapVals.mapRetry = this.mapRetry;
+    }
+
+    // ---------- CURRENCY CONVERTER ----------
+    const _ccy = this.FX_CCY;
+    const _fromObj = _ccy.find(o=>o.c===st.fxFrom) || {};
+    const _toObj = _ccy.find(o=>o.c===st.fxTo) || {};
+    const _q = (st.fxSearch||'').trim().toLowerCase();
+    const _mkList = (which, activeCode) => _ccy
+      .filter(o => !_q || o.c.toLowerCase().includes(_q) || o.n.toLowerCase().includes(_q) || (o.s||'').toLowerCase().includes(_q))
+      .map(o => ({ code:o.c, name:o.n, sym:o.s||'', active:o.c===activeCode,
+        onSelect: () => this.chooseFx(which, o.c),
+        rowStyle:`display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-radius:8px;transition:background .12s;${o.c===activeCode?'background:rgba(95,184,176,.12)':''}`,
+        codeStyle:`font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;color:${o.c===activeCode?'#7fe3d8':'#e9edee'};flex:0 0 44px`,
+        symStyle:`font-size:13px;color:#5f6b68;flex:0 0 30px;text-align:right;font-family:'JetBrains Mono',monospace` }));
+    const _nfx = (v,dec) => (v==null||isNaN(v)) ? '—' : Number(v).toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    const _fxAmt = parseFloat(st.fxAmount);
+    const _fxValid = !isNaN(_fxAmt);
+    const _fxResult = (st.fxRate!=null && _fxValid) ? _fxAmt*st.fxRate : null;
+    const _fxRate = st.fxRate;
+    const fxVals = {
+      fxFrom:st.fxFrom, fxTo:st.fxTo, fxAmount:st.fxAmount,
+      fxFromSym:_fromObj.s||'', fxToSym:_toObj.s||'',
+      fxFromName: _fromObj.n || st.fxFrom,
+      fxToName: _toObj.n || st.fxTo,
+      fxDropFrom: st.fxDrop==='from', fxDropTo: st.fxDrop==='to',
+      fxListFrom: _mkList('from', st.fxFrom), fxListTo: _mkList('to', st.fxTo),
+      fxSearch: st.fxSearch,
+      openFxFromDrop: () => this.openFxDrop('from'),
+      openFxToDrop: () => this.openFxDrop('to'),
+      onFxSearch: this.onFxSearch,
+      onFxAmount:this.onFxAmount, swapFx:this.swapFx, fetchFx:this.fetchFx,
+      fxOpen:st.fxOpen, toggleFxPanel:this.toggleFxPanel,
+      fxToggleStyle: `cursor:pointer;flex:0 0 auto;display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;padding:11px 14px;border-radius:10px;transition:color .15s,border-color .15s;${st.fxOpen ? 'background:rgba(95,184,176,.14);color:#7fe3d8;border:1px solid #3a6b66' : 'background:#0e1112;color:#9aa7a4;border:1px solid #262c2e'}`,
+      fxLoading:st.fxLoading, fxHasError:!!st.fxError, fxError:st.fxError||'',
+      fxHasRate: _fxRate!=null,
+      fxResultDisp: _fxResult==null ? '—' : _nfx(_fxResult,2),
+      fxRateLine: _fxRate!=null ? ('1 '+st.fxFrom+' = '+_nfx(_fxRate,_fxRate<1?6:4)+' '+st.fxTo) : '',
+      fxInverseLine: (_fxRate!=null && _fxRate!==0) ? ('1 '+st.fxTo+' = '+_nfx(1/_fxRate,(1/_fxRate)<1?6:4)+' '+st.fxFrom) : '',
+      fxUpdatedLabel: st.fxUpdated ? ('as of '+st.fxUpdated) : '',
+    };
+
+    // ---------- DRAG GHOST ----------
+    const dg=st.drag;
+    let ghostTitle='', ghostColor='#5fb8b0';
+    if(dg){ const gc=st.cards.find(c=>c.id===dg.id); if(gc){ ghostTitle=gc.title; ghostColor=this.typeMeta(gc.type).color; } }
+
+    // ---------- MODAL ----------
+    let m=null;
+    if (st.modal){
+      const md=st.modal;
+      const chip=(active,color)=>({ pressed:active?'true':'false', bg:active?(color||'#5fb8b0'):'transparent', color:active?'#06201e':(color||'#9aa7a4'), border:active?'transparent':'#2a3234' });
+      const usedTags=md.tags||[];
+      const tiq=(md.tagInput||'').trim().toLowerCase();
+      const tagCounts={}; this.state.cards.forEach(c=>(c.tags||[]).forEach(v=>{ tagCounts[v]=(tagCounts[v]||0)+1; }));
+      const tagSuggest=Object.keys(tagCounts).filter(t=>!usedTags.includes(t)&&(!tiq||t.toLowerCase().includes(tiq))).sort((a,b)=>tagCounts[b]-tagCounts[a]).slice(0,8).map(t=>({ tag:t, addLabel:'Add tag '+t, onAdd:()=>this.addTag(t) }));
+      m={ title:md.title, price:md.price, region:md.region, startTime:md.startTime, duration:md.duration, source:md.source, notes:md.notes,
+        locText: md.locText!=null ? md.locText : this.locStr(md.loc),
+        ...(()=>{
+          const raw = String(md.locText!=null ? md.locText : this.locStr(md.loc)).trim();
+          const parsed = this.parseLoc(raw);
+          const isUrl = /^https?:\/\//i.test(raw);
+          const isShort = /goo\.gl|maps\.app/i.test(raw);
+          let hint='optional', color='#5f6b68';
+          if(md.locBusy){ hint='searching…'; color='#8a9693'; }
+          else if(parsed){ hint='✓ on the map'; color='#5fb8b0'; }
+          else if(raw){ hint='no coordinates yet'; color='#d98a6a'; }
+          let note='Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.';
+          if(md.locErr==='none') note='Nothing found for that. Try a more specific name, or paste coordinates.';
+          else if(md.locErr==='noquery') note='That short link has no coordinates in it. Type the place name instead, then press Find.';
+          else if(md.locFound && parsed) note='Found: '+md.locFound;
+          else if(isShort) note='Short Maps links hide the coordinates. Open the link, then copy the full URL — or type the place name and press Find.';
+          else if(isUrl && !parsed) note='No coordinates in that URL. Press Find to search by name, or right-click the place in Maps to copy its lat/lng.';
+          return { locHint:hint, locColor:color, locNote:note, locBtn: md.locBusy?'…':'Find' };
+        })(),
+        headerLabel:md.__new?'New card':'Edit card', isNew:!!md.__new, canDelete:!md.__new,
+        tagInput:md.tagInput||'', hasTags:usedTags.length>0, tagChips:usedTags.map(t=>({ tag:t, removeLabel:'Remove tag '+t, onRemove:()=>this.removeTag(t) })),
+        dayOpts:(()=>{ const max=this.dayMax(); const cur=md.day==null?0:md.day; const opts=[{v:0,l:'Pool'}];
+          for(let d=1; d<=max; d++) opts.push({v:d,l:'Day '+d});
+          return opts.map(o=>{ const a=cur===o.v; return { label:o.l, onClick:()=>this.setM({ day:o.v===0?null:o.v }), ...chip(a) }; }); })(),
+        scheduled: md.day!=null && !md.__new,
+        onMoveUp:()=>this.moveCardOrder(md.id,-1), onMoveDown:()=>this.moveCardOrder(md.id,1),
+        delLabel: st.confirmDel ? 'Tap again to delete' : 'Delete',
+        delColor: st.confirmDel ? '#fff' : '#d98a8a',
+        delBorder: st.confirmDel ? '#c14b4b' : '#3a2828',
+        tagSuggest, hasTagSuggest:tagSuggest.length>0,
+        addedBy:md.addedBy, hasAttribution:!!md.addedBy,
+        typeOpts:this.TYPES.map(ty=>{ const a=md.type===ty.value; const c=chip(a,ty.color); return { label:ty.label, onClick:()=>this.setM({type:ty.value}), ...c }; }),
+        statusOpts:this.STATUSES.map(s=>{ const a=md.status===s.value; const c=chip(a,s.value==='idea'?'#8a9693':s.dot); return { label:s.label, dot:s.dot==='transparent'?'#4a514c':s.dot, onClick:()=>this.setM({status:s.value}), ...c }; }),
+        prioOpts:this.PRIOS.map(p=>{ const a=md.priority===p.value; const c=chip(a,'#e0a86b'); return { label:p.label, onClick:()=>this.setM({priority:p.value}), ...c }; }),
+      };
+    }
+
+    // ---------- TRIP MODAL ----------
+    let tmv=null;
+    if(st.tripModal){
+      const d=st.tripModal;
+      tmv={ headerLabel:d.__new?'New trip':'Edit trip', saveLabel:d.__new?'Create trip':'Save', isNew:!!d.__new, canDelete:!d.__new,
+        name:d.name||'', subtitle:d.subtitle||'', start:d.start||'', end:d.end||'',
+        budget:d.budget==null?'':String(d.budget), currency:'$' };
+    }
+    // ---------- VIEW (read-only card) ----------
+    let vv=null;
+    if(st.viewCard){
+      const d=st.cards.find(c=>c.id===st.viewCard);
+      if(d){
+        const tm=this.typeMeta(d.type);
+        const sm=this.statusMeta(d.status);
+        const pm=this.PRIOS.find(p=>p.value===d.priority)||{};
+        const tags=d.tags||[];
+        vv={
+          title:d.title||'Untitled',
+          typeLabel:tm.label, typeColor:tm.color,
+          statusLabel:sm.label||'—', statusDot:(!sm.dot||sm.dot==='transparent')?'#4a514c':sm.dot,
+          prioLabel:pm.label||'—',
+          price:this.money(d.price,(this.trip()||{}).currency), hasPrice:d.price!=null&&d.price!=='',
+          region:d.region||'', hasRegion:!!d.region,
+          startTime:d.startTime||'', hasStart:!!d.startTime,
+          duration:d.duration||'', hasDuration:!!d.duration,
+          notesDisplay:d.notes?d.notes:'No notes yet.',
+          source:d.source||'', hasSource:!!d.source,
+          sourceShort:(d.source||'').replace(/^https?:\/\//,'').replace(/\/$/,''),
+          hasTags:tags.length>0, tagChips:tags.map(x=>({ tag:x })),
+          addedBy:d.addedBy, hasAttribution:!!d.addedBy,
+          dayBadge:d.day!=null?('Day '+d.day):'Pool',
+        };
+      }
+    }
+    let dcv=null;
+    if(st.delTrip){
+      const d=st.delTrip;
+      const match=!!(d.name||'').trim() && (d.input||'').trim()===(d.name||'').trim();
+      dcv={ name:d.name||'', input:d.input||'',
+        btnStyle: match? 'cursor:pointer;font-size:12.5px;font-weight:700;color:#fff;background:#c14b4b;padding:9px 18px;border-radius:8px'
+                       : 'cursor:not-allowed;font-size:12.5px;font-weight:700;color:#6b5555;background:#2a1c1c;padding:9px 18px;border-radius:8px' };
+    }
+
+    return {
+      isHome: st.view==='home', isBoard: st.view==='board',
+      tripCountLabel: st.trips.length+(st.trips.length===1?' trip':' trips'),
+      trips,
+      trip: tripVal||{}, lanes, poolCards, typeFilters,
+      poolCount, poolEmpty: poolCards.length===0 && !poolShowGhost, poolShowGhost,
+      poolBg: '#0e1112',
+      quickText: st.quickText, onQuickText:this.onQuickText, onQuickKey:this.onQuickKey,
+      newTrip:this.newTrip, goHome:this.goHome, addDay:this.addDay,
+      hasHome: typeof this.props.onHome==='function', onHome:this.props.onHome,
+      brandName:'Backlog', userEmail:this.props.userEmail||'',
+      onSignOut:this.props.onSignOut||(()=>{}), onOpenSettings:this.props.onOpenSettings||(()=>{}),
+      ...this.fabVals(),
+      fabVisible: !st.compareMode,
+      isMobile:mob, notMobile:!mob, showZoom:!mob,
+      titleStyle:`margin:0;text-wrap:balance;font-size:${mob?'17px':'20px'};font-weight:800;letter-spacing:-.01em;${mob?'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;':''}`,
+      headerStyle:`flex:0 0 auto;padding:${mob?'12px 16px':'16px 24px'};border-bottom:1px solid #1d2224;display:flex;align-items:center;gap:${mob?'12px':'18px'};background:#0e1112;${mob?'flex-wrap:nowrap':'flex-wrap:wrap'}`,
+      boardBodyStyle:`flex:1;min-height:0;display:flex;${mob?'flex-direction:column':''}`,
+      poolWrapStyle: mob
+        ? 'flex:0 0 auto;width:100%;border-bottom:1px solid #1d2224;display:flex;flex-direction:column;background:#0e1112'
+        : 'flex:0 0 340px;border-right:1px solid #1d2224;display:flex;flex-direction:column;background:#0e1112',
+      poolListStyle: mob
+        ? 'flex:0 0 auto;overflow-x:auto;overflow-y:hidden;padding:4px 12px 12px;display:flex;flex-direction:row;gap:8px;align-items:stretch'
+        : 'flex:1;min-height:0;overflow-y:auto;padding:4px 12px 24px;display:flex;flex-direction:column;gap:8px',
+      canvasStyle: mob
+        ? 'flex:1;min-width:0;min-height:0;position:relative;overflow-y:auto;overflow-x:hidden;background:radial-gradient(circle at 1px 1px,#161c1e 1px,transparent 0);background-size:26px 26px'
+        : 'flex:1;min-width:0;position:relative;overflow:hidden;cursor:grab;background:radial-gradient(circle at 1px 1px,#161c1e 1px,transparent 0);background-size:26px 26px',
+      worldStyle: mob
+        ? 'padding:14px;display:flex;flex-direction:column;gap:14px'
+        : `position:absolute;top:0;left:0;transform:translate(${st.panX}px,${st.panY}px) scale(${st.zoom});transform-origin:0 0;padding:18px;display:flex;gap:14px;align-items:flex-start`,
+      addDayStyle:`background:none;font:inherit;cursor:pointer;${mob?'width:100%;min-height:64px;':'flex:0 0 132px;align-self:stretch;min-height:120px;'}border:1.5px dashed #2a3234;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#6b7673;font-size:13px;font-weight:600`,
+      worldTransform:`translate(${st.panX}px,${st.panY}px) scale(${st.zoom})`,
+      zoomLabel:Math.round(st.zoom*100)+'%',
+      zoomIn:this.zoomIn, zoomOut:this.zoomOut, zoomFit:this.zoomFit,
+      canvasDown:this.canvasDown, setCanvas:this.setCanvas,
+      dragging:!!dg, ghostTitle, ghostColor,
+      ghostX: dg?(dg.x-18)+'px':'-999px', ghostY: dg?(dg.y-16)+'px':'-999px',
+      stop:this.stop,
+      boardTab:st.boardTab, isCards:st.boardTab==='cards', isItinerary:st.boardTab==='itinerary', isMap:st.boardTab==='map', tabs,
+      ...mapVals,
+      fxPanelOpen: st.fxOpen,
+      ...fxVals,
+      gridCards, gridFilters, gridEmpty: gridCards.length===0,
+      compareOpen: st.compareMode, compareCount: st.open.length,
+      setCompareEl:this.setCompareEl, onCompareResizeDown:this.onCompareResizeDown,
+      compareHeight: st.compareMin? 'auto' : (st.compareH? st.compareH+'px' : 'auto'),
+      compareMinH: st.compareMin? '0' : '200px',
+      compareMaxH: st.compareMin? '80vh' : (st.compareH? '92vh' : '70vh'),
+      compareExpanded: st.compareMode && !st.compareMin,
+      compareCollapsed: st.compareMode && !!st.compareMin,
+      compareEmpty: openCols.length===0,
+      compareChevron: st.compareMin?'180deg':'0deg',
+      compareMinLabel: st.compareMin?'Expand':'Minimize',
+      toggleCompareMin:this.toggleCompareMin,
+      compareCountLabel: st.open.length? (st.open.length+(st.open.length===1?' card':' cards')) : 'Tap cards to add',
+      openCols, closeAllCompare:this.closeAllCompare,
+      setCompareCanvas:this.setCompareCanvas,
+      compareCanvasStyle: mob
+        ? 'flex:1;min-height:0;position:relative;overflow-y:auto;overflow-x:hidden;padding:14px;display:flex;flex-direction:column;gap:12px;background:radial-gradient(circle at 1px 1px,#161c1e 1px,transparent 0);background-size:26px 26px'
+        : 'flex:1;min-height:0;position:relative;overflow:auto;background:radial-gradient(circle at 1px 1px,#161c1e 1px,transparent 0);background-size:26px 26px',
+      compareWorldStyle: mob ? 'display:contents' : `position:absolute;top:0;left:0;transform-origin:0 0;transform:scale(${st.compareZoom||1})`,
+      compareZoomLabel: Math.round((st.compareZoom||1)*100)+'%',
+      compareZoomIn:this.compareZoomIn, compareZoomOut:this.compareZoomOut, compareZoomReset:this.compareZoomReset,
+      compareShowZoom: !mob && st.compareMode && !st.compareMin && st.open.length>0,
+      enterCompare:this.enterCompare, exitCompare:this.exitCompare,
+      showCompareBtn: st.view==='board' && st.boardTab==='cards' && !st.compareMode,
+      hasView:!!vv, vv:vv||{}, closeView:this.closeView, editFromView:this.editFromView,
+      hasModal:!!st.modal, m:m||{},
+      onMTitle:this.onMTitle, onMPrice:this.onMPrice, onMRegion:this.onMRegion, onMStart:this.onMStart, onMDuration:this.onMDuration,
+      onMSource:this.onMSource, onMNotes:this.onMNotes, onMTagInput:this.onMTagInput, onMTagKey:this.onMTagKey, onMLoc:this.onMLoc, onMLocKey:this.onMLocKey, lookupLoc:this.lookupLoc,
+      saveModal:this.saveModal, closeModal:this.closeModal, deleteCard:this.deleteCard,
+      newCard:this.newCard,
+      searchText:st.searchText, onSearchText:this.onSearchText,
+      tripModalOpen:!!st.tripModal, tm:tmv||{},
+      onTMName:this.onTMName, onTMSub:this.onTMSub, onTMStart:this.onTMStart, onTMEnd:this.onTMEnd, onTMStartIso:this.onTMStartIso, onTMEndIso:this.onTMEndIso, onTMBudget:this.onTMBudget,
+      saveTrip:this.saveTrip, closeTripModal:this.closeTripModal,
+      askDeleteTrip:this.askDeleteTrip,
+      dialogRef:this.dialog,
+      fxPanelSel: st.fxOpen?'true':'false',
+      fxDropFromSel: st.fxDrop==='from'?'true':'false', fxDropToSel: st.fxDrop==='to'?'true':'false',
+      compareExpandedSel: st.compareMin?'false':'true',
+      fabExpanded: st.fabOpen?'true':'false',
+      liveMsg: st.liveMsg||'',
+      hasUndo: !!st.undo, undoLabel: st.undo? st.undo.label : '',
+      undoDelete:this.undoDelete, dismissUndo:this.dismissUndo,
+      delTripOpen:!!st.delTrip, dc:dcv||{},
+      onDelTripInput:this.onDelTripInput, cancelDelTrip:this.cancelDelTrip, confirmDelTrip:this.confirmDelTrip,
+    };
+  }
+
+  dayHint(t,d){ if(!t.start) return 'unscheduled'; const base=new Date(t.start+'T00:00'); if(isNaN(base)) return 'unscheduled'; const dt=new Date(base.getTime()+(d-1)*86400000); return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); }
+  fmtRange(a,b){ const A=new Date(a+'T00:00'),B=new Date(b+'T00:00'); if(isNaN(A)||isNaN(B)) return 'Dates TBD'; const o={month:'short',day:'numeric'}; return A.toLocaleDateString(undefined,o)+' – '+B.toLocaleDateString(undefined,o); }
+}
+</script>
+</body>
+</html>

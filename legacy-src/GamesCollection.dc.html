@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#0d0f0e">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0d0f0e"/>
+    <rect x="360" y="250" width="480" height="90" rx="16" fill="#181b19" stroke="#2a302c" stroke-width="2"/>
+    <circle cx="470" cy="295" r="26" fill="#9ce6b0"/>
+    <rect x="520" y="278" width="240" height="16" rx="8" fill="#c8d6cb"/>
+    <rect x="520" y="306" width="140" height="12" rx="6" fill="#59605b"/>
+    <rect x="360" y="370" width="480" height="70" rx="14" fill="#121412" stroke="#20241f" stroke-width="2"/>
+    <rect x="360" y="460" width="480" height="70" rx="14" fill="#121412" stroke="#20241f" stroke-width="2"/>
+    <text x="600" y="620" font-family="monospace" font-size="34" fill="#9ce6b0" text-anchor="middle">// gaaems backlog</text>
+  </svg>
+</template>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script defer src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg,#0d0f0e)}
+  body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--text,#e8ebe8)}
+  a{color:var(--accent,#9ce6b0);text-decoration:none}
+  a:hover{color:var(--accent2,#c2e6cd)}
+  input,textarea,select,button{font-family:inherit}
+  input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent,#9ce6b0);outline-offset:1px;border-color:var(--accent,#9ce6b0)!important}
+  :focus-visible{outline:2px solid var(--accent,#9ce6b0);outline-offset:2px}
+  button,[role=button],[role=tab],a,label,summary,input,select,textarea{touch-action:manipulation}
+  ::placeholder{color:var(--dim,#59605b)}
+  ::selection{background:color-mix(in srgb, var(--accent) 25%, transparent)}
+  input[type=date]::-webkit-calendar-picker-indicator{filter:var(--dateInvert,invert(.7))}
+  .g-scroll::-webkit-scrollbar{width:10px;height:10px}
+  .g-scroll::-webkit-scrollbar-thumb{background:#2a302c;border-radius:6px;border:2px solid var(--bg,#0d0f0e)}
+  @keyframes gfade{from{opacity:0}to{opacity:1}}
+  @keyframes gpop{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+  @keyframes gpulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+  @keyframes gpulsebtn{0%,100%{opacity:.55;box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent)}50%{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent)}}
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</helmet>
+
+<div style="--accent:{{ accentVar }};--rowpad:{{ rowPadVar }};min-height:100dvh;background:var(--bg,#0d0f0e);color:var(--text,#e8ebe8)">
+
+<sc-if value="{{ isAuthed }}" hint-placeholder-val="{{ true }}">
+<div>
+
+<!-- ===== TOP BAR ===== -->
+<header style="position:sticky;top:0;z-index:20;background:color-mix(in srgb, var(--bg,#0d0f0e) 86%, transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--we)">
+  <div style="max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:{{ topBarPad }};flex-wrap:wrap">
+    <h1 style="margin:0;font-size:18px;font-weight:700;letter-spacing:-.02em;text-wrap:balance">
+      <button onClick="{{ onHome }}" title="All libraries" aria-label="All libraries" style="display:flex;align-items:baseline;gap:10px;cursor:pointer;background:none;border:none;padding:0;color:inherit;font:inherit">
+        <span data-no-i18n translate="no">{{ brandName }}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:400;color:var(--dim,#59605b)">{{ kickerText }}</span>
+      </button>
+    </h1>
+    <nav aria-label="Views" role="tablist" style="display:flex;gap:3px;background:var(--topchip,#151816);border:1px solid var(--wd);border-radius:9px;padding:3px;flex:{{ navGroupFlex }};order:{{ navGroupOrder }}">
+      <button role="tab" aria-selected="{{ libTabSel }}" onClick="{{ goLibrary }}" style="flex:{{ navTabFlex }};text-align:{{ navTabAlign }};font-size:13px;font-weight:600;padding:6px 14px;border:none;border-radius:6px;cursor:pointer;color:{{ libTabColor }};background:{{ libTabBg }}">{{ libTabLabel }}</button>
+      <button role="tab" aria-selected="{{ statsTabSel }}" onClick="{{ goStats }}" style="flex:{{ navTabFlex }};text-align:{{ navTabAlign }};font-size:13px;font-weight:600;padding:6px 14px;border:none;border-radius:6px;cursor:pointer;color:{{ statsTabColor }};background:{{ statsTabBg }}">Stats</button>
+      <sc-if value="{{ hasMonths }}" hint-placeholder-val="{{ false }}">
+      <button role="tab" aria-selected="{{ monthsTabSel }}" onClick="{{ goMonths }}" style="flex:{{ navTabFlex }};text-align:{{ navTabAlign }};font-size:13px;font-weight:600;padding:6px 14px;border:none;border-radius:6px;cursor:pointer;color:{{ monthsTabColor }};background:{{ monthsTabBg }}">Months</button>
+      </sc-if>
+      <sc-if value="{{ hasGeo }}" hint-placeholder-val="{{ false }}">
+      <button role="tab" aria-selected="{{ mapTabSel }}" onClick="{{ goMap }}" style="flex:{{ navTabFlex }};text-align:{{ navTabAlign }};font-size:13px;font-weight:600;padding:6px 14px;border:none;border-radius:6px;cursor:pointer;color:{{ mapTabColor }};background:{{ mapTabBg }}">Map</button>
+      </sc-if>
+      <sc-if value="{{ hasRoulette }}" hint-placeholder-val="{{ true }}">
+      <button role="tab" aria-selected="{{ rlTabSel }}" onClick="{{ goRoulette }}" style="flex:{{ navTabFlex }};text-align:{{ navTabAlign }};font-size:13px;font-weight:600;padding:6px 14px;border:none;border-radius:6px;cursor:pointer;color:{{ rlTabColor }};background:{{ rlTabBg }}">Roulette</button>
+      </sc-if>
+    </nav>
+    <div style="flex:{{ spacerFlex }}"></div>
+    <sc-if value="{{ hasCurrency }}" hint-placeholder-val="{{ false }}">
+    <div role="group" aria-label="Display currency (live rate)" style="display:flex;gap:2px;background:var(--topchip,#151816);border:1px solid var(--wd);border-radius:9px;padding:3px">
+      <button onClick="{{ setUSD }}" aria-pressed="{{ usdSel }}" aria-label="Show amounts in US dollars" style="font-size:12px;font-weight:600;padding:6px 11px;border:none;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;color:{{ usdColor }};background:{{ usdBg }}">US$</button>
+      <button onClick="{{ setARS }}" aria-pressed="{{ arsSel }}" aria-label="Show amounts in Argentine pesos" style="font-size:12px;font-weight:600;padding:6px 11px;border:none;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;color:{{ arsColor }};background:{{ arsBg }}">AR$</button>
+    </div>
+    </sc-if>
+    <button onClick="{{ onExport }}" title="Export backup (JSON)" style="font:inherit;font-size:12px;color:var(--muted,#8b938d);cursor:pointer;padding:7px 10px;border-radius:7px;background:var(--topchip,#151816);border:1px solid var(--wd)">Export</button>
+    <label title="Import JSON" style="font-size:12px;color:var(--muted,#8b938d);cursor:pointer;padding:7px 10px;border-radius:7px;background:var(--topchip,#151816);border:1px solid var(--wd)">Import<input type="file" accept="application/json" aria-label="Import backup JSON file" onChange="{{ onImport }}" style="position:absolute;width:1px;height:1px;opacity:0"></label>
+    <button onClick="{{ openAdd }}" style="font-size:13px;font-weight:600;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border:none;border-radius:9px;padding:9px 16px;cursor:pointer">{{ addBtnLabel }}</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:2px;padding-left:12px;border-left:1px solid var(--wf)">
+      <button onClick="{{ onOpenSettings }}" title="Settings & admin" aria-label="Settings and admin" style="display:{{ emailFlex }};align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted,#8b938d);max-width:190px;cursor:pointer;padding:6px 10px;border-radius:8px;background:var(--topchip,#151816);border:1px solid var(--wf);transition:color .2s,border-color .2s" style-hover="color:#e8ebe8;border-color:var(--accent,#9ce6b0)">
+        <svg width="12.5" height="12.5" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="flex-shrink:0"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ userEmail }}</span>
+      </button>
+      <button onClick="{{ onSignOut }}" title="Sign out" style="font:inherit;font-size:12px;color:var(--muted,#8b938d);cursor:pointer;padding:7px 10px;border-radius:7px;background:var(--topchip,#151816);border:1px solid var(--wd)">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:1180px;margin:0 auto;padding:{{ containerPad }}">
+
+<!-- ===================== LIBRARY VIEW ===================== -->
+<sc-if value="{{ isLibrary }}" hint-placeholder-val="{{ true }}">
+<div>
+  <!-- stats strip -->
+  <div style="display:flex;flex-wrap:wrap;gap:{{ statsStripGap }};padding:22px 4px 20px;font-family:'JetBrains Mono',monospace;font-size:12.5px;font-variant-numeric:tabular-nums">
+    <sc-for list="{{ stripItems }}" as="m" hint-placeholder-count="7">
+      <div><span style="font-weight:600;color:{{ m.color }}">{{ m.value }}</span> <span style="color:var(--dim,#59605b)">{{ m.label }}</span></div>
+    </sc-for>
+  </div>
+
+  <!-- toolbar -->
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <div style="flex:1;min-width:{{ searchMinWidth }};display:flex;align-items:center;gap:9px;background:var(--topchip,#151816);border:1px solid var(--wf);border-radius:9px;padding:9px 13px">
+      <span aria-hidden="true" style="color:var(--dim,#59605b);font-size:14px">⌕</span>
+      <input type="search" value="{{ q }}" onInput="{{ onSearch }}" aria-label="Search your library" autocomplete="off" spellcheck="false" placeholder="Search title, tag, platform, review…" style="flex:1;background:none;border:none;color:var(--text,#e8ebe8);font-size:13.5px;padding:0"/>
+      <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearSearch }}" aria-label="Clear search" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;margin:-4px -6px -4px 0;background:none;border:none;color:var(--dim,#59605b);cursor:pointer;font-size:15px;line-height:1">×</button></sc-if>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;background:var(--topchip,#151816);border:1px solid var(--wd);border-radius:9px;padding:3px">
+      <sc-for list="{{ statusChips }}" as="c" hint-placeholder-count="5">
+        <button onClick="{{ c.onClick }}" aria-pressed="{{ c.pressed }}" style="font:inherit;font-size:12.5px;font-weight:500;padding:6px 12px;border:none;border-radius:6px;cursor:pointer;color:{{ c.color }};background:{{ c.bg }}">{{ c.label }}</button>
+      </sc-for>
+    </div>
+    <button onClick="{{ resetSort }}" title="Reset sort order" aria-label="Reset sort order" style="font-size:15px;padding:8px 11px;border-radius:9px;cursor:pointer;color:{{ resetColor }};background:var(--topchip,#151816);border:1px solid var(--wd);line-height:1;opacity:{{ resetOpacity }}">↺</button>
+    <div role="group" aria-label="Layout" style="display:flex;gap:3px;background:var(--topchip,#151816);border:1px solid var(--wd);border-radius:9px;padding:3px">
+      <button onClick="{{ setTable }}" title="Table view" aria-label="Table view" aria-pressed="{{ tableSel }}" style="padding:6px 10px;border:none;border-radius:6px;cursor:pointer;font-size:13px;color:{{ tableColor }};background:{{ tableBg }}">▤</button>
+      <button onClick="{{ setCards }}" title="Card view" aria-label="Card view" aria-pressed="{{ cardsSel }}" style="padding:6px 10px;border:none;border-radius:6px;cursor:pointer;font-size:13px;color:{{ cardsColor }};background:{{ cardsBg }}">▦</button>
+    </div>
+  </div>
+
+  <div aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">{{ resultCountText }}</div>
+
+  <!-- category pills (finance ledger) -->
+  <sc-if value="{{ hasCatFilters }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:14px;background:var(--topchip,#151816);border:1px solid var(--wd);border-radius:9px;padding:3px;align-self:flex-start;width:fit-content">
+      <sc-for list="{{ catChips }}" as="c" hint-placeholder-count="7"><button onClick="{{ c.onClick }}" aria-pressed="{{ c.pressed }}" style="font:inherit;font-size:12.5px;font-weight:500;padding:6px 12px;border:none;border-radius:6px;cursor:pointer;color:{{ c.color }};background:{{ c.bg }}">{{ c.label }}</button></sc-for>
+    </div>
+  </sc-if>
+
+  <!-- tag panel -->
+  <sc-if value="{{ showTags }}" hint-placeholder-val="{{ false }}">
+    <div style="background:var(--surface,#121412);border:1px solid var(--we);border-radius:11px;padding:14px 15px;margin-bottom:14px;animation:gfade .18s ease">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+        <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600">Filter by tags · AND</span>
+        <sc-if value="{{ hasTagFilters }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearTags }}" style="font:inherit;font-size:11.5px;color:var(--accent,#9ce6b0);background:none;border:none;padding:0;cursor:pointer">clear all</button></sc-if>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        <sc-for list="{{ tagCloud }}" as="t" hint-placeholder-count="12">
+          <button onClick="{{ t.onClick }}" aria-pressed="{{ t.pressed }}" style="font:inherit;font-size:12px;padding:5px 11px;border-radius:20px;cursor:pointer;color:{{ t.color }};background:{{ t.bg }};border:1px solid {{ t.border }}">{{ t.tag }} <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;opacity:.7;font-variant-numeric:tabular-nums">{{ t.count }}</span></button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- active filter chips -->
+  <sc-if value="{{ hasTagFilters }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">
+      <sc-for list="{{ activeTags }}" as="t" hint-placeholder-count="2">
+        <button onClick="{{ t.onClick }}" aria-label="{{ t.removeLabel }}" style="font:inherit;font-size:12px;padding:5px 10px;border-radius:20px;cursor:pointer;color:var(--accent,#9ce6b0);background:color-mix(in srgb, var(--accent) 13%, transparent);border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);display:flex;align-items:center;gap:6px">{{ t.tag }} <span aria-hidden="true" style="font-size:13px;line-height:1">×</span></button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- ===== TABLE ===== -->
+  <sc-if value="{{ isTable }}" hint-placeholder-val="{{ true }}">
+  <dc-import name="ItemTable" d="{{ tableData }}" hint-size="100%,400px"></dc-import>
+  </sc-if>
+
+  <!-- ===== CARDS ===== -->
+  <sc-if value="{{ isCards }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+        <div onClick="{{ r.onEdit }}" onKeyDown="{{ r.onKey }}" role="button" tabindex="0" aria-label="{{ r.editLabel }}" style="background:var(--card,#141614);border:1px solid {{ r.cardBorder }};border-radius:12px;padding:15px;cursor:pointer;box-shadow:{{ r.cardGlow }}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div style="font-weight:600;font-size:14.5px;letter-spacing:-.01em;line-height:1.3">{{ r.title }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:{{ r.scoreColor }};flex:none;font-variant-numeric:tabular-nums">{{ r.scoreDisp }}</div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px">
+            <sc-for list="{{ r.tagChips }}" as="tc" hint-placeholder-count="2"><span style="font-size:10.5px;color:var(--muted2,#9aa39c);background:var(--chip,#20241f);border-radius:5px;padding:2px 7px">{{ tc.tag }}</span></sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11.5px">
+            <span style="width:6px;height:6px;border-radius:50%;background:{{ r.statusDot }};box-shadow:{{ r.statusGlow }}"></span>
+            <span style="color:{{ r.statusText }}">{{ r.statusLabel }}</span>
+            <span style="flex:1"></span>
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--muted,#8b938d);font-variant-numeric:tabular-nums">{{ r.hoursDisp }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- empty -->
+  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ isFresh }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:70px 20px">
+        <div style="font-size:17px;font-weight:600;color:var(--text2,#c8d6cb);margin-bottom:8px">{{ emptyTitleText }}</div>
+        <div style="font-size:13px;color:var(--dim,#59605b);margin-bottom:22px">{{ emptySubText }}</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button onClick="{{ openAdd }}" style="font-size:13px;font-weight:700;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border:none;border-radius:9px;padding:10px 18px;cursor:pointer">{{ addOneLabel }}</button>
+          <button onClick="{{ loadStarter }}" style="font-size:13px;font-weight:600;color:var(--muted,#8b938d);background:var(--topchip,#151816);border:1px solid var(--wf);border-radius:9px;padding:10px 18px;cursor:pointer">Load starter set</button>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isFiltered }}" hint-placeholder-val="{{ true }}">
+      <div style="text-align:center;padding:70px 20px;color:var(--dim,#59605b)">
+        <div style="font-size:15px;margin-bottom:6px">{{ noMatchText }}</div>
+        <div style="font-size:13px">Try clearing filters or <button onClick="{{ openAdd }}" style="font:inherit;color:var(--accent,#9ce6b0);background:none;border:none;padding:0;cursor:pointer">{{ addNewLabel }}</button>.</div>
+      </div>
+    </sc-if>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- ===================== STATS VIEW ===================== -->
+<sc-if value="{{ isStats }}" hint-placeholder-val="{{ false }}">
+<dc-import name="StatsView" d="{{ statsData }}" hint-size="100%,600px"></dc-import>
+</sc-if>
+
+<!-- ===================== MONTHS VIEW ===================== -->
+<sc-if value="{{ isMonths }}" hint-placeholder-val="{{ false }}">
+<dc-import name="MonthsView" d="{{ monthsData }}" hint-size="100%,600px"></dc-import>
+</sc-if>
+
+<!-- ===================== MAP VIEW ===================== -->
+<sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+<dc-import name="GeoMap" d="{{ geoData }}" hint-size="100%,640px"></dc-import>
+</sc-if>
+
+<!-- ===================== ROULETTE VIEW ===================== -->
+<sc-if value="{{ isRoulette }}" hint-placeholder-val="{{ false }}">
+<dc-import name="Roulette" d="{{ rouletteData }}" hint-size="100%,600px"></dc-import>
+</sc-if>
+
+</main>
+
+<!-- ===================== MODAL ===================== -->
+<sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+<dc-import name="ItemModal" d="{{ modalData }}" hint-size="100%,100%"></dc-import>
+</sc-if>
+
+<!-- ===================== STATS IMAGE EXPORT ===================== -->
+<sc-if value="{{ exportOpen }}" hint-placeholder-val="{{ false }}">
+<dc-import name="ShareImage" d="{{ shareData }}" hint-size="100%,100%"></dc-import>
+</sc-if>
+
+<!-- ===================== PER-ITEM SHARE CARD ===================== -->
+<sc-if value="{{ shareCardOpen }}" hint-placeholder-val="{{ false }}">
+<dc-import name="ShareCard" d="{{ shareCardData }}" hint-size="100%,100%"></dc-import>
+</sc-if>
+
+<!-- ===================== LIBRARY SWITCHER FAB ===================== -->
+<div style="position:fixed;right:max(env(safe-area-inset-right,0px),22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:300;display:flex;flex-direction:column-reverse;align-items:center;gap:12px">
+  <button onClick="{{ toggleFab }}" title="Switch library" aria-label="Switch library" aria-expanded="{{ fabExpanded }}" style="{{ fabMainStyle }}">{{ fabMainIcon }}</button>
+  <sc-for list="{{ fabItems }}" as="it" hint-placeholder-count="0">
+    <button onClick="{{ it.onClick }}" title="{{ it.label }}" aria-label="{{ it.label }}" style="{{ it.style }}">{{ it.icon }}</button>
+  </sc-for>
+</div>
+
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:820},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#9ce6b0&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;defaultView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;table&quot;,&quot;cards&quot;],&quot;default&quot;:&quot;table&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;compact&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;sb&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any&quot;},&quot;uid&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;userEmail&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onSignOut&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any&quot;},&quot;activeCollection&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;enabledLibs&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any&quot;},&quot;onOpenSettings&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any&quot;}}">
+class Component extends DCLogic {
+  state = {
+    games: [], loaded: false,
+    view: 'library', layout: null,
+    q: '', status: 'all', catFilter: 'all', tagFilters: [], showTags: false, showAllLedger: false,
+    sortKey: 'default', sortDir: 'asc', isMobile: false, spendYear: 'all',
+    expandedId: null, pendingDelete: null,
+    modal: null, confirmDel: false, fabOpen: false,
+    openMonth: null, currency: 'USD',
+    // roulette
+    rmode: 'filters', rStatus: 'backlog', rLength: 'any', rTags: [], rSearch: '', rPicked: [],
+    spinning: false, reel: [], reelOffset: 0, reelTrans: 'none', winner: null, recent: [],
+    // stats image export
+    exportOpen: false, exportTitle: '', exportBusy: false, exportMsg: '',
+    exportYearMode: 'all', exportYear: '', exportFrom: '', exportTo: '',
+    exportSel: { summary: true, topRated: true, mostPlayed: false, scoreDist: false, status: true, spending: false, topTags: false, platforms: false, byYear: false },
+    // per-item share card
+    shareItem: null, shareCardSel: {}, shareCaption: '', shareBusy: false, shareMsg: '',
+  };
+
+  // The collection config — resolved by activeCollection from the registry, so
+  // the same component drives games / books / wines. GAMES_CONFIG kept as a
+  // fallback for standalone use. Read live so a hot reload picks it up.
+  get CONFIG() {
+    const reg = window.COLLECTION_CONFIGS || {};
+    return reg[this.props.activeCollection] || window.GAMES_CONFIG;
+  }
+
+  // Apply the collection palette as CSS custom properties on the document root.
+  // Any token the config omits falls back to the games value baked into each
+  // component as var(--token,#games), so partial themes are fine.
+  LIGHT_NEUTRALS = {
+    bg: '#f2f4ef', surface: '#ffffff', card: '#ffffff', topchip: '#eef1ec',
+    inset: '#eef1ec', chip: '#e4e8e2', chip2: '#edf0ea',
+    text: '#191d19', text2: '#333b34', text3: '#4a534c', muted2: '#5b645d',
+    muted: '#6a726c', dim: '#969d97', dim2: '#c4c9c4',
+  };
+  themeTokens(light) {
+    return light ? {
+      onAccent: '#12140f', dateInvert: 'invert(0)',
+      wa: 'rgba(0,0,0,.05)', wb: 'rgba(0,0,0,.07)', wc: 'rgba(0,0,0,.07)', wd: 'rgba(0,0,0,.09)',
+      we: 'rgba(0,0,0,.1)', wf: 'rgba(0,0,0,.11)', wg: 'rgba(0,0,0,.12)', wh: 'rgba(0,0,0,.14)',
+      wi: 'rgba(0,0,0,.16)', wj: 'rgba(0,0,0,.18)', wk: 'rgba(0,0,0,.2)', wl: 'rgba(0,0,0,.26)',
+    } : {
+      onAccent: '#0d0f0e', dateInvert: 'invert(.7)',
+      wa: 'rgba(255,255,255,.025)', wb: 'rgba(255,255,255,.04)', wc: 'rgba(255,255,255,.05)', wd: 'rgba(255,255,255,.06)',
+      we: 'rgba(255,255,255,.07)', wf: 'rgba(255,255,255,.08)', wg: 'rgba(255,255,255,.09)', wh: 'rgba(255,255,255,.1)',
+      wi: 'rgba(255,255,255,.12)', wj: 'rgba(255,255,255,.13)', wk: 'rgba(255,255,255,.15)', wl: 'rgba(255,255,255,.2)',
+    };
+  }
+  applyTheme() {
+    const t = (this.CONFIG && this.CONFIG.theme) || null;
+    if (!t) return;
+    const root = document.documentElement;
+    const light = this.props.themeMode === 'light';
+    root.style.colorScheme = light ? 'light' : 'dark';
+    const set = { ...t, ...(light ? this.LIGHT_NEUTRALS : {}), accent: this.props.accent || t.accent || '#9ce6b0' };
+    Object.keys(set).forEach(k => root.style.setProperty('--' + k, set[k]));
+    const tok = this.themeTokens(light);
+    Object.keys(tok).forEach(k => root.style.setProperty('--' + k, tok[k]));
+  }
+
+  // Shared spending system (spending.js) loads async via <helmet>; fall back to an
+  // identical local impl so the first render never throws before it arrives.
+  SS() {
+    if (window.SpendingSystem) return window.SpendingSystem;
+    const money = n => '$' + new Intl.NumberFormat().format(Math.round(Number(n) || 0));
+    const matchSel = (item, sel) => {
+      if (sel == null || sel === 'all') return true;
+      if (typeof sel === 'string') return !!item[sel];
+      const v = item[sel.field];
+      if ('eq' in sel) return v === sel.eq;
+      if (sel.in) return sel.in.indexOf(v) !== -1;
+      if (sel.notIn) return sel.notIn.indexOf(v) === -1;
+      return true;
+    };
+    const spend = (items, sel) => items.filter(x => x.price != null && matchSel(x, sel)).reduce((a, b) => a + Number(b.price), 0);
+    const donut = (bought, pirated, gamepass) => {
+      const total = bought + pirated + gamepass;
+      if (!total) return 'var(--we)';
+      const bp = bought / total * 100, pp = pirated / total * 100;
+      return `conic-gradient(oklch(0.74 0.1 85) 0 ${bp}%, oklch(0.66 0.13 25) ${bp}% ${bp + pp}%, oklch(0.68 0.14 155) ${bp + pp}% 100%)`;
+    };
+    return { money, spend, matchSel, donut };
+  }
+
+  // ---------- cloud sync (client provided by shell via props) ----------
+  table() { return (this.CONFIG && this.CONFIG.key) || 'games'; }
+  // `wines` is a SHARED cellar: PK is `id` alone, rows are visible to every member
+  // (RLS via wine_members), and `user_id` is demoted to an `added_by` audit column so
+  // editing a bottle your brother added updates his row instead of duplicating it.
+  isShared() { return this.table() === 'wines'; }
+  async putOne(g) {
+    if (!this.props.sb || !this.props.uid) return;
+    if (this.isShared()) { await this.props.sb.from('wines').upsert({ id: g.id, data: g, added_by: this.props.uid, updated_at: new Date().toISOString() }, { onConflict: 'id' }); return; }
+    await this.props.sb.from(this.table()).upsert({ user_id: this.props.uid, id: g.id, data: g }, { onConflict: 'user_id,id' });
+  }
+  async putAll(list) {
+    if (!this.props.sb || !this.props.uid || !list.length) return;
+    if (this.isShared()) { const rows = list.map(g => ({ id: g.id, data: g, added_by: this.props.uid, updated_at: new Date().toISOString() })); await this.props.sb.from('wines').upsert(rows, { onConflict: 'id' }); return; }
+    const rows = list.map(g => ({ user_id: this.props.uid, id: g.id, data: g }));
+    await this.props.sb.from(this.table()).upsert(rows, { onConflict: 'user_id,id' });
+  }
+  async delOne(id) {
+    if (!this.props.sb || !this.props.uid) return;
+    if (this.isShared()) { await this.props.sb.from('wines').delete().eq('id', id); return; }
+    await this.props.sb.from(this.table()).delete().eq('user_id', this.props.uid).eq('id', id);
+  }
+  async clearAll() {
+    if (!this.props.sb || !this.props.uid) return;
+    if (this.isShared()) { await this.props.sb.from('wines').delete().neq('id', ''); return; }
+    await this.props.sb.from(this.table()).delete().eq('user_id', this.props.uid);
+  }
+  loadStarter = async () => { const seed = (((window.COLLECTION_SEEDS || {})[this.table()]) || window.GAMES_SEED || []).map(g => ({ ...g })); this.setState({ games: seed }); await this.putAll(seed); };
+
+  // ---------- currency (finance collections with cfg.currency) ----------
+  // Base amounts are USD; the toggle re-renders every money value in the alt
+  // currency via a live rate. Push the choice into the global SpendingSystem so
+  // all shared builders format consistently, then reset to USD off finance.
+  applyCurrency() {
+    const cur = this.CONFIG && this.CONFIG.currency;
+    const S = window.SpendingSystem; if (!S || !S.setCurrency) return;
+    if (!cur) { S.setCurrency('USD', '$', 1); return; }
+    if (this.state.currency === 'ALT') S.setCurrency(cur.alt, cur.altSymbol, this.rate || cur.fallbackRate);
+    else S.setCurrency(cur.base, cur.baseSymbol, 1);
+  }
+  fetchRate = async () => {
+    const cur = this.CONFIG && this.CONFIG.currency; if (!cur || !cur.api) return;
+    try {
+      const res = await fetch(cur.api); const j = await res.json();
+      const r = j && j.rates && j.rates[cur.alt];
+      if (r) { this.rate = r; if (this.state.currency === 'ALT') { this.applyCurrency(); this.forceUpdate(); } }
+    } catch (e) { /* keep fallbackRate */ }
+  };
+  setCurrency = (which) => { this.setState({ currency: which }, () => { this.applyCurrency(); this.forceUpdate(); }); };
+  toggleCurrency = () => this.setCurrency(this.state.currency === 'ALT' ? 'USD' : 'ALT');
+
+  async loadGames() {
+    try {
+      const { data, error } = await this.props.sb.from(this.table()).select('data');
+      if (error) throw error;
+      this.setState({ games: (data || []).map(r => r.data).filter(Boolean), loaded: true });
+      if (this.isShared()) this.subscribeShared();
+    } catch (e) { console.error('load error', e); this.setState({ games: [], loaded: true }); }
+  }
+
+  // Live sync for the shared wines cellar: any insert/update/delete by either member
+  // is pushed to the other client, so both stay in sync without a refresh.
+  subscribeShared() {
+    if (!this.props.sb || this.wineChannel) return;
+    this.wineChannel = this.props.sb
+      .channel('wines-shared')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wines' }, (payload) => {
+        this.setState(s => {
+          const list = [...s.games];
+          if (payload.eventType === 'DELETE') {
+            const gone = payload.old && payload.old.id;
+            return { games: list.filter(g => g.id !== gone) };
+          }
+          const row = payload.new && payload.new.data;
+          if (!row) return null;
+          const i = list.findIndex(g => g.id === row.id);
+          if (i >= 0) list[i] = row; else list.push(row);
+          return { games: list };
+        });
+      })
+      .subscribe();
+  }
+  unsubscribeShared() {
+    if (this.wineChannel && this.props.sb) { this.props.sb.removeChannel(this.wineChannel); this.wineChannel = null; }
+  }
+
+  // ---------- URL state ----------
+  // view / search / status / tags live in the query string so any filtered
+  // view is linkable and survives a refresh or the back button.
+  readUrl() {
+    try {
+      const p = new URLSearchParams(location.search), patch = {};
+      const v = p.get('view');
+      if (['library', 'stats', 'months', 'map', 'roulette'].includes(v)) patch.view = v;
+      if (p.get('q')) patch.q = p.get('q');
+      if (p.get('status')) patch.status = p.get('status');
+      if (p.get('tags')) patch.tagFilters = p.get('tags').split(',').filter(Boolean);
+      if (p.get('cat')) patch.catFilter = p.get('cat');
+      return patch;
+    } catch (e) { return {}; }
+  }
+  syncUrl(prev) {
+    const s = this.state;
+    const same = prev && prev.view === s.view && prev.q === s.q && prev.status === s.status
+      && prev.catFilter === s.catFilter && String(prev.tagFilters) === String(s.tagFilters);
+    if (same) return;
+    const p = new URLSearchParams(location.search);
+    ['view', 'q', 'status', 'tags', 'cat'].forEach(k => p.delete(k));
+    if (s.view !== 'library') p.set('view', s.view);
+    if (s.q) p.set('q', s.q);
+    if (s.status && s.status !== 'all') p.set('status', s.status);
+    if (s.catFilter && s.catFilter !== 'all') p.set('cat', s.catFilter);
+    if (s.tagFilters && s.tagFilters.length) p.set('tags', s.tagFilters.join(','));
+    const q = p.toString();
+    const url = location.pathname + (q ? '?' + q : '') + location.hash;
+    if (url === location.pathname + location.search + location.hash) return;
+    // typing in search replaces; switching view is a real navigation step
+    try { (prev && prev.view !== s.view) ? history.pushState({ gc: 1 }, '', url) : history.replaceState({ gc: 1 }, '', url); } catch (e) {}
+  }
+  onPop = () => this.setState({ view: 'library', q: '', status: 'all', catFilter: 'all', tagFilters: [], ...this.readUrl() });
+
+  async componentDidMount() {
+    window.addEventListener('popstate', this.onPop);
+    const urlPatch = this.readUrl();
+    if (Object.keys(urlPatch).length) this.setState(urlPatch);
+    this.mql = window.matchMedia('(max-width: 720px)');
+    this.setState({ isMobile: this.mql.matches });
+    this.onMqlChange = (e) => this.setState({ isMobile: e.matches });
+    this.mql.addEventListener ? this.mql.addEventListener('change', this.onMqlChange) : this.mql.addListener(this.onMqlChange);
+    if (this.props.sb && this.props.uid) this.loadGames();
+    // async deps (spending.js / collection-lib.js / games-config.js) load via <helmet>;
+    // re-render once they're all present so the first paint never throws.
+    const ready = () => window.SpendingSystem && window.CollectionLib && this.CONFIG;
+    this.applyTheme();
+    this.applyCurrency();
+    if (this.CONFIG && this.CONFIG.currency) this.fetchRate();
+    if (!ready()) {
+      let n = 0;
+      const wait = () => { if (ready()) { this.applyTheme(); this.forceUpdate(); } else if (n++ < 120) setTimeout(wait, 50); };
+      wait();
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    this.syncUrl(prevState);
+    this.applyTheme();
+    try { document.body.style.overflow = this.state.modal ? 'hidden' : ''; } catch (e) {}
+    // Switching library (books ⇄ games) reuses this same instance, so componentDidMount
+    // won't fire again. Drop the previous collection's rows from memory and load the new
+    // one — only the active library is ever held in state, so nothing accumulates.
+    if (prevProps && prevProps.activeCollection !== this.props.activeCollection) {
+      this.unsubscribeShared();
+      this.setState({
+        games: [], loaded: false,
+        q: '', status: 'all', catFilter: 'all', tagFilters: [], showTags: false, showAllLedger: false,
+        sortKey: 'default', sortDir: 'asc', expandedId: null, pendingDelete: null,
+        modal: null, fabOpen: false, view: 'library', openMonth: null, currency: 'USD',
+      });
+      if (this.props.sb && this.props.uid) this.loadGames();
+      this.applyCurrency();
+      if (this.CONFIG && this.CONFIG.currency) this.fetchRate();
+    }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('popstate', this.onPop);
+    if (this.mql) { this.mql.removeEventListener ? this.mql.removeEventListener('change', this.onMqlChange) : this.mql.removeListener(this.onMqlChange); }
+    try { document.body.style.overflow = ''; } catch (e) {}
+    cancelAnimationFrame(this._raf);
+    this.unsubscribeShared();
+  }
+
+  // ---------- helpers (config-driven via CollectionLib) ----------
+  statusMeta(s) { return window.CollectionLib.statusMeta(this.CONFIG, s); }
+  scoreColor(r) { return window.CollectionLib.scoreColor(r); }
+  fmt(n) { return new Intl.NumberFormat().format(Number(n)); }
+
+  allTags() { return window.CollectionLib.allTags(this.CONFIG, this.state.games); }
+  tagCounts() { return window.CollectionLib.tagCounts(this.CONFIG, this.state.games); }
+
+  matches(g) { return window.CollectionLib ? window.CollectionLib.matches(this.CONFIG, g, this.state) : true; }
+  sorted(list) { return window.CollectionLib ? window.CollectionLib.sorted(this.CONFIG, list, this.state) : list; }
+
+  // ---------- mutations ----------
+  toggleExpand(id) { this.setState(s => ({ expandedId: s.expandedId === id ? null : id, pendingDelete: null })); }
+  toggleFab = () => this.setState(s => ({ fabOpen: !s.fabOpen }));
+  fabPick = (key) => { this.setState({ fabOpen: false }); if (key === '_settings') { this.props.onOpenSettings && this.props.onOpenSettings(); } else if (key === '_home') { this.props.onHome && this.props.onHome(); } else if (this.props.onSwitch) { this.props.onSwitch(key); } };
+  openAdd = () => { const cfg = this.CONFIG; const draft = window.CollectionLib.blankDraft(cfg); if (cfg.modal.autoDateField) draft[cfg.modal.autoDateField] = new Date().toISOString().slice(0, 10); this.setState({ modal: { mode: 'add', draft }, confirmDel: false }); };
+  openEdit = (g) => this.setState({ modal: { mode: 'edit', draft: window.CollectionLib.draftFromItem(this.CONFIG, g) }, confirmDel: false });
+  closeModal = () => this.setState({ modal: null, confirmDel: false });
+  tagKey() { return this.CONFIG.tagField; }
+  setDraft(f, v) { this.setState(s => ({ modal: { ...s.modal, draft: { ...s.modal.draft, [f]: v } } })); }
+  addTag(field, t) { t = (t || '').trim(); if (!t) return; this.setState(s => { const d = s.modal.draft; if ((d[field] || []).includes(t)) return {}; return { modal: { ...s.modal, draft: { ...d, [field]: [...(d[field] || []), t], ['_ti_' + field]: '' } } }; }); }
+  removeTag(field, t) { this.setState(s => ({ modal: { ...s.modal, draft: { ...s.modal.draft, [field]: (s.modal.draft[field] || []).filter(x => x !== t) } } })); }
+  setModalLookup(state, msg) { this.setState(s => s.modal ? ({ modal: { ...s.modal, lookup: state, lookupMsg: msg } }) : {}); }
+  lookupItem = async (fieldKey, lookupCfg) => {
+    const draft = this.state.modal && this.state.modal.draft;
+    if (!draft) return;
+    const raw = String(draft[fieldKey] || '').replace(/[^0-9Xx]/g, '');
+    if (!raw) { this.setModalLookup('error', 'Enter an ISBN first'); return; }
+    this.setModalLookup('loading', 'Looking up…');
+    const clip = (arr, n) => (arr || []).map(s => String(s).trim()).filter(Boolean).slice(0, n);
+    try {
+      let norm = null;
+      // 1) Open Library
+      try {
+        const res = await fetch('https://openlibrary.org/api/books?bibkeys=ISBN:' + raw + '&format=json&jscmd=data');
+        const data = await res.json();
+        const rec = data['ISBN:' + raw];
+        if (rec) norm = {
+          title: rec.title,
+          author: (rec.authors || []).map(a => a.name).filter(Boolean).join(', '),
+          pages: rec.number_of_pages,
+          pubYear: rec.publish_date ? ((String(rec.publish_date).match(/\d{4}/) || [])[0]) : undefined,
+          genres: clip((rec.subjects || []).map(s => s.name), 4),
+        };
+      } catch (e) {}
+      // 2) Google Books fallback (covers many ISBNs Open Library lacks, incl. 979-*)
+      if (!norm || !norm.title) {
+        try {
+          const res = await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:' + raw);
+          const data = await res.json();
+          const v = data.items && data.items[0] && data.items[0].volumeInfo;
+          if (v) norm = {
+            title: v.title + (v.subtitle ? ': ' + v.subtitle : ''),
+            author: (v.authors || []).join(', '),
+            pages: v.pageCount,
+            pubYear: v.publishedDate ? ((String(v.publishedDate).match(/\d{4}/) || [])[0]) : undefined,
+            genres: clip(v.categories, 4),
+          };
+        } catch (e) {}
+      }
+      // 3) Open Library search index (catches some editions the books API misses)
+      if (!norm || !norm.title) {
+        try {
+          const res = await fetch('https://openlibrary.org/search.json?isbn=' + raw + '&limit=1');
+          const data = await res.json();
+          const d = data.docs && data.docs[0];
+          if (d) norm = {
+            title: d.title,
+            author: (d.author_name || []).join(', '),
+            pages: d.number_of_pages_median,
+            pubYear: d.first_publish_year ? String(d.first_publish_year) : undefined,
+            genres: clip(d.subject, 4),
+          };
+        } catch (e) {}
+      }
+      if (!norm || !norm.title) { this.setModalLookup('error', 'No catalog has this ISBN (common for non-English ebooks) — fill it in manually.'); return; }
+      const fill = (lookupCfg && lookupCfg.fill) || {};
+      const filled = [];
+      this.setState(s => {
+        if (!s.modal) return {};
+        const d = { ...s.modal.draft };
+        for (const nk of Object.keys(fill)) {
+          const dk = fill[nk], v = norm[nk];
+          if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue;
+          if (Array.isArray(v)) {
+            const cur = Array.isArray(d[dk]) ? d[dk].slice() : [];
+            for (const x of v) if (!cur.some(c => String(c).toLowerCase() === String(x).toLowerCase())) cur.push(x);
+            d[dk] = cur;
+          } else { d[dk] = v; }
+          filled.push(dk);
+        }
+        return { modal: { ...s.modal, draft: d, lookup: 'done', lookupMsg: filled.length ? ('Filled: ' + filled.join(', ')) : 'Found, but no new fields to fill' } };
+      });
+    } catch (e) { this.setModalLookup('error', 'Lookup failed — check your connection'); }
+  };
+
+  save = () => {
+    const cfg = this.CONFIG, d = this.state.modal.draft, titleKey = cfg.modal.titleField;
+    if (!d[titleKey] || !d[titleKey].trim()) return;
+    const g = window.CollectionLib.itemFromDraft(cfg, d);
+    this.putOne(g);
+    this.setState(s => {
+      const ex = s.games.some(x => x.id === g.id);
+      return { games: ex ? s.games.map(x => x.id === g.id ? g : x) : [...s.games, g], modal: null, confirmDel: false };
+    });
+  };
+  removeGame(id) { this.delOne(id); this.setState(s => ({ games: s.games.filter(x => x.id !== id), modal: null, expandedId: null, pendingDelete: null, confirmDel: false })); }
+
+  onExport = () => {
+    const blob = new Blob([JSON.stringify(this.state.games, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = 'backlog-' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  onImport = (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const rd = new FileReader();
+    rd.onload = () => { try { const data = JSON.parse(rd.result); if (Array.isArray(data)) { this.clearAll(); this.putAll(data); this.setState({ games: data }); } } catch (err) { console.error('import failed', err); } };
+    rd.readAsText(file); e.target.value = '';
+  };
+
+  // ---------- roulette ----------
+  pool() { return window.CollectionLib.pool(this.CONFIG, this.state.games, this.state); }
+  spin = () => {
+    if (this.state.spinning) return;
+    const pool = this.pool();
+    if (!pool.length) return;
+    const winner = pool[Math.floor(Math.random() * pool.length)];
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.setState(s => ({ reel: [], spinning: false, winner, recent: [winner, ...s.recent.filter(x => x.id !== winner.id)].slice(0, 6) }));
+      return;
+    }
+    const N = 54, wi = 46, stride = 162, itemW = 150;
+    const strip = [];
+    for (let i = 0; i < N; i++) strip.push(i === wi ? winner : pool[Math.floor(Math.random() * pool.length)]);
+    // strip is anchored at left:50% (the marker), item i's center sits at i*stride + itemW/2 from there
+    const jitter = Math.random() * 90 - 45;
+    const target = -(wi * stride + itemW / 2) + jitter;
+    this.setState({ reel: strip, spinning: true, winner: null });
+    const dur = 4800, ease = (t) => 1 - Math.pow(1 - t, 3.4);
+    let tries = 0, start = 0;
+    const step = () => {
+      const el = document.getElementById('rl-strip');
+      if (!el) { if (tries++ < 90) this._raf = requestAnimationFrame(step); return; }
+      if (!start) { if (el.getAnimations) el.getAnimations().forEach(a => a.cancel()); el.style.transition = 'none'; start = performance.now(); }
+      const t = Math.min(1, (performance.now() - start) / dur);
+      el.style.transform = 'translateX(' + (target * ease(t)) + 'px)';
+      if (t < 1) { this._raf = requestAnimationFrame(step); return; }
+      this.setState(s => ({ spinning: false, winner, recent: [winner, ...s.recent.filter(x => x.id !== winner.id)].slice(0, 6) }));
+    };
+    cancelAnimationFrame(this._raf);
+    this._raf = requestAnimationFrame(step);
+  };
+  startPlaying = () => {
+    const w = this.state.winner; if (!w) return;
+    const sa = this.CONFIG.roulette.startAction;
+    const g = { ...w, [sa.field]: sa.value };
+    this.putOne(g);
+    this.setState(s => ({ games: s.games.map(x => x.id === g.id ? g : x), winner: g }));
+  };
+
+  // ---------- stats image export ----------
+  openExport = () => this.setState({ exportOpen: true, exportMsg: '' });
+  closeExport = () => this.setState({ exportOpen: false });
+  onExportTitle = (e) => this.setState({ exportTitle: e.target.value });
+  availYears() { return [...new Set(this.state.games.map(g => g.yearCompleted).filter(Boolean).map(String))].sort(); }
+  setExportYearMode = (m) => this.setState(s => {
+    const ys = this.availYears();
+    const patch = { exportYearMode: m, exportMsg: '' };
+    if (m === 'year' && !s.exportYear) patch.exportYear = ys.length ? ys[ys.length - 1] : '';
+    if (m === 'range') { if (!s.exportFrom) patch.exportFrom = ys.length ? ys[0] : ''; if (!s.exportTo) patch.exportTo = ys.length ? ys[ys.length - 1] : ''; }
+    return patch;
+  });
+  onExportYear = (e) => this.setState({ exportYear: e.target.value, exportMsg: '' });
+  onExportFrom = (e) => this.setState({ exportFrom: e.target.value, exportMsg: '' });
+  onExportTo = (e) => this.setState({ exportTo: e.target.value, exportMsg: '' });
+  toggleExportSel = (key) => this.setState(s => ({ exportSel: { ...s.exportSel, [key]: !s.exportSel[key] }, exportMsg: '' }));
+  async renderExportBlob() {
+    const node = document.getElementById('export-card');
+    if (!node || !window.htmlToImage) return null;
+    return await window.htmlToImage.toBlob(node, { pixelRatio: 2, backgroundColor: 'var(--bg,#0d0f0e)', cacheBust: true });
+  }
+  copyExportImage = async () => {
+    if (this.state.exportBusy) return;
+    this.setState({ exportBusy: true, exportMsg: '' });
+    // 1) Try the clipboard (works on desktop + Chrome Android). Promise-based item keeps the user gesture.
+    try {
+      if (!navigator.clipboard || !window.ClipboardItem) throw new Error('no clipboard api');
+      const item = new window.ClipboardItem({ 'image/png': this.renderExportBlob().then(b => { if (!b) throw new Error('render failed'); return b; }) });
+      await navigator.clipboard.write([item]);
+      this.setState({ exportBusy: false, exportMsg: 'Copied to clipboard ✓' });
+      return;
+    } catch (e) { console.warn('clipboard copy failed, trying share', e); }
+    // 2) Fall back to the native share sheet (best path on mobile — copy/save/paste from there).
+    try {
+      const blob = await this.renderExportBlob();
+      if (!blob) throw new Error('render failed');
+      const file = new File([blob], 'backlog-stats.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'My backlog stats' });
+        this.setState({ exportBusy: false, exportMsg: 'Shared ✓ — copy or save it from there.' });
+        return;
+      }
+      // 3) Last resort: download the file directly.
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'backlog-stats-' + new Date().toISOString().slice(0, 10) + '.png'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.setState({ exportBusy: false, exportMsg: 'Saved to your device ✓' });
+    } catch (e2) {
+      if (e2 && e2.name === 'AbortError') { this.setState({ exportBusy: false, exportMsg: '' }); return; }
+      console.error('copy/share failed', e2);
+      this.setState({ exportBusy: false, exportMsg: 'Could not copy here — use Download instead.' });
+    }
+  };
+  downloadExportImage = async () => {
+    if (this.state.exportBusy) return;
+    this.setState({ exportBusy: true, exportMsg: '' });
+    try {
+      const blob = await this.renderExportBlob();
+      if (!blob) throw new Error('render failed');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'backlog-stats-' + new Date().toISOString().slice(0, 10) + '.png'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.setState({ exportBusy: false, exportMsg: 'Downloaded ✓' });
+    } catch (e) {
+      console.error('download image failed', e);
+      this.setState({ exportBusy: false, exportMsg: 'Something went wrong.' });
+    }
+  };
+
+  // ---------- per-item share card ----------
+  openShareCard = (g) => {
+    const cfg = this.CONFIG;
+    const scoreKey = (cfg.fields && cfg.fields.score) || 'score';
+    const priceKey = (cfg.fields && cfg.fields.price) || 'price';
+    const sel = {};
+    if (g[scoreKey] != null) sel[scoreKey] = true;
+    sel[cfg.statusField] = true;
+    let n = 0;
+    (cfg.modal.numberFields || []).forEach(k => { if (k !== scoreKey && k !== priceKey && g[k] != null && n < 2) { sel[k] = true; n++; } });
+    if ((g[cfg.tagField] || []).length) sel[cfg.tagField] = true;
+    this.setState({ shareItem: g, shareCardSel: sel, shareCaption: '', shareMsg: '', shareBusy: false });
+  };
+  closeShareCard = () => this.setState({ shareItem: null });
+  toggleShareField = (key) => this.setState(s => ({ shareCardSel: { ...s.shareCardSel, [key]: !s.shareCardSel[key] }, shareMsg: '' }));
+  onShareCaption = (e) => this.setState({ shareCaption: e.target.value });
+  shareFileName() {
+    const t = (this.state.shareItem && this.state.shareItem[this.CONFIG.modal.titleField]) || (this.CONFIG.noun || 'card');
+    return (this.CONFIG.key || 'backlog') + '-' + String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  }
+  async renderShareBlob() {
+    const node = document.getElementById('share-card');
+    if (!node || !window.htmlToImage) return null;
+    return await window.htmlToImage.toBlob(node, { pixelRatio: 2.5, backgroundColor: 'var(--bg,#0d0f0e)', cacheBust: true });
+  }
+  copyShareCard = async () => {
+    if (this.state.shareBusy) return;
+    this.setState({ shareBusy: true, shareMsg: '' });
+    try {
+      if (!navigator.clipboard || !window.ClipboardItem) throw new Error('no clipboard api');
+      const item = new window.ClipboardItem({ 'image/png': this.renderShareBlob().then(b => { if (!b) throw new Error('render failed'); return b; }) });
+      await navigator.clipboard.write([item]);
+      this.setState({ shareBusy: false, shareMsg: 'Copied to clipboard ✓' });
+      return;
+    } catch (e) { console.warn('clipboard copy failed, trying share', e); }
+    try {
+      const blob = await this.renderShareBlob();
+      if (!blob) throw new Error('render failed');
+      const file = new File([blob], this.shareFileName() + '.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: (this.state.shareItem && this.state.shareItem[this.CONFIG.modal.titleField]) || 'My card' });
+        this.setState({ shareBusy: false, shareMsg: 'Shared ✓ — copy or save it from there.' });
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = this.shareFileName() + '.png'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.setState({ shareBusy: false, shareMsg: 'Saved to your device ✓' });
+    } catch (e2) {
+      if (e2 && e2.name === 'AbortError') { this.setState({ shareBusy: false, shareMsg: '' }); return; }
+      console.error('copy/share failed', e2);
+      this.setState({ shareBusy: false, shareMsg: 'Could not copy here — use Download instead.' });
+    }
+  };
+  downloadShareCard = async () => {
+    if (this.state.shareBusy) return;
+    this.setState({ shareBusy: true, shareMsg: '' });
+    try {
+      const blob = await this.renderShareBlob();
+      if (!blob) throw new Error('render failed');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = this.shareFileName() + '.png'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.setState({ shareBusy: false, shareMsg: 'Downloaded ✓' });
+    } catch (e) {
+      console.error('download image failed', e);
+      this.setState({ shareBusy: false, shareMsg: 'Something went wrong.' });
+    }
+  };
+
+  fabVals() {
+    const open = this.state.fabOpen;
+    const cur = this.props.activeCollection || 'games';
+    const fabMainStyle = `width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#141210;color:var(--accent,#9ce6b0);box-shadow:0 6px 20px rgba(0,0,0,.5);border:1.5px solid color-mix(in srgb, var(--accent,#9ce6b0) 45%, transparent);transition:transform .3s cubic-bezier(.22,1,.36,1);transform:rotate(${open ? '90deg' : '0deg'})`;
+    const fabMainIcon = this.libIcon(open ? '_close' : cur, 24);
+    const enabled = Array.isArray(this.props.enabledLibs) ? this.props.enabledLibs : ['games', 'books', 'wines', 'movies', 'expenses'];
+    const defs = [
+      { key: '_home', label: 'All libraries', bg: '#d6d8d6', disabled: false },
+      { key: 'games', label: 'Games', bg: '#9ce6b0', disabled: false },
+      { key: 'books', label: 'Books', bg: '#d8b98f', disabled: false },
+      { key: 'wines', label: 'Wines', bg: '#c6a9d6', disabled: false },
+      { key: 'movies', label: 'Movies', bg: '#a9aee0', disabled: false },
+      { key: 'expenses', label: 'Expenses', bg: '#8ecfd6', disabled: false },
+    ].filter(d => d.key === '_home' || enabled.includes(d.key) || d.key === cur);
+    const fabItems = defs.map((d, i) => {
+      const ring = d.key === cur ? `2px solid ${d.bg}` : '1.5px solid var(--wg)';
+      const op = open ? (d.disabled ? '.4' : '1') : '0';
+      const tf = open ? 'translateY(0) scale(1)' : 'translateY(16px) scale(.4)';
+      const pe = (open && !d.disabled) ? 'auto' : 'none';
+      const delay = (open ? i : (defs.length - 1 - i)) * 45;
+      const style = `width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:${d.disabled ? 'not-allowed' : 'pointer'};background:#141210;color:${d.bg};box-shadow:0 4px 14px rgba(0,0,0,.45);border:${ring};opacity:${op};transform:${tf};pointer-events:${pe};transition:opacity .3s cubic-bezier(.22,1,.36,1) ${delay}ms, transform .3s cubic-bezier(.22,1,.36,1) ${delay}ms`;
+      return { key: d.key, icon: this.libIcon(d.key, 21), label: d.label, style, onClick: d.disabled ? (() => {}) : (() => this.fabPick(d.key)) };
+    });
+    return { fabMainStyle, fabMainIcon, fabItems, toggleFab: this.toggleFab };
+  }
+
+  // Minimal line-art glyphs for the library switcher. stroke:currentColor so each
+  // icon inherits the color of the button it sits in (accent on main, palette on items).
+  libIcon(name, size) {
+    const h = React.createElement;
+    const base = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' };
+    const path = (d, extra) => h('path', Object.assign({ key: d, d }, base, extra || {}));
+    const dot = (cx, cy, k) => h('circle', { key: k, cx, cy, r: 1.15, fill: 'currentColor', stroke: 'none' });
+    let kids;
+    switch (name) {
+      case 'games': // game controller
+        kids = [
+          path('M8 8.5h8a4.5 4.5 0 0 1 4.4 3.6l.8 4.3a2.4 2.4 0 0 1-4.3 1.9L15.6 16H8.4l-1.1 2.3a2.4 2.4 0 0 1-4.3-1.9l.8-4.3A4.5 4.5 0 0 1 8 8.5z'),
+          path('M6.4 11.6v3M4.9 13.1h3'),
+          dot(16.4, 12.4, 'a'), dot(18.2, 14.2, 'b'),
+        ]; break;
+      case 'books': // open book
+        kids = [
+          path('M12 6.3C10 4.9 7.3 4.6 4.8 5.4v11.9c2.5-.8 5.2-.5 7.2.9 2-1.4 4.7-1.7 7.2-.9V5.4c-2.5-.8-5.2-.5-7.2.9z'),
+          path('M12 6.3v13.4'),
+        ]; break;
+      case 'wines': // wine bottle
+        kids = [
+          path('M10 3.5h4v3.1l1.5 3.1c.3.6.5 1.3.5 2v7.3a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 19v-7.3c0-.7.2-1.4.5-2L10 6.6V3.5z'),
+          path('M8 14.2h8'),
+        ]; break;
+      case 'movies': // open clapperboard ("Action!")
+        kids = [
+          path('M3.6 11.3h16.8v6.6a1.4 1.4 0 0 1-1.4 1.4H5a1.4 1.4 0 0 1-1.4-1.4z'),
+          path('M4 11.1 18.6 6l.5-2.1L4.5 9z'),
+          path('M9 9.4 9.5 7.3M13 8l.5-2.1'),
+        ]; break;
+      case 'expenses': // card
+        kids = [
+          path('M3.5 6.8h17a1 1 0 0 1 1 1v8.4a1 1 0 0 1-1 1h-17a1 1 0 0 1-1-1V7.8a1 1 0 0 1 1-1z'),
+          path('M2.5 10.4h19'),
+          dot(17, 14.2, 'e'),
+        ]; break;
+      case '_settings': // gear
+        kids = [
+          path('M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'),
+          path('M19.4 13.5a1.2 1.2 0 0 0 .24 1.32l.04.04a1.45 1.45 0 1 1-2.05 2.05l-.04-.04a1.2 1.2 0 0 0-1.32-.24 1.2 1.2 0 0 0-.73 1.1v.12a1.45 1.45 0 0 1-2.9 0v-.06a1.2 1.2 0 0 0-.78-1.1 1.2 1.2 0 0 0-1.32.24l-.04.04a1.45 1.45 0 1 1-2.05-2.05l.04-.04a1.2 1.2 0 0 0 .24-1.32 1.2 1.2 0 0 0-1.1-.73h-.12a1.45 1.45 0 0 1 0-2.9h.06a1.2 1.2 0 0 0 1.1-.78 1.2 1.2 0 0 0-.24-1.32l-.04-.04a1.45 1.45 0 1 1 2.05-2.05l.04.04a1.2 1.2 0 0 0 1.32.24h.05a1.2 1.2 0 0 0 .73-1.1v-.12a1.45 1.45 0 0 1 2.9 0v.06a1.2 1.2 0 0 0 .73 1.1 1.2 1.2 0 0 0 1.32-.24l.04-.04a1.45 1.45 0 1 1 2.05 2.05l-.04.04a1.2 1.2 0 0 0-.24 1.32v.05a1.2 1.2 0 0 0 1.1.73h.12a1.45 1.45 0 0 1 0 2.9h-.06a1.2 1.2 0 0 0-1.1.73z'),
+        ]; break;
+      case '_close': // X
+        kids = [ path('M6.5 6.5l11 11M17.5 6.5l-11 11') ]; break;      default: // _home — stacked libraries
+        kids = [
+          path('M4.5 8.2 12 4.8l7.5 3.4L12 11.6 4.5 8.2z'),
+          path('M4.5 12 12 15.4 19.5 12'),
+          path('M4.5 15.8 12 19.2l7.5-3.4'),
+        ];
+    }
+    return h('svg', { width: size, height: size, viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false', style: { display: 'block' } }, kids);
+  }
+
+  renderVals() {
+    if (!this.CONFIG || !window.CollectionLib) return { ...this.fabVals() };
+    const st = this.state;
+    const accent = this.props.accent || (this.CONFIG && this.CONFIG.theme && this.CONFIG.theme.accent) || '#9ce6b0';
+    const rowPad = (this.props.density === 'compact') ? '7px' : '12px';
+    const layout = st.layout || this.props.defaultView || 'table';
+    const acc = 'var(--accent,#9ce6b0)';
+    const isMobile = !!st.isMobile;
+    const CL = window.CollectionLib;
+    this.applyCurrency();
+    const cur = this.CONFIG.currency;
+    const isAlt = st.currency === 'ALT';
+
+    // ---- library rows: table view uses tableData (buildTable); cards view uses these ----
+    const filtered = this.sorted(this.state.games.filter(g => this.matches(g)));
+    const rows = filtered.map(g => {
+      const sm = this.statusMeta(g.status);
+      return {
+        id: g.id, title: g.title,
+        tagChips: (g.tags || []).map(t => ({ tag: t, onClick: (e) => { if (e) e.stopPropagation(); this.setState(cur => cur.tagFilters.includes(t) ? {} : { tagFilters: [...cur.tagFilters, t], showTags: false }); } })),
+        statusDot: sm.dot, statusGlow: sm.glow, statusText: sm.text, statusLabel: sm.label,
+        scoreDisp: g.score == null ? '—' : String(g.score), scoreColor: this.scoreColor(g.score),
+        hoursDisp: g.hours == null ? '—' : g.hours + 'h',
+        cardBorder: g.status === 'playing' ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'var(--wd)',
+        cardGlow: g.status === 'playing' ? '0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent)' : 'none',
+        editLabel: 'Edit ' + (g.title || 'item'),
+        onEdit: (e) => { if (e) e.stopPropagation(); this.openEdit(g); },
+        onKey: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.openEdit(g); } },
+      };
+    });
+
+    // ---- library toolbar ----
+    const mkStatus = (val, label) => ({ label, onClick: () => this.setState({ status: val }), pressed: st.status === val ? 'true' : 'false', color: st.status === val ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', bg: st.status === val ? acc : 'transparent' });
+    const statusChips = (this.CONFIG.statusFilters || []).map(c => mkStatus(c.value, c.label));
+    let catSource = this.CONFIG.categoryFilters || [];
+    if (this.CONFIG.dynamicCategories && this.CONFIG.categoryField) {
+      const cf = this.CONFIG.categoryField, cc = {};
+      st.games.forEach(g => { const v = (g[cf] == null ? '' : String(g[cf]).trim()); if (v) cc[v] = (cc[v] || 0) + 1; });
+      const keys = Object.keys(cc).sort((a, b) => cc[b] - cc[a] || a.localeCompare(b));
+      catSource = [{ value: 'all', label: 'All' }, ...keys.map(k => ({ value: k, label: k }))];
+    }
+    const catChips = catSource.map(c => ({ label: c.label, onClick: () => this.setState({ catFilter: c.value }), pressed: st.catFilter === c.value ? 'true' : 'false', color: st.catFilter === c.value ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', bg: st.catFilter === c.value ? acc : 'transparent' }));
+
+    const counts = this.tagCounts();
+    const tagCloud = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).map(t => {
+      const active = st.tagFilters.includes(t);
+      return { tag: t, count: counts[t], pressed: active ? 'true' : 'false', onClick: () => this.setState(cur => ({ tagFilters: active ? cur.tagFilters.filter(x => x !== t) : [...cur.tagFilters, t] })), color: active ? 'var(--onAccent,#0d0f0e)' : 'var(--muted2,#9aa39c)', bg: active ? acc : 'var(--chip,#20241f)', border: active ? acc : 'var(--wd)' };
+    });
+    const activeTags = st.tagFilters.map(t => ({ tag: t, removeLabel: 'Remove tag ' + t, onClick: () => this.setState(cur => ({ tagFilters: cur.tagFilters.filter(x => x !== t) })) }));
+    const isDefaultSort = st.sortKey === 'default';
+
+    const isTable = st.view === 'library' && layout === 'table';
+    const isCards = st.view === 'library' && layout === 'cards';
+
+    const V = {
+      accentVar: accent, rowPadVar: rowPad,
+      // nav
+      isLibrary: st.view === 'library', isStats: st.view === 'stats', isRoulette: st.view === 'roulette', isMap: st.view === 'map',
+      isMonths: st.view === 'months',
+      hasRoulette: !!(this.CONFIG && this.CONFIG.roulette), hasGeo: !!(this.CONFIG && this.CONFIG.geo),
+      hasMonths: !!(this.CONFIG && this.CONFIG.months),
+      goLibrary: () => this.setState({ view: 'library' }), goStats: () => this.setState({ view: 'stats' }),
+      goRoulette: () => this.setState({ view: 'roulette' }), goMap: () => this.setState({ view: 'map' }),
+      goMonths: () => this.setState({ view: 'months', openMonth: null }),
+      libTabSel: st.view === 'library' ? 'true' : 'false', statsTabSel: st.view === 'stats' ? 'true' : 'false',
+      monthsTabSel: st.view === 'months' ? 'true' : 'false', mapTabSel: st.view === 'map' ? 'true' : 'false',
+      rlTabSel: st.view === 'roulette' ? 'true' : 'false',
+      usdSel: !isAlt ? 'true' : 'false', arsSel: isAlt ? 'true' : 'false',
+      tableSel: isTable ? 'true' : 'false', cardsSel: isCards ? 'true' : 'false',
+      fabExpanded: st.fabOpen ? 'true' : 'false',
+      resultCountText: rows.length + ' ' + ((this.CONFIG && this.CONFIG.nounPlural) || 'items') + ' shown',
+      monthsTabColor: st.view === 'months' ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', monthsTabBg: st.view === 'months' ? acc : 'transparent',
+      // currency toggle (finance)
+      hasCurrency: !!cur,
+      setUSD: () => this.setCurrency('USD'), setARS: () => this.setCurrency('ALT'),
+      usdColor: !isAlt ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', usdBg: !isAlt ? acc : 'transparent',
+      arsColor: isAlt ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', arsBg: isAlt ? acc : 'transparent',
+      libTabColor: st.view === 'library' ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', libTabBg: st.view === 'library' ? acc : 'transparent',
+      statsTabColor: st.view === 'stats' ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', statsTabBg: st.view === 'stats' ? acc : 'transparent',
+      mapTabColor: st.view === 'map' ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', mapTabBg: st.view === 'map' ? acc : 'transparent',
+      rlTabColor: st.view === 'roulette' ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', rlTabBg: st.view === 'roulette' ? acc : 'transparent',
+      openAdd: this.openAdd, onExport: this.onExport, onImport: this.onImport,
+      brandName: (this.CONFIG && this.CONFIG.brand) || 'Backlog', kickerText: (this.CONFIG && this.CONFIG.kicker) || '// games', addBtnLabel: (this.CONFIG && this.CONFIG.addLabel) || '+ Add game',
+      // auth (provided by shell via props)
+      isAuthed: true, userEmail: this.props.userEmail || '', onSignOut: this.props.onSignOut || (() => {}), onHome: this.props.onHome || (() => {}), onOpenSettings: this.props.onOpenSettings || (() => {}),
+      // toolbar
+      q: st.q, onSearch: e => this.setState({ q: e.target.value }), hasQuery: st.q.length > 0, clearSearch: () => this.setState({ q: '' }),
+      statusChips, showTags: st.showTags,
+      catChips, hasCatFilters: catChips.length > 1, libTabLabel: (this.CONFIG.libraryLabel) || 'Library',
+      tagCloud, hasTagFilters: st.tagFilters.length > 0, clearTags: () => this.setState({ tagFilters: [] }), activeTags,
+      resetSort: () => this.setState({ sortKey: 'default', sortDir: 'asc' }), resetColor: isDefaultSort ? 'var(--dim2,#3a413c)' : 'var(--text2,#c8d6cb)', resetOpacity: isDefaultSort ? '.5' : '1',
+      // responsive layout tokens
+      containerPad: isMobile ? '0 14px 60px' : '0 26px 80px', topBarPad: isMobile ? '12px 14px' : '14px 26px',
+      statsStripGap: isMobile ? '12px 18px' : '26px', searchMinWidth: isMobile ? '100%' : '220px',
+      navGroupFlex: isMobile ? '1 1 100%' : '0 0 auto', navGroupOrder: isMobile ? 3 : 0,
+      navTabFlex: isMobile ? '1' : '0 0 auto', navTabAlign: isMobile ? 'center' : 'left',
+      spacerFlex: isMobile ? '0 0 0' : '1', emailDisplay: isMobile ? 'none' : 'inline', emailFlex: isMobile ? 'none' : 'flex',
+      setTable: () => this.setState({ layout: 'table' }), setCards: () => this.setState({ layout: 'cards' }),
+      tableColor: isTable ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', tableBg: isTable ? acc : 'transparent',
+      cardsColor: isCards ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)', cardsBg: isCards ? acc : 'transparent',
+      isTable, isCards, isEmpty: st.view === 'library' && rows.length === 0 && st.loaded,
+      isFresh: st.view === 'library' && st.loaded && st.games.length === 0,
+      emptyTitleText: (this.CONFIG && this.CONFIG.emptyTitle) || 'Your backlog is empty',
+      emptySubText: (this.CONFIG && this.CONFIG.emptySub) || 'Add your first item to get started.',
+      addOneLabel: '+ Add a ' + ((this.CONFIG && this.CONFIG.noun) || 'game'),
+      noMatchText: 'No ' + ((this.CONFIG && this.CONFIG.nounPlural) || 'games') + ' match.',
+      addNewLabel: 'add a new ' + ((this.CONFIG && this.CONFIG.noun) || 'game'),
+      loadStarter: this.loadStarter,
+      isFiltered: st.view === 'library' && st.loaded && st.games.length > 0 && rows.length === 0,
+      rows,
+      // ---- library switcher FAB ----
+      ...this.fabVals(),
+      // extracted-view gate flags
+      exportOpen: st.exportOpen, modalOpen: !!st.modal,
+    };
+    return { ...V,
+      tableData: CL ? CL.buildTable(this) : {},
+      modalData: CL ? CL.buildModal(this) : {},
+      statsData: CL ? CL.buildStats(this) : {},
+      stripItems: CL ? CL.buildStrip(this) : [],
+      geoData: (CL && this.CONFIG.geo) ? CL.buildGeo(this) : {},
+      monthsData: (CL && this.CONFIG.months) ? CL.buildMonths(this) : {},
+      rouletteData: (CL && this.CONFIG.roulette) ? CL.buildRoulette(this) : {}, shareData: CL ? CL.buildShare(this) : {},
+      shareCardData: CL ? CL.buildShareCard(this) : {}, shareCardOpen: !!st.shareItem };
+  }
+}
+</script>
+</body>
+</html>

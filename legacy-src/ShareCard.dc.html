@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div onClick="{{ closeShareCard }}" style="position:fixed;inset:0;z-index:70;background:rgba(6,7,7,.8);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow:auto;overscroll-behavior:contain" class="g-scroll">
+  <div onClick="{{ stop }}" ref="{{ dialogRef }}" role="dialog" aria-modal="true" aria-label="{{ headline }}" style="width:940px;max-width:100%;display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;animation:gpop .2s ease">
+
+    <!-- CONTROLS -->
+    <div style="flex:1;min-width:280px;background:var(--card,#141614);border:1px solid var(--wg);border-radius:16px;padding:22px 22px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-size:16px;font-weight:700">{{ headline }}</span>
+        <button onClick="{{ closeShareCard }}" aria-label="Close dialog" style="color:var(--muted,#8b938d);background:none;border:none;padding:0 4px;cursor:pointer;font-size:20px;line-height:1">×</button>
+      </div>
+      <div style="font-size:12.5px;color:var(--muted,#8b938d);margin-bottom:18px">Pick what to show on the card, then copy or download.</div>
+
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:7px">Caption · optional</div>
+      <input value="{{ captionText }}" onInput="{{ onCaption }}" aria-label="Caption (optional)" autocomplete="off" placeholder="{{ captionPlaceholder }}" style="width:100%;background:var(--inset,#0f110f);border:1px solid var(--wh);border-radius:9px;padding:9px 12px;color:var(--text,#e8ebe8);font-size:13.5px;margin-bottom:18px"/>
+
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:9px">Show on card</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px">
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="8">
+          <button onClick="{{ c.onToggle }}" aria-pressed="{{ c.pressed }}" style="font:inherit;font-size:12.5px;font-weight:500;padding:7px 13px;border-radius:20px;cursor:pointer;color:{{ c.color }};background:{{ c.bg }};border:1px solid {{ c.border }};display:flex;align-items:center;gap:6px">{{ c.label }} <span aria-hidden="true" style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.75">{{ c.mark }}</span></button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;gap:9px">
+        <button onClick="{{ copyShareCard }}" aria-busy="{{ copyBusy }}" disabled="{{ copyDisabled }}" style="flex:1;font-size:13px;font-weight:700;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border:none;border-radius:9px;padding:11px;cursor:pointer;opacity:{{ copyOpacity }}">{{ copyLabel }}</button>
+        <button onClick="{{ downloadShareCard }}" aria-busy="{{ copyBusy }}" style="font-size:13px;font-weight:600;color:var(--text2,#c8d6cb);background:var(--chip,#20241f);border:1px solid var(--wf);border-radius:9px;padding:11px 16px;cursor:pointer">Download</button>
+      </div>
+      <div aria-live="polite" style="font-size:12px;color:var(--muted,#8b938d);margin-top:11px;text-align:center">{{ msg }}</div>
+    </div>
+
+    <!-- LIVE PREVIEW -->
+    <div style="flex:none;overflow:auto;max-width:100%" class="g-scroll">
+      <div id="share-card" style="width:460px;background:var(--bg,#0d0f0e);border:1px solid var(--wg);border-radius:20px;padding:30px 32px 32px;font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--text,#e8ebe8)">
+        <div style="display:flex;align-items:baseline;gap:9px">
+          <span data-no-i18n style="font-size:18px;font-weight:700;letter-spacing:-.02em">{{ brand }}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim,#59605b)">{{ kicker }}</span>
+          <span style="flex:1"></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim,#59605b)">{{ dateStr }}</span>
+        </div>
+
+        <div style="font-size:29px;font-weight:800;letter-spacing:-.025em;line-height:1.1;margin-top:16px;text-wrap:pretty">{{ itemTitle }}</div>
+        <sc-if value="{{ hasCaption }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;font-weight:500;color:var(--text2,#c8d6cb);margin-top:9px;line-height:1.45">{{ captionText }}</div></sc-if>
+
+        <sc-if value="{{ hasHero }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:16px;margin-top:22px">
+            <sc-if value="{{ hasScore }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:baseline;gap:4px">
+                <span style="font-size:15px;color:{{ scoreCol }};line-height:1">★</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:600;letter-spacing:-.03em;color:{{ scoreCol }};line-height:1">{{ scoreValue }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--dim,#59605b)">{{ scoreMax }}</span>
+              </div>
+            </sc-if>
+            <span style="flex:1"></span>
+            <sc-if value="{{ hasStatus }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:8px;background:var(--card,#141614);border:1px solid var(--wd);border-radius:20px;padding:7px 14px">
+                <span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ statusDot }};box-shadow:{{ statusGlow }}"></span>
+                <span style="font-size:13px;font-weight:600;color:{{ statusTextCol }}">{{ statusLabel }}</span>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasStats }}" hint-placeholder-val="{{ false }}">
+          <div style="height:1px;background:var(--wf);margin:22px 0 0"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 18px;margin-top:20px">
+            <sc-for list="{{ statCells }}" as="s" hint-placeholder-count="4">
+              <div>
+                <div style="font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:5px">{{ s.label }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;letter-spacing:-.01em;color:{{ s.color }}">{{ s.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasTags }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:22px">
+            <sc-for list="{{ tagGroups }}" as="tg" hint-placeholder-count="1">
+              <div>
+                <div style="font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:8px">{{ tg.label }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <sc-for list="{{ tg.chips }}" as="t" hint-placeholder-count="3"><span style="font-size:12px;color:var(--accent2,#c2e6cd);background:color-mix(in srgb, var(--accent) 12%, transparent);border:1px solid color-mix(in srgb, var(--accent) 26%, transparent);border-radius:20px;padding:4px 11px">{{ t.tag }}</span></sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasReview }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:24px;border-left:2px solid color-mix(in srgb, var(--accent) 55%, transparent);padding:2px 0 2px 15px">
+            <div style="font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:7px">{{ reviewLabel }}</div>
+            <div style="font-size:13.5px;line-height:1.6;color:var(--text3,#b7bfb9);font-style:italic">{{ reviewText }}</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:30px 6px 8px;text-align:center;color:var(--dim,#59605b);font-size:13px">Pick at least one detail to show.</div>
+        </sc-if>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:940,&quot;height&quot;:640},&quot;d&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any&quot;}}">
+class Component extends DCLogic {
+  // Presentational only — the collection builds the card via CollectionLib.buildShareCard.
+  // The preview keeps id="share-card" so the owner can rasterize it via html-to-image.
+  dialog = React.createRef();
+
+  componentDidMount() {
+    this.prevFocus = document.activeElement;
+    this.onKey = (e) => {
+      const d = this.props.d || {};
+      if (e.key === 'Escape') { e.stopPropagation(); d.closeShareCard && d.closeShareCard(); return; }
+      if (e.key !== 'Tab') return;
+      const root = this.dialog.current; if (!root) return;
+      const f = [...root.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el => !el.disabled && el.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', this.onKey, true);
+    setTimeout(() => { const r = this.dialog.current; const el = r && r.querySelector('input,button'); el && el.focus(); }, 30);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.onKey, true);
+    if (this.prevFocus && this.prevFocus.focus) this.prevFocus.focus();
+  }
+
+  renderVals() { return { ...(this.props.d || {}), dialogRef: this.dialog }; }
+}
+</script>
+</body>
+</html>

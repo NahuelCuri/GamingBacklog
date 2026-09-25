@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Theme tokens, ported 1:1 from the legacy app:
+   - neutrals + accent per collection  → each *-config.js `theme`
+   - light neutrals + hairline tokens   → Backlog.dc.html LIGHT_NEUTRALS / themeTokens()
+   Selected with <html data-collection="…" data-theme="dark|light">.
+   No data-collection = home / auth screens, which use a neutral accent.
+   ========================================================================== */
+
+:root {
+  /* games palette is the base */
+  --bg: #0d0f0e; --surface: #121412; --card: #141614; --topchip: #151816;
+  --inset: #0f110f; --chip: #20241f; --chip2: #181b19;
+  --text: #e8ebe8; --text2: #c8d6cb; --text3: #b7bfb9; --muted2: #9aa39c;
+  --muted: #8b938d; --dim: #59605b; --dim2: #3a413c; --accent2: #c2e6cd;
+  --accent: #d6d8d6;
+
+  --onAccent: #0d0f0e; --dateInvert: invert(.7);
+  --wa: rgba(255,255,255,.025); --wb: rgba(255,255,255,.04); --wc: rgba(255,255,255,.05);
+  --wd: rgba(255,255,255,.06);  --we: rgba(255,255,255,.07); --wf: rgba(255,255,255,.08);
+  --wg: rgba(255,255,255,.09);  --wh: rgba(255,255,255,.1);  --wi: rgba(255,255,255,.12);
+  --wj: rgba(255,255,255,.13);  --wk: rgba(255,255,255,.15); --wl: rgba(255,255,255,.2);
+
+  color-scheme: dark;
+}
+
+:root[data-collection="games"] { --accent: #9ce6b0; }
+
+:root[data-collection="books"] {
+  --bg: #100d0a; --surface: #16120d; --card: #17130e; --topchip: #181410;
+  --inset: #120f0b; --chip: #241d15; --chip2: #1b160f;
+  --text: #ece7e0; --text2: #d8ccbb; --text3: #c3b6a4; --muted2: #a89a86;
+  --muted: #948873; --dim: #6b5f4d; --dim2: #453d30; --accent2: #ecdcc2;
+  --accent: #d8b98f;
+}
+
+:root[data-collection="wines"] {
+  --bg: #0d0b0f; --surface: #141018; --card: #151019; --topchip: #161119;
+  --inset: #100d13; --chip: #221a2b; --chip2: #191420;
+  --text: #ece7ef; --text2: #d6cbdd; --text3: #c2b4cc; --muted2: #a294ad;
+  --muted: #8d8095; --dim: #5f5468; --dim2: #3f3747; --accent2: #e2cdec;
+  --accent: #c6a9d6;
+}
+
+:root[data-collection="movies"] {
+  --bg: #0c0d12; --surface: #12131b; --card: #13141c; --topchip: #14151d;
+  --inset: #0f1016; --chip: #202230; --chip2: #171826;
+  --text: #e7e8ef; --text2: #cccedd; --text3: #b7b9cc; --muted2: #9598b0;
+  --muted: #83879c; --dim: #565a72; --dim2: #383b4c; --accent2: #cbceef;
+  --accent: #a9aee0;
+}
+
+:root[data-collection="expenses"] {
+  --bg: #0b0e0f; --surface: #111517; --card: #121618; --topchip: #131719;
+  --inset: #0e1213; --chip: #1b2225; --chip2: #151b1d;
+  --text: #e6ecec; --text2: #c6d4d5; --text3: #b4c2c3; --muted2: #93a3a4;
+  --muted: #83908f; --dim: #556062; --dim2: #374042; --accent2: #c2e4e6;
+  --accent: #8ecfd6;
+}
+
+:root[data-collection="trips"] { --accent: #5fb8b0; }
+
+/* Light swaps the neutral ramp only; collection accents stay. Must come after
+   the collection blocks so it wins at equal specificity. */
+:root[data-theme="light"] {
+  --bg: #f2f4ef; --surface: #ffffff; --card: #ffffff; --topchip: #eef1ec;
+  --inset: #eef1ec; --chip: #e4e8e2; --chip2: #edf0ea;
+  --text: #191d19; --text2: #333b34; --text3: #4a534c; --muted2: #5b645d;
+  --muted: #6a726c; --dim: #969d97; --dim2: #c4c9c4;
+
+  --onAccent: #12140f; --dateInvert: invert(0);
+  --wa: rgba(0,0,0,.05); --wb: rgba(0,0,0,.07); --wc: rgba(0,0,0,.07); --wd: rgba(0,0,0,.09);
+  --we: rgba(0,0,0,.1);  --wf: rgba(0,0,0,.11); --wg: rgba(0,0,0,.12); --wh: rgba(0,0,0,.14);
+  --wi: rgba(0,0,0,.16); --wj: rgba(0,0,0,.18); --wk: rgba(0,0,0,.2);  --wl: rgba(0,0,0,.26);
+
+  color-scheme: light;
+}
+:root[data-theme="light"]:not([data-collection]) { --accent: #7c847e; }
+
+/* Expose tokens to Tailwind: bg-surface, text-muted, border-wf, … */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-topchip: var(--topchip);
+  --color-inset: var(--inset);
+  --color-chip: var(--chip);
+  --color-chip2: var(--chip2);
+  --color-text: var(--text);
+  --color-text2: var(--text2);
+  --color-text3: var(--text3);
+  --color-muted: var(--muted);
+  --color-muted2: var(--muted2);
+  --color-dim: var(--dim);
+  --color-dim2: var(--dim2);
+  --color-accent: var(--accent);
+  --color-accent2: var(--accent2);
+  --color-on-accent: var(--onAccent);
+  --color-wa: var(--wa); --color-wb: var(--wb); --color-wc: var(--wc); --color-wd: var(--wd);
+  --color-we: var(--we); --color-wf: var(--wf); --color-wg: var(--wg); --color-wh: var(--wh);
+  --color-wi: var(--wi); --color-wj: var(--wj); --color-wk: var(--wk); --color-wl: var(--wl);
+
+  --font-sans: var(--font-hanken), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+/* Base rules carried over from the legacy home <style> */
+html, body { margin: 0; background: var(--bg); }
+body { font-family: var(--font-sans); color: var(--text); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent2); }
+input, textarea, select, button { font-family: inherit; }
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent) !important;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button, [role=button], [role=tab], a, label, summary, input, select, textarea { touch-action: manipulation; }
+::placeholder { color: var(--dim); }
+::selection { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert); }

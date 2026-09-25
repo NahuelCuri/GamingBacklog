@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://apis.datos.gob.ar">
+<style>
+@keyframes gfade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes gslide { from { transform: translateX(14px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+</style>
+</helmet>
+<div style="padding-top:22px;animation:gfade .2s ease">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+    <div>
+      <div style="font-size:17px;font-weight:600;color:var(--text2,#d6cbdd);letter-spacing:-.01em">{{ title }}</div>
+      <div style="font-size:12.5px;color:var(--muted,#8d8095);margin-top:4px;max-width:540px;text-wrap:pretty">{{ subtitle }}</div>
+    </div>
+    <div style="display:flex;gap:16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim,#5f5468)">
+      <div><span style="color:var(--accent,#c6a9d6);font-weight:600">{{ provCount }}</span> provinces</div>
+      <div><span style="color:var(--text3,#c2b4cc);font-weight:600">{{ placedItems }}</span> {{ noun }}</div>
+    </div>
+  </div>
+
+  <div style="position:relative;border:1px solid var(--we);border-radius:14px;overflow:hidden;background:radial-gradient(130% 130% at 50% -10%, color-mix(in srgb, var(--accent,#c6a9d6) 6%, transparent), transparent 55%), var(--inset,#100d13)">
+    <div ref="{{ mapRef }}" style="width:100%;height:clamp(420px, 72vh, 720px);cursor:grab"></div>
+
+    <div ref="{{ loadRef }}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim,#5f5468);pointer-events:none">loading map…</div>
+
+    <div ref="{{ hintRef }}" style="position:absolute;left:12px;bottom:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim,#5f5468);background:color-mix(in srgb,var(--surface,#141018) 70%,transparent);border:1px solid var(--wd);border-radius:7px;padding:5px 9px;pointer-events:none">drag to pan · scroll to zoom · click a province</div>
+
+    <button ref="{{ resetRef }}" onClick="{{ onReset }}" style="position:absolute;top:12px;right:12px;display:none;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted,#8d8095);background:color-mix(in srgb,var(--surface,#141018) 82%,transparent);backdrop-filter:blur(6px);border:1px solid var(--wg);border-radius:8px;padding:6px 11px;cursor:pointer;z-index:7">reset view</button>
+
+    <div ref="{{ tipRef }}" style="position:absolute;top:0;left:0;display:none;transform:translate(-50%,-135%);pointer-events:none;background:color-mix(in srgb,var(--surface,#141018) 92%,transparent);backdrop-filter:blur(8px);border:1px solid var(--wh);border-radius:9px;padding:7px 11px;z-index:8;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.45)"></div>
+
+    <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:0;right:0;bottom:0;width:min(300px,80%);background:color-mix(in srgb,var(--card,#151019) 95%,transparent);backdrop-filter:blur(12px);border-left:1px solid var(--wf);padding:20px 20px 24px;overflow-y:auto;animation:gslide .22s ease;z-index:9">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:15px">
+          <div>
+            <div style="font-size:16.5px;font-weight:600;color:var(--text,#ece7ef);letter-spacing:-.01em">{{ selRegion }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent,#c6a9d6);margin-top:4px">{{ selCount }} {{ noun }}</div>
+          </div>
+          <button onClick="{{ onReset }}" aria-label="Clear region selection" style="font-size:19px;line-height:1;color:var(--muted,#8d8095);background:none;border:none;cursor:pointer;padding:2px 6px">×</button>
+        </div>
+        <div style="height:1px;background:var(--we);margin-bottom:6px"></div>
+        <sc-for list="{{ selItems }}" as="it" hint-placeholder-count="0">
+          <div style="font-size:13px;color:var(--text2,#d6cbdd);padding:9px 0;border-bottom:1px solid var(--wc);text-wrap:pretty">{{ it }}</div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:760},&quot;d&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any&quot;}}">
+// Argentina-only minimalist province map. Receives generic geo stats via props.d:
+//   { stats:[{region,count,items?}], accent, noun, title, subtitle }
+// Only the province tier is drawn (23 provinces + CABA), sourced from the
+// official Georef / IGN dataset whose "Tierra del Fuego, Antártida e Islas del
+// Atlántico Sur" geometry includes the Malvinas islands as Argentine territory.
+// The projection is fit to a FIXED Argentina bounding box so the Antarctic-claim
+// polygons fall outside the frame and are clipped by the SVG viewport.
+// Matching is by province name (accent-insensitive) against the stats regions,
+// so a wine tagged "Mendoza" or "Mendoza, Argentina" lights up Mendoza.
+class Component extends DCLogic {
+  state = { sel: null };
+
+  // lon/lat frame: continental Argentina + Malvinas, excluding the Antarctic sector.
+  BOX = { type: 'Polygon', coordinates: [[[-74, -21], [-52.5, -21], [-52.5, -55.4], [-74, -55.4], [-74, -21]]] };
+  PROV_URL = 'https://cdn.jsdelivr.net/gh/jazzido/Polymaps-Argentina@master/provincias.json';
+
+  // Malvinas are absent from every open province dataset, so we overlay a
+  // simplified two-island feature tagged to Tierra del Fuego — it glows and
+  // zooms with that province and keeps the "Includes las Islas Malvinas" copy honest.
+  malvinasFeature() {
+    return {
+      type: 'Feature',
+      __malvinas: true,
+      properties: { provincia: 'Tierra del Fuego' },
+      geometry: {
+        type: 'MultiPolygon',
+        coordinates: [
+          [[[-58.0, -51.3], [-57.7, -51.6], [-58.0, -51.9], [-57.85, -52.15], [-58.4, -52.35], [-58.9, -52.15], [-58.6, -51.75], [-59.0, -51.55], [-58.6, -51.3], [-58.0, -51.3]]],
+          [[[-60.0, -51.35], [-59.6, -51.6], [-59.9, -51.95], [-60.4, -52.05], [-60.9, -51.75], [-61.3, -51.45], [-60.6, -51.3], [-60.0, -51.35]]],
+        ],
+      },
+    };
+  }
+
+  // cheap min-distance decimation — drops near-coincident vertices to cut
+  // per-frame repaint cost during zoom while keeping province silhouettes.
+  simplify(f, tol) {
+    const t2 = tol * tol;
+    const ring = r => {
+      if (!r || r.length < 6) return r;
+      const out = [r[0]];
+      for (let i = 1; i < r.length - 1; i++) {
+        const a = out[out.length - 1], b = r[i], dx = a[0] - b[0], dy = a[1] - b[1];
+        if (dx * dx + dy * dy >= t2) out.push(b);
+      }
+      out.push(r[r.length - 1]);
+      return out.length < 4 ? r : out;
+    };
+    const g = f.geometry; if (!g) return f;
+    const geom = { type: g.type };
+    if (g.type === 'Polygon') geom.coordinates = g.coordinates.map(ring);
+    else if (g.type === 'MultiPolygon') geom.coordinates = g.coordinates.map(p => p.map(ring));
+    else return f;
+    return { type: 'Feature', __malvinas: f.__malvinas, properties: f.properties, geometry: geom };
+  }
+
+  d() { return this.props.d || {}; }
+  sig() { return (this.d().stats || []).map(s => s.region + ':' + s.count).join('|'); }
+  norm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+  pname(f) { const p = f.properties || {}; return p.provincia || p.nombre || p.name || ''; }
+  labelFor(f) { return f.__malvinas ? 'Islas Malvinas' : this.pname(f).split(',')[0]; }
+
+  componentDidMount() { this.build(); }
+  componentDidUpdate() { if (this._feats && this._drawnSig !== this.sig()) this.render3(); }
+  componentWillUnmount() { if (this._ro) this._ro.disconnect(); }
+
+  loadScript(src) {
+    return new Promise((res, rej) => {
+      if ([...document.scripts].some(s => s.src === src)) return res();
+      const el = document.createElement('script');
+      el.src = src; el.onload = res; el.onerror = rej;
+      document.head.appendChild(el);
+    });
+  }
+  ensureD3() {
+    return window.__d3P || (window.__d3P = this.loadScript('https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js'));
+  }
+  provinces() {
+    return window.__argProvP2 || (window.__argProvP2 =
+      fetch(this.PROV_URL).then(r => r.json())
+        .then(j => (j.features || []).map(f => this.simplify(f, 0.018)).concat(this.malvinasFeature())));
+  }
+
+  async build() {
+    try {
+      await this.ensureD3();
+      this._feats = await this.provinces();
+      if (!this.mapEl) return;
+      if (!this._feats.length) throw new Error('no features');
+      this.render3();
+      this.forceUpdate();
+      if (this.loadEl) this.loadEl.style.display = 'none';
+      if (window.ResizeObserver && !this._ro) {
+        let w = this.mapEl.clientWidth;
+        this._ro = new ResizeObserver(() => {
+          const nw = this.mapEl.clientWidth;
+          if (Math.abs(nw - w) > 8) { w = nw; this.render3(); }
+        });
+        this._ro.observe(this.mapEl);
+      }
+    } catch (e) { if (this.loadEl) this.loadEl.textContent = 'map unavailable (offline)'; }
+  }
+
+  // stat (if any) that this province matches
+  hitFor(f) {
+    if (!this._smap) return null;
+    const p = this.norm(this.pname(f));
+    const p0 = this.norm(this.pname(f).split(',')[0]);
+    return this._smap[p] || this._smap[p0] || null;
+  }
+
+  showTip(e, name, count) {
+    const r = this.mapEl.getBoundingClientRect(), t = this.tipEl;
+    t.style.display = 'block';
+    t.style.left = (e.clientX - r.left) + 'px';
+    t.style.top = (e.clientY - r.top) + 'px';
+    t.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--text,#ece7ef)">' + name
+      + '</div><div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:' + this._accent
+      + ';margin-top:2px">' + count + ' ' + this._noun + '</div>';
+  }
+  hide() { if (this.tipEl) this.tipEl.style.display = 'none'; }
+  pick(s, feat) {
+    this.hide();
+    this.setState({ sel: { region: s.region, count: s.count, items: s.items || [] } });
+    this.zoomTo(feat);
+  }
+
+  render3() {
+    const d3 = window.d3, el = this.mapEl;
+    if (!d3 || !el || !this._feats) return;
+    el.innerHTML = '';
+    const d = this.d();
+    this._accent = d.accent || '#c6a9d6';
+    this._noun = d.noun || 'items';
+    const accent = this._accent;
+    const feats = this._feats;
+    const W = el.clientWidth || 900, H = el.clientHeight || 620;
+
+    // fit to the fixed Argentina frame (mainland + Malvinas, no Antarctica)
+    const proj = d3.geoMercator().fitSize([W, H], this.BOX);
+    const path = d3.geoPath(proj);
+    this._path = path; this._W = W; this._H = H;
+
+    // build lookup: province stat by normalized name (and first segment)
+    const smap = {};
+    (d.stats || []).forEach(s => { smap[this.norm(s.region)] = s; });
+    this._smap = smap;
+    const counts = feats.map(f => { const s = this.hitFor(f); return s ? s.count : 0; }).filter(Boolean);
+    this._max = Math.max(1, ...counts);
+    this._opa = d3.scaleSqrt().domain([0, this._max]).range([0.28, 0.72]);
+    const opa = this._opa;
+    const self = this;
+    const pOpa = f => { const s = this.hitFor(f); return s ? opa(s.count) : 1; };
+
+    const svg = d3.select(el).append('svg')
+      .attr('width', '100%').attr('height', '100%')
+      .attr('viewBox', `0 0 ${W} ${H}`).style('display', 'block');
+    const g = svg.append('g').style('will-change', 'transform');
+
+    this._psel = g.selectAll('path.prov').data(feats).join('path').attr('class', 'prov')
+      .attr('d', path)
+      .attr('fill', f => this.hitFor(f) ? accent : 'var(--wa)')
+      .attr('fill-opacity', pOpa)
+      .attr('stroke', f => this.hitFor(f) ? accent : 'var(--wj)')
+      .attr('stroke-width', f => this.hitFor(f) ? 1.1 : 0.55)
+      .attr('stroke-linejoin', 'round')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .style('cursor', f => this.hitFor(f) ? 'pointer' : 'default')
+      .style('transition', 'fill-opacity .15s ease')
+      .on('mousemove', function (e, f) {
+        const s = self.hitFor(f);
+        if (!s) { self.hide(); return; }
+        d3.select(this).attr('fill-opacity', 0.85);
+        self.showTip(e, self.labelFor(f), s.count);
+      })
+      .on('mouseleave', function (e, f) { self.hide(); d3.select(this).attr('fill-opacity', pOpa(f)); })
+      .on('click', function (e, f) { const s = self.hitFor(f); if (s) self.pick(s, f); });
+
+    this.gLabels = g.append('g').style('opacity', 0).style('pointer-events', 'none');
+    this.gLabels.selectAll('text').data(feats).join('text')
+      .attr('transform', f => { const c = path.centroid(f); return `translate(${c[0]},${c[1]})`; })
+      .attr('text-anchor', 'middle').attr('dy', '0.32em')
+      .attr('font-family', 'system-ui, -apple-system, sans-serif')
+      .attr('font-weight', f => this.hitFor(f) ? 600 : 400)
+      .attr('fill', f => this.hitFor(f) ? 'var(--text,#ece7ef)' : 'var(--muted,#8d8095)')
+      .attr('paint-order', 'stroke').attr('stroke', 'rgba(0,0,0,0.6)')
+      .attr('stroke-width', 2.6).attr('stroke-linejoin', 'round')
+      .style('pointer-events', 'none')
+      .text(f => this.labelFor(f));
+
+    let lblShown = false;
+    const zoom = d3.zoom().scaleExtent([1, 14]).on('zoom', e => {
+      const k = e.transform.k;
+      g.attr('transform', e.transform);
+      if (self.resetEl) self.resetEl.style.display = k > 1.02 ? 'block' : 'none';
+      if (self.hintEl) self.hintEl.style.opacity = k > 1.25 ? '0' : '1';
+      // update labels only when crossing the visibility threshold or at rest,
+      // never every wheel tick (transitions per frame were the main stutter).
+      const showLbl = k > 1.6;
+      if (showLbl !== lblShown) {
+        lblShown = showLbl;
+        self.gLabels.style('opacity', showLbl ? 1 : 0);
+      }
+      if (showLbl) {
+        clearTimeout(self._lblT);
+        self._lblT = setTimeout(() => {
+          self.gLabels.selectAll('text').attr('font-size', Math.max(6, Math.min(13, 11 / k)));
+        }, 90);
+      }
+    });
+    svg.call(zoom).on('dblclick.zoom', null);
+    svg.on('dblclick', () => this.onReset());
+
+    this._svg = svg; this._zoom = zoom;
+    this._drawnSig = this.sig();
+    if (this.state.sel) {
+      const f = feats.find(x => this.norm(this.pname(x).split(',')[0]) === this.norm(this.state.sel.region)
+        || this.norm(this.pname(x)) === this.norm(this.state.sel.region));
+      if (f) this.zoomTo(f);
+    }
+  }
+
+  zoomTo(f) {
+    const d3 = window.d3;
+    if (!this._svg || !d3 || !f) return;
+    const [[x0, y0], [x1, y1]] = this._path.bounds(f);
+    const W = this._W, H = this._H;
+    const k = Math.max(1, Math.min(10, 0.7 / Math.max((x1 - x0) / W, (y1 - y0) / H)));
+    const tx = W / 2 - k * (x0 + x1) / 2, ty = H / 2 - k * (y0 + y1) / 2;
+    this._svg.transition().duration(750)
+      .call(this._zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+  }
+
+  onReset = () => {
+    const d3 = window.d3;
+    this.setState({ sel: null });
+    if (this._svg && this._zoom && d3)
+      this._svg.transition().duration(600).call(this._zoom.transform, d3.zoomIdentity);
+  };
+
+  renderVals() {
+    const d = this.d(), sel = this.state.sel;
+    // provinces / items actually placed on the Argentina map
+    let provCount = 0, placedItems = 0;
+    if (this._feats && this._smap) {
+      const seen = new Set();
+      this._feats.forEach(f => {
+        const s = this.hitFor(f);
+        if (s && !seen.has(s.region)) { seen.add(s.region); provCount++; placedItems += s.count; }
+      });
+    }
+    return {
+      title: d.title || 'Origins',
+      subtitle: d.subtitle || '',
+      noun: d.noun || 'items',
+      provCount,
+      placedItems,
+      mapRef: el => { this.mapEl = el; },
+      loadRef: el => { this.loadEl = el; },
+      hintRef: el => { this.hintEl = el; },
+      resetRef: el => { this.resetEl = el; },
+      tipRef: el => { this.tipEl = el; },
+      onReset: this.onReset,
+      hasSelection: !!sel,
+      selRegion: sel ? sel.region : '',
+      selCount: sel ? sel.count : 0,
+      selItems: sel ? sel.items : [],
+    };
+  }
+}
+</script>
+</body>
+</html>

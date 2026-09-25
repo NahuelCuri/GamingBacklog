@@ -1,0 +1,32 @@
+{
+  "name": "gaming-backlog",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "preview": "next build && node scripts/preview.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint",
+    "extract-legacy": "python scripts/extract-legacy.py"
+  },
+  "dependencies": {
+    "next": "15.5.26",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.26",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^3.2.7"
+  }
+}
