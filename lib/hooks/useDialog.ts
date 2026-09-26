@@ -27,7 +27,13 @@ export function useDialog(ref: RefObject<HTMLElement | null>, onClose: () => voi
       (first ?? root).focus();
     }, 30);
 
+    // With stacked dialogs (a confirm over an editor) only the top one reacts.
+    const isTop = () => {
+      const all = document.querySelectorAll('[aria-modal="true"]');
+      return !all.length || all[all.length - 1] === ref.current || !!ref.current?.contains(all[all.length - 1]);
+    };
     const onKey = (e: KeyboardEvent) => {
+      if (!isTop()) return;
       if (e.key === "Escape") {
         close.current();
         return;

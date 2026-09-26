@@ -102,13 +102,33 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
      - Two sentences are now rendered as a single text node, as in legacy, so they stay whole instead of translating one word ("10 libros shown").
      - A typed `t()` can replace the DOM approach after cutover if needed.
    - **Currency:** the US$/AR$ toggle and the live rate (`cfg.currency`, with `fallbackRate` if the API fails) are ported. As in legacy, no config defines `currency`, so the toggle stays hidden. Adding the block to `config/collections/expenses.ts` turns it on.
-7. **GeoMap + Trip Planner.**
+7. **GeoMap + Trip Planner.** ✅
    - **7a. Map (Wines).** ✅
      - The Argentina province map, drawn with d3 modules (`d3-geo`, `d3-zoom`, `d3-selection`, `d3-scale`, `d3-transition`) from npm instead of the CDN.
      - Same behaviour as legacy: provinces glow by count, hover tooltip, click to zoom in and list the wines, drag and scroll to pan and zoom, "reset view", and the Malvinas overlay tagged to Tierra del Fuego.
      - **Data:** legacy downloaded a 13 MB GeoJSON from jsDelivr on every visit and simplified it in the browser. `scripts/build-provinces.mjs` now applies the same simplification once and writes `public/geo/ar-provinces.json` (360 KB), which ships with the app.
      - A selected province's list now follows live data changes (legacy kept a stale copy).
-   - **7b. Trip Planner.**
+   - **7b. Trip Planner.** ✅ At `/trips/`, members only (UI allowlist plus RLS).
+     - **Ported:**
+       - the trips home;
+       - the board header with the budget bar, and the tabs, which sync to `?trip=&tab=&card=`;
+       - Cards tab: search, type filters, and compare mode (the drawer, draggable and resizable cards, zoom);
+       - Itinerary tab: pool and day lanes, drag and drop with hold-to-drag on phones, keyboard moves, quick add, "+ Add day", and pan/zoom on the canvas;
+       - Map tab: OSM streets from Overpass, cached under the same `trip-map-osm:*` keys, with numbered pins, route and day filter;
+       - the card view and editor (including the Nominatim location lookup);
+       - the trip editor, and trip deletion that asks you to type the name;
+       - undo after deleting a card;
+       - the currency converter (`trip-fx-pref`).
+     - **Data:** the same `trips` / `trip_cards` rows and realtime channel `trips-shared`. Every change is still mirrored to `trip-planner-v1`.
+       - Logic is in `lib/trips/model.ts`, and tests compare it against the legacy component class run in a VM.
+       - `/dev/preview/?c=trips` runs the planner on the example trip, in memory.
+     - **Fixed from legacy:**
+       - Editing a card erased its coordinates unless the Location field was touched.
+       - Reordering cards within a day was never saved to the cloud (row order is not stored). Cards now carry an `order` field. The first save after cutover writes it to every card once. Legacy ignores the field.
+       - A failed load fell back to the example trip, which the next edit could write over real data. It now shows an error with Retry.
+       - A failed write only went to the console. It is now reported, and the saved state is reloaded.
+     - **Kept from legacy:** the planner keeps its own always-dark palette, and the Compare button (bottom-left) sits under the EN/ES toggle.
+     - **Shared fix:** with stacked dialogs (a delete confirm over the trip editor), Escape now closes only the top one.
 8. **Cutover.**
    1. Add a GitHub Actions deploy workflow. `public/legacy/index.html` ships at `/legacy/`.
    2. Merge `next` into `main`.
