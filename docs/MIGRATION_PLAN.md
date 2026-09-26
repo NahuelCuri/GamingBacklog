@@ -82,7 +82,14 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
    - **Dropped:** the "filter by tags" panel, which legacy code had but nothing could open.
    - **Tooling:** `NEXT_DIST_DIR=.next-build npx next build` builds without touching a running `next dev`. Sharing `.next` corrupted the webpack cache once.
    - **Checkpoint for the user:** compare `/games/` against `/legacy/` with real data, and test copying and downloading the images.
-5. **Books, Movies, Wines, Expenses.** Mostly config. Checkpoint: `wines` sync.
+5. **Books, Movies, Wines, Expenses.** ✅ Everything is config-driven, so all four already run on the phase 4 UI. Legacy had no per-collection branches besides the shared `wines` table.
+   - `tests/collections-smoke.test.tsx` renders every view, every seed item's form and share card, and a set of messy data (repeated tags, blank/null fields, numbers stored as text, unknown status). It fails on any React warning.
+   - **Fixed from what it found:**
+     - Repeated tags caused duplicate React keys.
+     - Numeric strings concatenated in sum and avg metrics (legacy had the same bug).
+     - The Expenses category split showed "Other" twice and dropped blank categories (a user report; the fix is in its own commit).
+   - **Wines realtime:** the payload mapping and the hook applying remote changes are covered by tests. A live two-account check is for the user.
+   - **Still placeholders:** the Months tab (Expenses) arrives in phase 6, and the Map tab (Wines) in phase 7.
 6. **MonthsView, i18n, currency.**
 7. **GeoMap + Trip Planner.**
 8. **Cutover.**

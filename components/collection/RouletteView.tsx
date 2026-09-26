@@ -306,8 +306,8 @@ export function RouletteView() {
               <div className="min-w-0">
                 <div className="text-2xl leading-[1.15] font-bold tracking-[-.02em]">{String(winner[primary])}</div>
                 <div className="mt-[11px] flex flex-wrap gap-1.5">
-                  {((winner[cfg.tagField] as string[]) || []).map((t) => (
-                    <span key={t} className="rounded-[5px] bg-chip px-[9px] py-[3px] text-[11.5px] text-muted2">
+                  {((winner[cfg.tagField] as string[]) || []).map((t, i) => (
+                    <span key={i} className="rounded-[5px] bg-chip px-[9px] py-[3px] text-[11.5px] text-muted2">
                       {t}
                     </span>
                   ))}

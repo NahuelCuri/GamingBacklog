@@ -201,6 +201,34 @@ describe("supabaseStore", () => {
     await expect(bad.load()).rejects.toMatchObject({ message: "permission denied" });
   });
 
+  it("wines realtime: maps inserts, updates and deletes, and unsubscribes", () => {
+    let handler: ((p: unknown) => void) | null = null;
+    const removed: unknown[] = [];
+    const channel = {
+      on: (_evt: string, filter: unknown, cb: (p: unknown) => void) => {
+        expect(filter).toEqual({ event: "*", schema: "public", table: "wines" });
+        handler = cb;
+        return channel;
+      },
+      subscribe: () => channel,
+    };
+    const sb = { channel: (name: string) => (expect(name).toBe("wines-shared"), channel), removeChannel: (c: unknown) => removed.push(c) };
+    const changes: unknown[] = [];
+    const unsubscribe = supabaseStore(sb as never, "wines", "u1").subscribe!((c) => changes.push(c));
+
+    handler!({ eventType: "INSERT", new: { id: "w1", data: a("w1") } });
+    handler!({ eventType: "UPDATE", new: { id: "w1", data: a("w1", "Malbec") } });
+    handler!({ eventType: "DELETE", old: { id: "w1" } });
+    handler!({ eventType: "UPDATE", new: { id: "w2" } }); // no data: ignored
+    expect(changes).toEqual([
+      { type: "upsert", item: a("w1") },
+      { type: "upsert", item: a("w1", "Malbec") },
+      { type: "delete", id: "w1" },
+    ]);
+    unsubscribe();
+    expect(removed).toEqual([channel]);
+  });
+
   it("empty bulk writes skip the network", async () => {
     const { sb, log } = fakeSupabase();
     const s = supabaseStore(sb, "games", "u1");

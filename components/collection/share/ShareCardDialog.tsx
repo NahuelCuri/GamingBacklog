@@ -110,9 +110,9 @@ export function ShareCardDialog({ item, onClose }: { item: Item; onClose(): void
                 <div key={tg.label}>
                   <div className={label + " mb-2"}>{tg.label}</div>
                   <div className="flex flex-wrap gap-1.5">
-                    {tg.tags.map((t) => (
+                    {tg.tags.map((t, i) => (
                       <span
-                        key={t}
+                        key={i}
                         className="rounded-[20px] border px-[11px] py-1 text-xs text-accent2"
                         style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 26%, transparent)" }}
                       >

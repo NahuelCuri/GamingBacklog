@@ -48,8 +48,8 @@ export function ItemCards({ rows }: { rows: Item[] }) {
               </div>
             </div>
             <div className="mt-2.5 flex flex-wrap gap-[5px]">
-              {((g[cfg.tagField] as string[]) || []).map((t) => (
-                <span key={t} className="rounded-[5px] bg-chip px-[7px] py-[2px] text-[10.5px] text-muted2">
+              {((g[cfg.tagField] as string[]) || []).map((t, i) => (
+                <span key={i} className="rounded-[5px] bg-chip px-[7px] py-[2px] text-[10.5px] text-muted2">
                   {t}
                 </span>
               ))}

@@ -22,6 +22,14 @@ export interface StatsContext {
 
 const num = (v: unknown) => Number(v) || 0;
 
+/** Non-empty values of a field as numbers (unparseable ones dropped). */
+const numbers = (items: Item[], field: string) =>
+  items
+    .map((x) => x[field])
+    .filter((v) => v != null && v !== "")
+    .map(Number)
+    .filter((n) => !Number.isNaN(n));
+
 // ---------------------------------------------------------------- metrics
 
 export interface Metric {
@@ -44,12 +52,13 @@ export function metric(cfg: CollectionConfig, items: Item[], spec: MetricSpec, m
       const n = items.filter((x) => x[spec.field]).length;
       return { value: fmt(n), num: n };
     }
+    // Values may arrive as numeric strings (imports); coerce so "12" sums, not concatenates.
     case "sum": {
-      const s = items.map((x) => x[spec.field] as number).filter((v) => v != null).reduce((a, b) => a + b, 0);
+      const s = numbers(items, spec.field).reduce((a, b) => a + b, 0);
       return { value: fmt(s), num: s };
     }
     case "avg": {
-      const a = items.map((x) => x[spec.field] as number).filter((v) => v != null);
+      const a = numbers(items, spec.field);
       const v = a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
       return { value: v.toFixed(1), num: v };
     }

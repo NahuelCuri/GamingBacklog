@@ -138,9 +138,9 @@ export function LibraryView() {
 
       {url.tagFilters.length > 0 && (
         <div className="mb-[14px] flex flex-wrap gap-[7px]">
-          {url.tagFilters.map((t) => (
+          {url.tagFilters.map((t, i) => (
             <button
-              key={t}
+              key={i}
               type="button"
               aria-label={"Remove tag " + t}
               onClick={() => setUrl((s) => ({ tagFilters: s.tagFilters.filter((x) => x !== t) }))}

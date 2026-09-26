@@ -193,9 +193,9 @@ export function ItemModal({
           <>
             <div className={label}>{f.label}</div>
             <div className="mb-2 flex flex-wrap gap-1.5">
-              {tags.map((t) => (
+              {tags.map((t, i) => (
                 <button
-                  key={t}
+                  key={i}
                   type="button"
                   aria-label={"Remove tag " + t}
                   onClick={() => setModal((m) => m && { ...m, draft: withoutTag(m.draft, f.key, t) })}
@@ -226,9 +226,9 @@ export function ItemModal({
             />
             {suggest.length > 0 && (
               <div className="mt-[9px] flex flex-wrap gap-1.5">
-                {suggest.map((t) => (
+                {suggest.map((t, i) => (
                   <button
-                    key={t}
+                    key={i}
                     type="button"
                     aria-label={"Add tag " + t}
                     onClick={() => setModal((m) => m && { ...m, draft: withTag(m.draft, f.key, t) })}

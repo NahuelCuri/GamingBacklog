@@ -87,9 +87,9 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                     {cell.kind === "title" && <div className="truncate pr-2.5 font-medium tracking-[-.01em]">{cell.text}</div>}
                     {cell.kind === "tags" && (
                       <div className="flex max-h-6 flex-wrap gap-[5px] overflow-hidden pr-2.5">
-                        {cell.tags.map((t) => (
+                        {cell.tags.map((t, i) => (
                           <button
-                            key={t}
+                            key={i}
                             type="button"
                             aria-label={"Filter by tag " + t}
                             onClick={(e) => {

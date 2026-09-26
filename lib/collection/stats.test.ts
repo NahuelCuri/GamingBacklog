@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { COLLECTIONS } from "@/config/collections";
-import { buildWidget } from "./stats";
+import { buildWidget, metric } from "./stats";
 import type { Item, MoneyDonutSpec } from "./types";
 
 describe("category split (dynamic money donut)", () => {
@@ -24,5 +24,20 @@ describe("category split (dynamic money donut)", () => {
     const total = items.reduce((a, x) => a + (x.amount as number), 0);
     expect(w.centerValue).toBe("$" + total.toLocaleString("en-US"));
     expect(w.legend.find((l) => l.label === "Food")!.amount).toBe("$105");
+  });
+});
+
+describe("metrics with numbers stored as text", () => {
+  it("sums and averages numeric strings instead of concatenating", () => {
+    const cfg = COLLECTIONS.games;
+    const items: Item[] = [
+      { id: "1", hours: 10, score: 8 },
+      { id: "2", hours: "12", score: "6" },
+      { id: "3", hours: null, score: "" },
+    ];
+    const sum = cfg.stats.summary.find((s) => s.kind === "sum")!;
+    const avg = cfg.stats.summary.find((s) => s.kind === "avg")!;
+    expect(metric(cfg, items, sum).num).toBe(22);
+    expect(metric(cfg, items, avg).value).toBe("7.0");
   });
 });
