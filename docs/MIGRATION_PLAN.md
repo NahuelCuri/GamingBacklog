@@ -130,11 +130,16 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
      - **Kept from legacy:** the planner keeps its own always-dark palette, and the Compare button (bottom-left) sits under the EN/ES toggle.
      - **Shared fix:** with stacked dialogs (a delete confirm over the trip editor), Escape now closes only the top one.
 8. **Cutover.**
-   1. Add a GitHub Actions deploy workflow. `public/legacy/index.html` ships at `/legacy/`.
-   2. Merge `next` into `main`.
-   3. Set *Settings → Pages → Source* to **GitHub Actions**.
-   4. Verify login, data and localStorage migration in prod.
-   5. Rollback: set Source back to *Deploy from a branch* and revert the merge.
+   - **Prepared on `next`:**
+     - `.github/workflows/deploy.yml` tests, lints and builds on every push to `main` and `next`, and deploys only from `main`.
+     - `/dev` and `/dev/preview` are `page.dev.tsx` files, which exist only under `next dev`, so they are not in the export.
+     - The legacy page still ships at `/legacy/` as a fallback. It is identical to `main`'s `index.html`.
+   - **Order matters:** after the merge, `main` no longer has an `index.html` at its root. A branch deploy would then publish a broken site, so the Pages source must switch first. Pages keeps serving the last deployment until a new one arrives, so legacy stays up in between.
+   1. Add the repository variables `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` under *Settings → Secrets and variables → Actions → Variables*. Use the same values as `.env.local`; both are public.
+   2. Set *Settings → Pages → Source* to **GitHub Actions**. Legacy stays live.
+   3. Merge `next` into `main` and push. The workflow tests, builds and deploys.
+   4. Verify in prod: sign in, each library loads your data, theme and library visibility carry over, and Trips (members only). Legacy stays reachable at `/GamingBacklog/legacy/`.
+   5. **Rollback:** revert the merge on `main`, then set Source back to *Deploy from a branch* (`main`, `/`).
 
 ## Rules to carry over
 

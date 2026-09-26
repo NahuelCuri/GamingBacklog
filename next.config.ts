@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   basePath: BASE_PATH,
   trailingSlash: true,
   images: { unoptimized: true },
+  // `page.dev.tsx` routes (/dev, /dev/preview) exist only under `next dev`;
+  // production builds never see them.
+  pageExtensions: isDev ? ["dev.tsx", "tsx", "ts"] : ["tsx", "ts"],
   // Dev convenience: localhost:3000/ → /GamingBacklog/ instead of a 404.
   ...(isDev && {
     redirects: async () => [
