@@ -1,0 +1,200 @@
+// ============================================================================
+//  BOOKS collection config.  Same shape as games-config.js — pure data + {token}
+//  url templates, no functions — so the shared components (ItemTable, ItemModal,
+//  StatsView, ShareImage, Roulette) render the reading list with zero
+//  books-specific code.  Copy this file + change fields to add another shelf.
+// ============================================================================
+window.BOOKS_CONFIG = {
+  key: 'books',
+  brand: 'Backlog',
+  kicker: '// books',
+  noun: 'book',
+  nounPlural: 'books',
+
+  // ---- palette: pastel brown on a warm near-black (parallels the green games
+  //  theme). Applied as CSS custom properties on the document root. ----
+  theme: {
+    bg: '#100d0a', surface: '#16120d', card: '#17130e', topchip: '#181410',
+    inset: '#120f0b', chip: '#241d15', chip2: '#1b160f',
+    text: '#ece7e0', text2: '#d8ccbb', text3: '#c3b6a4', muted2: '#a89a86',
+    muted: '#948873', dim: '#6b5f4d', dim2: '#453d30', accent2: '#ecdcc2',
+    accent: '#d8b98f',
+  },
+
+  // numeric-field aliases used by the shared stats/share builders
+  fields: { score: 'score', hours: 'pages', price: 'price', platform: 'language' },
+  addLabel: '+ Add book',
+  reviewLabel: 'Mi opinión',
+  reviewPlaceholder: 'Tus pensamientos sobre el libro…',
+  reviewEmpty: 'Sin notas todavía.',
+  emptyTitle: 'Your reading list is empty',
+  emptySub: 'Add your first book to get started.',
+
+  searchFields: ['title', 'author', 'series', 'genres', 'language', 'status', 'review', 'synopsis'],
+  tagField: 'genres',
+  statusField: 'status',
+
+  // ---- status vocabulary ----
+  statuses: [
+    { value: 'reading',  label: 'Reading',  dot: 'var(--accent,#d8b98f)', glow: '0 0 8px color-mix(in srgb, var(--accent) 70%, transparent)', text: 'var(--accent,#d8b98f)', reelDot: 'var(--accent,#d8b98f)', reelGlow: true },
+    { value: 'finished', label: 'Finished', dot: '#b08a5a', glow: 'none', text: '#948873', reelDot: '#b08a5a' },
+    { value: 'backlog',  label: 'Backlog',  dot: 'transparent', glow: 'inset 0 0 0 1.5px #4a4132', text: '#948873', reelDot: '#948873' },
+    { value: 'paused',   label: 'Paused',   dot: '#8a7a5a', glow: 'none', text: '#948873', reelDot: '#8a7a5a' },
+    { value: 'dropped',  label: 'Dropped',  dot: '#6f6250', glow: 'none', text: '#6b5f4d', reelDot: '#6f6250' },
+  ],
+  defaultStatus: 'backlog',
+
+  statusFilters: [
+    { value: 'all', label: 'All' },
+    { value: 'reading', label: 'Reading' },
+    { value: 'finished', label: 'Finished' },
+    { value: 'backlog', label: 'Backlog' },
+    { value: 'paused', label: 'Paused' },
+    { value: 'dropped', label: 'Dropped' },
+  ],
+
+  // ========================================================================
+  //  TABLE — collapsed columns + expanded detail panel
+  // ========================================================================
+  table: {
+    columns: [
+      { key: 'title',  label: 'Title',  kind: 'text',   width: '1.7fr',  mobileWidth: '1fr', sortable: true, primary: true },
+      { key: 'author', label: 'Author', kind: 'text',   width: '1.3fr',  hideMobile: true, sortable: true, color: 'var(--text2,#d8ccbb)' },
+      { key: 'genres', label: 'Genres', kind: 'tags',   width: '1.2fr',  hideMobile: true },
+      { key: 'status', label: 'Status', kind: 'status', width: '108px',  mobileWidth: '84px', sortable: true },
+      { key: 'pages',  label: 'Pages',  kind: 'num',    width: '64px',   hideMobile: true, right: true, mono: true, unit: 'p', color: '#c3b6a4', sortable: true },
+      { key: 'score',  label: 'Rating', kind: 'score',  width: '58px',   mobileWidth: '50px', right: true, mono: true, sortable: true },
+    ],
+    chevron: { width: '26px', mobileWidth: '22px' },
+  },
+
+  detail: {
+    reviewField: 'review',
+    fields: [
+      { key: 'volume',   label: 'Volume',   kind: 'text', empty: '—' },
+      { key: 'pubYear',  label: 'Published', kind: 'text', empty: '—',
+        searchLink: { url: 'https://www.google.com/search?q={title} {author} publication year', title: 'Search publication year', pulseWhenEmpty: true } },
+      { key: 'language', label: 'Language', kind: 'text', empty: '—' },
+      { key: 'started',  label: 'Started',  kind: 'text', empty: '—' },
+      { key: 'finished', label: 'Finished', kind: 'text', empty: '—' },
+      { key: 'isbn',     label: 'ISBN',     kind: 'text', empty: '—' },
+      { key: 'genres',   label: 'Genres',   kind: 'tags', empty: '—' },
+      { key: 'series',   label: 'Series',   kind: 'text', empty: '—' },
+    ],
+    cornerLink: { field: 'isbn', url: 'https://www.google.com/search?q={title} {author} goodreads', label: 'Goodreads ↗', pulseWhenEmpty: true },
+  },
+
+  // ========================================================================
+  //  MODAL — add/edit form
+  // ========================================================================
+  modal: {
+    titleField: 'title',
+    autoDateField: 'dateAdded',   // stamped with today when adding a new book
+    groups: [
+      { cols: 1, fields: [{ key: 'title', label: 'Title', kind: 'text', placeholder: 'Book title', dupCheck: true }] },
+      { cols: 2, fields: [
+        { key: 'author', label: 'Author', kind: 'text', placeholder: 'Author' },
+        { key: 'series', label: 'Series', kind: 'text', placeholder: 'Series (optional)' },
+      ] },
+      { cols: 3, fields: [
+        { key: 'volume', label: 'Volume #', kind: 'number', min: 0, step: 1 },
+        { key: 'pages', label: 'Pages', kind: 'number', min: 0, step: 1 },
+        { key: 'pubYear', label: 'Published', kind: 'number', min: 1400, max: 2030 },
+      ] },
+      { cols: 1, fields: [{ key: 'status', label: 'Status', kind: 'status' }] },
+      { cols: 2, fields: [
+        { key: 'score', label: 'Rating /10', kind: 'number', min: 0, max: 10, step: 0.5 },
+        { key: 'language', label: 'Language', kind: 'text', placeholder: 'e.g. English' },
+      ] },
+      { cols: 2, fields: [
+        { key: 'started', label: 'Started reading', kind: 'date' },
+        { key: 'finished', label: 'Finished reading', kind: 'date' },
+      ] },
+      { cols: 1, fields: [{ key: 'isbn', label: 'ISBN', kind: 'text', placeholder: 'Enter ISBN to auto-fill…', lookup: {
+        source: 'openlibrary',
+        fill: { title: 'title', author: 'author', pages: 'pages', pubYear: 'pubYear', genres: 'genres' },
+      } }] },
+      { cols: 1, fields: [{ key: 'genres', label: 'Genres', kind: 'tags' }] },
+      { cols: 1, fields: [{ key: 'dateAdded', label: 'Date added', kind: 'date' }] },
+      { cols: 1, fields: [{ key: 'synopsis', label: 'Synopsis (optional)', kind: 'longtext', placeholder: 'What is it about…' }] },
+      { cols: 1, fields: [{ key: 'review', label: 'Mi opinión', kind: 'longtext', placeholder: 'Tus pensamientos sobre el libro…' }] },
+    ],
+    numberFields: ['score', 'pages', 'volume'],
+    yearFields: ['pubYear'],
+    textFields: ['author', 'series', 'isbn', 'language', 'started', 'finished', 'dateAdded', 'synopsis', 'review'],
+  },
+
+  // ========================================================================
+  //  ROULETTE — pick your next read
+  // ========================================================================
+  roulette: {
+    defaultStatus: 'backlog',
+    statusFilters: [ { value: 'backlog', label: 'Backlog' }, { value: 'reading', label: 'Reading' }, { value: 'all', label: 'All' } ],
+    band: {
+      label: 'Length · pages', field: 'pages',
+      options: [
+        { value: 'any', label: 'Any' },
+        { value: 'short', label: '< 300p', max: 300 },
+        { value: 'medium', label: '300–500p', min: 300, max: 500 },
+        { value: 'long', label: '500p+', min: 500 },
+      ],
+    },
+    reelSub: [{ field: 'pages', tpl: '{v}p' }, { field: 'score', tpl: '★ {v}' }],
+    winnerScoreField: 'score',
+    winnerSubField: 'pages', winnerSubSuffix: ' pages',
+    startAction: { field: 'status', value: 'reading', label: 'Start reading', activeLabel: 'Already reading' },
+  },
+
+  // ========================================================================
+  //  STATS
+  // ========================================================================
+  stats: {
+    summary: [
+      { kind: 'count', label: 'Total books' },
+      { kind: 'statusCount', status: 'finished', label: 'Finished', accent: true },
+      { kind: 'statusCount', status: 'reading', label: 'Reading', accent: true },
+      { kind: 'statusCount', status: 'backlog', label: 'Backlog' },
+      { kind: 'sum', field: 'pages', label: 'Pages tracked' },
+      { kind: 'avg', field: 'score', label: 'Avg rating' },
+      { kind: 'completion', status: 'finished', label: 'Completion', accent: true },
+    ],
+    strip: [
+      { kind: 'count', label: 'books' },
+      { kind: 'statusCount', status: 'reading', label: 'reading', accent: true },
+      { kind: 'statusCount', status: 'finished', label: 'finished' },
+      { kind: 'statusCount', status: 'backlog', label: 'backlog' },
+      { kind: 'avg', field: 'score', label: 'avg rating' },
+      { kind: 'completion', status: 'finished', label: 'done' },
+      { kind: 'sum', field: 'pages', label: 'pages' },
+    ],
+    left: [
+      { kind: 'barList', title: 'Highest rated', field: 'score', dir: 'desc', top: 10, podium: true, barColor: 'var(--accent,#d8b98f)', valColor: 'var(--accent,#d8b98f)', scale: 10 },
+      { kind: 'barList', title: 'Longest · pages', field: 'pages', dir: 'desc', top: 8, barColor: '#b08a5a', valColor: '#d8ccbb', suffix: 'p' },
+      { kind: 'histogram', title: 'Rating distribution', field: 'score', buckets: 10 },
+    ],
+    right: [
+      { kind: 'statusDonut', title: 'Library status', center: { status: 'finished', label: 'done' },
+        segments: [
+          { status: 'finished', color: '#b08a5a',               legendColor: '#b08a5a' },
+          { status: 'reading',  color: '{accent}',              legendColor: '{accent}' },
+          { status: 'backlog',  color: 'var(--we)', legendColor: 'var(--wk)' },
+          { status: 'paused',   color: '#6f6250',               legendColor: '#6f6250' },
+          { status: 'dropped',  color: '#453d30',               legendColor: '#453d30' },
+        ] },
+      { kind: 'barList', title: 'Top genres', field: '#genres', top: 8, barColor: 'var(--accent,#d8b98f)', barOpacity: '.85', valColor: '#948873', compact: true },
+      { kind: 'barList', title: 'Languages', field: '#language', top: 6, barColor: '#c3a878', valColor: '#948873', compact: true },
+      { kind: 'byYear', title: 'Published by year', field: 'pubYear' },
+    ],
+    shareModules: [
+      { key: 'summary', label: 'Overview', default: true },
+      { key: 'topRated', label: 'Highest rated', default: true },
+      { key: 'scoreDist', label: 'Rating distribution', default: false },
+      { key: 'status', label: 'Library status', default: true },
+      { key: 'byYear', label: 'Published by year', default: false },
+    ],
+    shareYearField: 'pubYear',
+  },
+};
+
+window.COLLECTION_CONFIGS = window.COLLECTION_CONFIGS || {};
+window.COLLECTION_CONFIGS[window.BOOKS_CONFIG.key] = window.BOOKS_CONFIG;

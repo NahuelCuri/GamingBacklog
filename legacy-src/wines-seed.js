@@ -1,0 +1,13 @@
+// Starter cellar for the Wines collection. Registered into the shared
+// COLLECTION_SEEDS registry so GamesCollection.loadStarter() can seed it.
+window.COLLECTION_SEEDS = window.COLLECTION_SEEDS || {};
+window.COLLECTION_SEEDS.wines = [
+  { id: 'w1', title: 'Catena Zapata Malbec Argentino', winery: 'Catena Zapata', region: 'Mendoza, Argentina', vintage: '2019', aging: 'Gran Reserva', storage: 'Bedroom chest', status: 'cellar', grape: ['Malbec'], pairings: ['Grilled beef', 'Lamb'], awards: '97 pts James Suckling', notes: '' },
+  { id: 'w2', title: 'Marqués de Riscal Reserva', winery: 'Marqués de Riscal', region: 'Rioja, Spain', vintage: '2016', aging: 'Reserva', storage: 'Kitchen', status: 'opened', grape: ['Tempranillo', 'Graciano'], pairings: ['Aged cheese', 'Cured ham'], awards: '', notes: 'Sedoso, con cuero y fruta roja. Muy redondo.' },
+  { id: 'w3', title: 'Cloudy Bay Sauvignon Blanc', winery: 'Cloudy Bay', region: 'Marlborough, New Zealand', vintage: '2022', aging: 'Joven', storage: 'Kitchen', status: 'cellar', grape: ['Sauvignon Blanc'], pairings: ['Oysters', 'Goat cheese', 'Salads'], awards: '', notes: '' },
+  { id: 'w4', title: 'Château Margaux', winery: 'Château Margaux', region: 'Margaux, Bordeaux, France', vintage: '2015', aging: 'Gran Reserva', storage: 'Bedroom chest', status: 'cellar', grape: ['Cabernet Sauvignon', 'Merlot', 'Petit Verdot'], pairings: ['Roast lamb', 'Truffle'], awards: '99 pts Wine Advocate', notes: '' },
+  { id: 'w5', title: 'Kaiken Ultra Cabernet', winery: 'Kaiken', region: 'Mendoza, Argentina', vintage: '2018', aging: 'Crianza', storage: 'Kitchen', status: 'opened', grape: ['Cabernet Sauvignon'], pairings: ['Steak', 'Dark chocolate'], awards: '', notes: 'Taninos firmes, buena relación precio-calidad.' },
+  { id: 'w6', title: 'Veuve Clicquot Brut', winery: 'Veuve Clicquot', region: 'Champagne, France', vintage: '2019', aging: 'Joven', storage: 'Kitchen', status: 'cellar', grape: ['Pinot Noir', 'Chardonnay', 'Pinot Meunier'], pairings: ['Celebration', 'Seafood', 'Fried food'], awards: '', notes: '' },
+  { id: 'w7', title: 'Antinori Tignanello', winery: 'Marchesi Antinori', region: 'Tuscany, Italy', vintage: '2017', aging: 'Reserva', storage: 'Bedroom chest', status: 'cellar', grape: ['Sangiovese', 'Cabernet Sauvignon', 'Cabernet Franc'], pairings: ['Pasta ragù', 'Wild boar'], awards: '96 pts Wine Spectator', notes: '' },
+  { id: 'w8', title: 'Errázuriz Chardonnay', winery: 'Viña Errázuriz', region: 'Aconcagua, Chile', vintage: '2021', aging: 'Joven', storage: 'Kitchen', status: 'opened', grape: ['Chardonnay'], pairings: ['Roast chicken', 'Creamy pasta'], awards: '', notes: 'Fresco, con notas cítricas y un toque de madera.' },
+];

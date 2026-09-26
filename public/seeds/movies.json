@@ -1,0 +1,450 @@
+[
+ {
+  "id": "m1",
+  "title": "Dune: Part Two",
+  "type": "Movie",
+  "status": "completed",
+  "genres": [
+   "Sci-Fi",
+   "Adventure"
+  ],
+  "year": "2024",
+  "runtime": 166,
+  "rating": 9,
+  "imdb": 8.5,
+  "rt": 92,
+  "director": "Denis Villeneuve",
+  "creator": "",
+  "studio": "Legendary",
+  "watchedOn": "Cinema",
+  "finished": "2024-03-10",
+  "cast": [
+   "Timothée Chalamet",
+   "Zendaya",
+   "Rebecca Ferguson"
+  ],
+  "awards": "2 Academy Awards (VFX, Sound)",
+  "notes": "La escala visual es una locura. La verdad que la vi dos veces en el cine.",
+  "dateAdded": "2024-03-02"
+ },
+ {
+  "id": "m2",
+  "title": "Everything Everywhere All at Once",
+  "type": "Movie",
+  "status": "completed",
+  "genres": [
+   "Sci-Fi",
+   "Comedy",
+   "Drama"
+  ],
+  "year": "2022",
+  "runtime": 139,
+  "rating": 10,
+  "imdb": 7.8,
+  "rt": 93,
+  "director": "Daniels",
+  "creator": "",
+  "studio": "A24",
+  "watchedOn": "Home",
+  "finished": "2023-01-15",
+  "cast": [
+   "Michelle Yeoh",
+   "Ke Huy Quan",
+   "Jamie Lee Curtis"
+  ],
+  "awards": "7 Academy Awards incl. Best Picture",
+  "notes": "Caótica y emotiva a la vez. El bagel lo explica todo.",
+  "dateAdded": "2022-12-20"
+ },
+ {
+  "id": "m3",
+  "title": "Oppenheimer",
+  "type": "Movie",
+  "status": "completed",
+  "genres": [
+   "Drama",
+   "History",
+   "Biopic"
+  ],
+  "year": "2023",
+  "runtime": 180,
+  "rating": 8.5,
+  "imdb": 8.3,
+  "rt": 93,
+  "director": "Christopher Nolan",
+  "creator": "",
+  "studio": "Universal",
+  "watchedOn": "Cinema",
+  "finished": "2023-07-22",
+  "cast": [
+   "Cillian Murphy",
+   "Emily Blunt",
+   "Robert Downey Jr."
+  ],
+  "awards": "7 Academy Awards incl. Best Picture",
+  "notes": "Tres horas que se pasan volando. El sonido en IMAX es otra cosa.",
+  "dateAdded": "2023-07-01"
+ },
+ {
+  "id": "m4",
+  "title": "The Bear",
+  "type": "Series",
+  "status": "watching",
+  "genres": [
+   "Drama",
+   "Comedy"
+  ],
+  "year": "2022",
+  "runtime": null,
+  "episodes": 28,
+  "epLength": 32,
+  "seasons": 3,
+  "rating": 9,
+  "imdb": 8.6,
+  "rt": 99,
+  "director": "",
+  "creator": "Christopher Storer",
+  "studio": "FX",
+  "watchedOn": "Home",
+  "finished": "",
+  "cast": [
+   "Jeremy Allen White",
+   "Ayo Edebiri",
+   "Ebon Moss-Bachrach"
+  ],
+  "awards": "10 Emmy Awards",
+  "notes": "La tensión de la cocina se siente real. \"Yes, chef.\"",
+  "dateAdded": "2024-06-01"
+ },
+ {
+  "id": "m5",
+  "title": "Chernobyl",
+  "type": "Mini-series",
+  "status": "completed",
+  "genres": [
+   "Drama",
+   "History",
+   "Thriller"
+  ],
+  "year": "2019",
+  "runtime": null,
+  "episodes": 5,
+  "epLength": 65,
+  "seasons": 1,
+  "rating": 10,
+  "imdb": 9.3,
+  "rt": 96,
+  "director": "",
+  "creator": "Craig Mazin",
+  "studio": "HBO",
+  "watchedOn": "Home",
+  "finished": "2021-08-12",
+  "cast": [
+   "Jared Harris",
+   "Stellan Skarsgård",
+   "Emily Watson"
+  ],
+  "awards": "10 Emmy Awards",
+  "notes": "Impecable. La mejor mini-serie que vi, sin dudas.",
+  "dateAdded": "2021-07-30"
+ },
+ {
+  "id": "m6",
+  "title": "Spirited Away",
+  "type": "Anime",
+  "status": "completed",
+  "genres": [
+   "Fantasy",
+   "Adventure",
+   "Animation"
+  ],
+  "year": "2001",
+  "runtime": 125,
+  "rating": 9.5,
+  "imdb": 8.6,
+  "rt": 97,
+  "director": "Hayao Miyazaki",
+  "creator": "",
+  "studio": "Studio Ghibli",
+  "watchedOn": "Home",
+  "finished": "2022-05-04",
+  "cast": [
+   "Rumi Hiiragi",
+   "Miyu Irino"
+  ],
+  "awards": "Academy Award, Best Animated Feature",
+  "notes": "Un mundo que te absorbe. Ghibli en su punto más alto.",
+  "dateAdded": "2022-04-28"
+ },
+ {
+  "id": "m7",
+  "title": "Arcane",
+  "type": "Anime",
+  "status": "completed",
+  "genres": [
+   "Animation",
+   "Action",
+   "Fantasy"
+  ],
+  "year": "2021",
+  "runtime": null,
+  "episodes": 18,
+  "epLength": 42,
+  "seasons": 2,
+  "rating": 9,
+  "imdb": 9,
+  "rt": 96,
+  "director": "",
+  "creator": "Riot Games",
+  "studio": "Fortiche",
+  "watchedOn": "Home",
+  "finished": "2024-11-23",
+  "cast": [
+   "Hailee Steinfeld",
+   "Ella Purnell",
+   "Kevin Alejandro"
+  ],
+  "awards": "4 Annie Awards, Emmy Award",
+  "notes": "La animación es de otro planeta. No hace falta jugar al juego.",
+  "dateAdded": "2021-11-06"
+ },
+ {
+  "id": "m8",
+  "title": "Poor Things",
+  "type": "Movie",
+  "status": "completed",
+  "genres": [
+   "Comedy",
+   "Drama",
+   "Sci-Fi"
+  ],
+  "year": "2023",
+  "runtime": 141,
+  "rating": 8,
+  "imdb": 7.8,
+  "rt": 92,
+  "director": "Yorgos Lanthimos",
+  "creator": "",
+  "studio": "Searchlight",
+  "watchedOn": "Cinema",
+  "finished": "2024-02-18",
+  "cast": [
+   "Emma Stone",
+   "Mark Ruffalo",
+   "Willem Dafoe"
+  ],
+  "awards": "4 Academy Awards incl. Best Actress",
+  "notes": "Rarísima y hermosa. Emma Stone se la banca toda.",
+  "dateAdded": "2024-02-01"
+ },
+ {
+  "id": "m9",
+  "title": "Shōgun",
+  "type": "Mini-series",
+  "status": "watching",
+  "genres": [
+   "Drama",
+   "History",
+   "Action"
+  ],
+  "year": "2024",
+  "runtime": null,
+  "episodes": 10,
+  "epLength": 58,
+  "seasons": 1,
+  "rating": 9,
+  "imdb": 8.6,
+  "rt": 99,
+  "director": "",
+  "creator": "Rachel Kondo & Justin Marks",
+  "studio": "FX",
+  "watchedOn": "Home",
+  "finished": "",
+  "cast": [
+   "Hiroyuki Sanada",
+   "Cosmo Jarvis",
+   "Anna Sawai"
+  ],
+  "awards": "18 Emmy Awards",
+  "notes": "La ambientación del Japón feudal es impecable. Voy por la mitad.",
+  "dateAdded": "2024-04-10"
+ },
+ {
+  "id": "m10",
+  "title": "Planet Earth II",
+  "type": "Documentary",
+  "status": "completed",
+  "genres": [
+   "Nature",
+   "Documentary"
+  ],
+  "year": "2016",
+  "runtime": null,
+  "episodes": 6,
+  "epLength": 50,
+  "seasons": 1,
+  "rating": 9.5,
+  "imdb": 9.5,
+  "rt": 100,
+  "director": "",
+  "creator": "BBC",
+  "studio": "BBC",
+  "watchedOn": "Home",
+  "finished": "2020-06-15",
+  "cast": [
+   "David Attenborough"
+  ],
+  "awards": "BAFTA, Emmy Awards",
+  "notes": "La secuencia de las iguanas y las serpientes es puro infarto.",
+  "dateAdded": "2020-06-01"
+ },
+ {
+  "id": "m11",
+  "title": "Blade Runner 2049",
+  "type": "Movie",
+  "status": "backlog",
+  "genres": [
+   "Sci-Fi",
+   "Drama",
+   "Mystery"
+  ],
+  "year": "2017",
+  "runtime": 164,
+  "rating": null,
+  "imdb": 8,
+  "rt": 88,
+  "director": "Denis Villeneuve",
+  "creator": "",
+  "studio": "Warner Bros.",
+  "watchedOn": "Home",
+  "finished": "",
+  "cast": [
+   "Ryan Gosling",
+   "Harrison Ford",
+   "Ana de Armas"
+  ],
+  "awards": "2 Academy Awards (Cinematography, VFX)",
+  "notes": "La empecé de noche y me dormí, tengo que retomarla con la cabeza fresca.",
+  "dateAdded": "2023-09-14"
+ },
+ {
+  "id": "m12",
+  "title": "The Substance",
+  "type": "Movie",
+  "status": "backlog",
+  "genres": [
+   "Horror",
+   "Sci-Fi"
+  ],
+  "year": "2024",
+  "runtime": 141,
+  "rating": null,
+  "imdb": 7.3,
+  "rt": 89,
+  "director": "Coralie Fargeat",
+  "creator": "",
+  "studio": "Mubi",
+  "watchedOn": "",
+  "finished": "",
+  "cast": [
+   "Demi Moore",
+   "Margaret Qualley",
+   "Dennis Quaid"
+  ],
+  "awards": "Academy Award, Best Makeup",
+  "notes": "",
+  "dateAdded": "2025-01-05"
+ },
+ {
+  "id": "m13",
+  "title": "Severance",
+  "type": "Series",
+  "status": "backlog",
+  "genres": [
+   "Sci-Fi",
+   "Thriller",
+   "Mystery"
+  ],
+  "year": "2022",
+  "runtime": null,
+  "episodes": 19,
+  "epLength": 50,
+  "seasons": 2,
+  "rating": null,
+  "imdb": 8.7,
+  "rt": 97,
+  "director": "",
+  "creator": "Dan Erickson",
+  "studio": "Apple",
+  "watchedOn": "",
+  "finished": "",
+  "cast": [
+   "Adam Scott",
+   "Britt Lower",
+   "Patricia Arquette"
+  ],
+  "awards": "Emmy Awards",
+  "notes": "",
+  "dateAdded": "2025-02-01"
+ },
+ {
+  "id": "m14",
+  "title": "Parasite",
+  "type": "Movie",
+  "status": "completed",
+  "genres": [
+   "Thriller",
+   "Drama",
+   "Comedy"
+  ],
+  "year": "2019",
+  "runtime": 132,
+  "rating": 9.5,
+  "imdb": 8.5,
+  "rt": 99,
+  "director": "Bong Joon-ho",
+  "creator": "",
+  "studio": "CJ Entertainment",
+  "watchedOn": "Home",
+  "finished": "2020-02-20",
+  "cast": [
+   "Song Kang-ho",
+   "Lee Sun-kyun",
+   "Cho Yeo-jeong"
+  ],
+  "awards": "4 Academy Awards incl. Best Picture",
+  "notes": "La escena de la inundación es de manual. Primera película no inglesa en ganar el Oscar.",
+  "dateAdded": "2020-02-10"
+ },
+ {
+  "id": "m15",
+  "title": "Attack on Titan",
+  "type": "Anime",
+  "status": "dropped",
+  "genres": [
+   "Animation",
+   "Action",
+   "Drama"
+  ],
+  "year": "2013",
+  "runtime": null,
+  "episodes": 89,
+  "epLength": 24,
+  "seasons": 4,
+  "rating": 7,
+  "imdb": 9.1,
+  "rt": 96,
+  "director": "",
+  "creator": "Hajime Isayama",
+  "studio": "Wit / MAPPA",
+  "watchedOn": "Home",
+  "finished": "",
+  "cast": [
+   "Yuki Kaji",
+   "Marina Inoue"
+  ],
+  "awards": "Crunchyroll Anime Awards",
+  "notes": "Arranca increíble pero me perdí en la tercera temporada. Capaz la retomo.",
+  "dateAdded": "2021-03-18"
+ }
+]

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div>
+  <div style="display:grid;grid-template-columns:{{ gridCols }};gap:0;padding:0 12px 9px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600">
+    <sc-for list="{{ headerCells }}" as="h" hint-placeholder-count="6">
+      <div style="text-align:{{ h.align }};display:{{ h.display }};padding-right:{{ h.padRight }}">
+        <sc-if value="{{ h.sortable }}" hint-placeholder-val="{{ true }}"><button onClick="{{ h.onClick }}" aria-label="{{ h.sortLabel }}" style="font:inherit;letter-spacing:inherit;text-transform:inherit;background:none;border:none;padding:0;cursor:pointer;color:{{ h.color }}">{{ h.label }} {{ h.arrow }}</button></sc-if>
+        <sc-if value="{{ h.plain }}" hint-placeholder-val="{{ false }}"><span style="color:{{ h.color }}">{{ h.label }}</span></sc-if>
+      </div>
+    </sc-for>
+    <div></div>
+  </div>
+  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+    <div style="border-radius:9px;overflow:hidden;background:{{ r.rowBg }};margin-bottom:2px">
+      <div onClick="{{ r.onToggle }}" onKeyDown="{{ r.onKey }}" role="button" tabindex="0" aria-expanded="{{ r.expanded }}" aria-label="{{ r.rowLabel }}" style="display:grid;grid-template-columns:{{ gridCols }};gap:0;align-items:center;padding:var(--rowpad,11px) 12px;cursor:pointer;border-bottom:1px solid var(--wc)">
+        <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="6">
+          <div style="display:{{ c.display }};min-width:0;overflow:hidden">
+            <sc-if value="{{ c.isTitle }}" hint-placeholder-val="{{ false }}"><div style="font-weight:500;letter-spacing:-.01em;padding-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.text }}</div></sc-if>
+            <sc-if value="{{ c.isTags }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-wrap:wrap;gap:5px;padding-right:10px;overflow:hidden;max-height:24px"><sc-for list="{{ c.chips }}" as="tc" hint-placeholder-count="2"><button onClick="{{ tc.onClick }}" aria-label="{{ tc.filterLabel }}" style="font:inherit;font-size:11px;color:var(--muted2,#9aa39c);background:var(--chip,#20241f);border:none;border-radius:5px;padding:2px 7px;white-space:nowrap;cursor:pointer">{{ tc.tag }}</button></sc-for></div></sc-if>
+            <sc-if value="{{ c.isStatus }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ c.dot }};box-shadow:{{ c.glow }}"></span><span style="font-size:12px;color:{{ c.text }}">{{ c.label }}</span></div></sc-if>
+            <sc-if value="{{ c.isVal }}" hint-placeholder-val="{{ false }}"><div onClick="{{ c.onClick }}" style="text-align:{{ c.align }};font-family:'JetBrains Mono',monospace;font-size:{{ c.size }};font-weight:{{ c.weight }};color:{{ c.color }};cursor:{{ c.cursor }};padding-right:{{ c.padRight }}">{{ c.text }}</div></sc-if>
+          </div>
+        </sc-for>
+        <div aria-hidden="true" style="text-align:center;color:var(--dim,#59605b);font-size:13px;transition:transform .25s ease;transform:{{ r.chevronRot }}">›</div>
+      </div>
+      <div style="display:grid;grid-template-rows:{{ r.gridRows }};transition:grid-template-rows .28s ease">
+        <div style="overflow:hidden">
+          <div style="display:grid;grid-template-columns:{{ detailGridCols }};gap:26px;padding:16px 14px 20px;position:relative">
+            <div>
+              <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:8px">{{ r.reviewLabel }}</div>
+              <div style="font-size:13px;line-height:1.65;color:{{ r.reviewColor }};font-style:{{ r.reviewStyle }}">{{ r.reviewText }}</div>
+              <div style="display:flex;gap:8px;margin-top:16px">
+                <button onClick="{{ r.onEdit }}" style="font-size:12px;font-weight:600;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border:none;border-radius:7px;padding:7px 14px;cursor:pointer">Edit</button>
+                <button onClick="{{ r.onShare }}" style="font-size:12px;font-weight:600;color:var(--text2,#c8d6cb);background:var(--chip,#20241f);border:1px solid var(--wf);border-radius:7px;padding:7px 14px;cursor:pointer">Share</button>
+                <button onClick="{{ r.onDelete }}" style="font-size:12px;font-weight:600;color:{{ r.delColor }};background:{{ r.delBg }};border:1px solid {{ r.delBorder }};border-radius:7px;padding:7px 14px;cursor:pointer">{{ r.delLabel }}</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px 16px;align-content:start;font-family:'JetBrains Mono',monospace">
+              <sc-for list="{{ r.detailFields }}" as="f" hint-placeholder-count="5">
+                <div>
+                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px"><span style="font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim,#59605b)">{{ f.label }}</span><sc-if value="{{ f.hasLink }}" hint-placeholder-val="{{ false }}"><a href="{{ f.linkUrl }}" target="_blank" rel="noopener" onClick="{{ stop }}" title="{{ f.linkTitle }}" style="display:inline-flex;align-items:center;color:{{ f.iconColor }};cursor:pointer;line-height:0;animation:{{ f.iconAnim }}"><svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"></path></svg></a></sc-if></div>
+                  <div style="font-size:12.5px;color:var(--text2,#c8d6cb)">{{ f.value }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ r.cornerLink.show }}" hint-placeholder-val="{{ false }}"><a href="{{ r.cornerLink.url }}" target="_blank" rel="noopener" onClick="{{ stop }}" style="position:absolute;right:14px;bottom:14px;font-size:10px;font-weight:500;color:{{ r.cornerLink.color }};background:transparent;border:1px solid {{ r.cornerLink.border }};border-radius:6px;padding:4px 9px;cursor:pointer;white-space:nowrap;animation:{{ r.cornerLink.anim }}">{{ r.cornerLink.label }}</a></sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+  <sc-if value="{{ more.show }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ more.onMore }}" style="width:100%;margin-top:8px;padding:12px;border-radius:9px;cursor:pointer;border:1px dashed var(--wj);background:none;color:var(--muted,#8b938d);font-size:12.5px;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums">Showing {{ more.shown }} of {{ more.total }} · load {{ more.remaining }} more</button>
+  </sc-if>
+  <sc-if value="{{ ledger.limited }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ ledger.onLoadAll }}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;padding:13px;border-radius:9px;cursor:pointer;border:1px dashed var(--wj);background:none;color:var(--muted,#8b938d);font-size:12.5px;font-family:'JetBrains Mono',monospace">Showing {{ ledger.label }} · <span style="color:var(--accent,#8ecfd6)">Load all {{ ledger.total }} transactions</span> <span style="color:var(--dim,#59605b)">({{ ledger.hidden }} more)</span> →</button>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:600},&quot;d&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any&quot;}}">
+class Component extends DCLogic {
+  // Presentational only — the collection builds every value via CollectionLib.buildTable.
+  renderVals() { return this.props.d || {}; }
+}
+</script>
+</body>
+</html>

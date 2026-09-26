@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>@keyframes dpop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition:none!important}}</style></helmet>
+<div style="position:relative;width:100%;font-family:inherit">
+  <button onClick="{{ toggle }}" aria-haspopup="dialog" aria-expanded="{{ expanded }}" aria-label="{{ triggerLabel }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--inset,#0f110f);border:1px solid {{ triggerBorder }};border-radius:9px;padding:10px 12px;color:{{ triggerColor }};font-size:14px;font-family:'JetBrains Mono',monospace;cursor:pointer;user-select:none;transition:border-color .15s" style-hover="border-color:color-mix(in srgb, var(--accent) 55%, var(--wh))">
+    <span>{{ label }}</span>
+    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="var(--muted,#8b938d)" stroke-width="2" stroke-linecap="round" style="flex:none"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+  </button>
+
+  <sc-if value="{{ open }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ close }}" aria-hidden="true" style="position:fixed;inset:0;z-index:60"></div>
+    <div ref="{{ popRef }}" role="dialog" aria-modal="false" aria-label="{{ dialogLabel }}" onKeyDown="{{ onDialogKey }}" style="position:absolute;top:calc(100% + 8px);left:0;z-index:61;width:280px;max-width:calc(100vw - 40px);background:var(--card,#141614);border:1px solid var(--wi);border-radius:13px;box-shadow:0 18px 50px rgba(0,0,0,.55);padding:14px;animation:dpop .14s ease;overscroll-behavior:contain">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <button onClick="{{ prevArrow }}" aria-label="{{ prevLabel }}" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;border-radius:8px;cursor:pointer;color:var(--text2,#c8d6cb);background:var(--chip,#20241f)" style-hover="background:color-mix(in srgb, var(--accent) 18%, var(--chip,#20241f))">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+        </button>
+        <button onClick="{{ cycleView }}" aria-label="{{ cycleLabel }}" style="font:inherit;font-size:14px;font-weight:700;letter-spacing:.01em;color:var(--text,#e8ebe8);background:none;border:none;cursor:pointer;padding:4px 10px;border-radius:8px" style-hover="background:color-mix(in srgb, var(--accent) 14%, transparent)">{{ headerLabel }}</button>
+        <button onClick="{{ nextArrow }}" aria-label="{{ nextLabel }}" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;border-radius:8px;cursor:pointer;color:var(--text2,#c8d6cb);background:var(--chip,#20241f)" style-hover="background:color-mix(in srgb, var(--accent) 18%, var(--chip,#20241f))">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
+        </button>
+      </div>
+      <sc-if value="{{ isDays }}" hint-placeholder-val="{{ true }}">
+        <div role="grid" aria-label="{{ headerLabel }}">
+          <div role="row" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+            <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7">
+              <div role="columnheader" aria-label="{{ w.full }}" style="text-align:center;font-size:10px;letter-spacing:.05em;font-weight:600;text-transform:uppercase;color:var(--dim,#59605b);padding:4px 0">{{ w.short }}</div>
+            </sc-for>
+          </div>
+          <sc-for list="{{ weeks }}" as="wk" hint-placeholder-count="6">
+            <div role="row" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px">
+              <sc-for list="{{ wk.cells }}" as="c" hint-placeholder-count="7">
+                <button role="gridcell" onClick="{{ c.onClick }}" data-iso="{{ c.iso }}" tabindex="{{ c.tabIndex }}" aria-selected="{{ c.selected }}" aria-current="{{ c.current }}" aria-label="{{ c.fullLabel }}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:'JetBrains Mono',monospace;border-radius:8px;cursor:pointer;color:{{ c.color }};background:{{ c.bg }};border:1px solid {{ c.border }};transition:background .12s" style-hover="background:{{ c.hoverBg }}">{{ c.day }}</button>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isMonths }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          <sc-for list="{{ monthCells }}" as="c" hint-placeholder-count="12">
+            <button onClick="{{ c.onClick }}" aria-pressed="{{ c.pressed }}" style="font:inherit;height:46px;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:'JetBrains Mono',monospace;border:none;border-radius:9px;cursor:pointer;color:{{ c.color }};background:{{ c.bg }};transition:background .12s" style-hover="background:{{ c.hoverBg }}">{{ c.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isYears }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          <sc-for list="{{ yearCells }}" as="c" hint-placeholder-count="12">
+            <button onClick="{{ c.onClick }}" aria-pressed="{{ c.pressed }}" style="font:inherit;height:46px;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:'JetBrains Mono',monospace;border:none;border-radius:9px;cursor:pointer;color:{{ c.color }};background:{{ c.bg }};transition:background .12s" style-hover="background:{{ c.hoverBg }}">{{ c.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:11px;border-top:1px solid var(--we)">
+        <button onClick="{{ clear }}" style="font:inherit;font-size:12px;font-weight:600;color:var(--muted,#8b938d);background:none;border:none;padding:0;cursor:pointer">Clear</button>
+        <button onClick="{{ pickToday }}" style="font:inherit;font-size:12px;font-weight:700;color:var(--accent,#9ce6b0);background:none;border:none;padding:0;cursor:pointer">Today</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:420},&quot;value&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;placeholder&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Select a date&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(iso: string) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { open: false, vy: null, vm: null, view: 'days', focusIso: null };
+  pop = React.createRef();
+
+  // All human-readable labels come from Intl with the user's locale.
+  fmtLong = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  fmtFull = new Intl.DateTimeFormat(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  fmtMonthYear = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long' });
+  fmtMonthShort = new Intl.DateTimeFormat(undefined, { month: 'short' });
+  fmtWdShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+  fmtWdLong = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
+
+  parse(v) {
+    if (!v || typeof v !== 'string') return null;
+    const m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    return { y: +m[1], mo: +m[2] - 1, d: +m[3] };
+  }
+  pad(n) { return String(n).padStart(2, '0'); }
+  iso(y, mo, d) { return y + '-' + this.pad(mo + 1) + '-' + this.pad(d); }
+  isoOf(dt) { return this.iso(dt.getFullYear(), dt.getMonth(), dt.getDate()); }
+  dateOf(iso) { const p = this.parse(iso); return p ? new Date(p.y, p.mo, p.d) : new Date(); }
+
+  toggle = () => {
+    this.setState(s => {
+      if (s.open) return { open: false };
+      const p = this.parse(this.props.value);
+      const t = new Date();
+      const y = p ? p.y : t.getFullYear(), mo = p ? p.mo : t.getMonth();
+      return { open: true, vy: y, vm: mo, view: 'days', focusIso: p ? this.props.value : this.isoOf(t) };
+    });
+  };
+  close = (restore) => {
+    this.setState({ open: false, view: 'days' });
+    if (restore !== false && this.pop.current) {
+      const trigger = this.pop.current.parentNode.querySelector('button');
+      trigger && trigger.focus();
+    }
+  };
+  closeScrim = () => this.close(false);
+  cycleView = () => this.setState(s => ({ view: s.view === 'days' ? 'months' : (s.view === 'months' ? 'years' : 'days') }));
+  prevArrow = () => this.setState(s => {
+    if (s.view === 'days') { let m = s.vm - 1, y = s.vy; if (m < 0) { m = 11; y--; } return { vm: m, vy: y }; }
+    if (s.view === 'months') return { vy: s.vy - 1 };
+    return { vy: s.vy - 12 };
+  });
+  nextArrow = () => this.setState(s => {
+    if (s.view === 'days') { let m = s.vm + 1, y = s.vy; if (m > 11) { m = 0; y++; } return { vm: m, vy: y }; }
+    if (s.view === 'months') return { vy: s.vy + 1 };
+    return { vy: s.vy + 12 };
+  });
+  pickMonth = (mo) => this.setState({ vm: mo, view: 'days' });
+  pickYear = (y) => this.setState({ vy: y, view: 'months' });
+
+  pick(iso) { if (this.props.onChange) this.props.onChange(iso); this.close(); }
+  clear = () => this.pick('');
+  pickToday = () => { const t = new Date(); this.pick(this.isoOf(t)); };
+
+  moveFocus(days, months) {
+    this.setState(s => {
+      const base = this.dateOf(s.focusIso);
+      if (months) base.setMonth(base.getMonth() + months);
+      if (days) base.setDate(base.getDate() + days);
+      return { focusIso: this.isoOf(base), vy: base.getFullYear(), vm: base.getMonth() };
+    }, () => { this.shouldFocus = true; this.focusCell(); });
+  }
+  focusCell() {
+    const root = this.pop.current; if (!root) return;
+    const el = root.querySelector('[data-iso="' + this.state.focusIso + '"]');
+    el && el.focus();
+  }
+  onDialogKey = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.close(); return; }
+    if (this.state.view !== 'days') return;
+    const k = e.key;
+    if (k === 'ArrowLeft') { e.preventDefault(); this.moveFocus(-1); }
+    else if (k === 'ArrowRight') { e.preventDefault(); this.moveFocus(1); }
+    else if (k === 'ArrowUp') { e.preventDefault(); this.moveFocus(-7); }
+    else if (k === 'ArrowDown') { e.preventDefault(); this.moveFocus(7); }
+    else if (k === 'PageUp') { e.preventDefault(); this.moveFocus(0, -1); }
+    else if (k === 'PageDown') { e.preventDefault(); this.moveFocus(0, 1); }
+    else if (k === 'Home') { e.preventDefault(); const d = this.dateOf(this.state.focusIso); this.moveFocus(1 - d.getDate()); }
+    else if (k === 'End') { e.preventDefault(); const d = this.dateOf(this.state.focusIso); this.moveFocus(new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() - d.getDate()); }
+  };
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.open && !prevState.open) setTimeout(() => this.focusCell(), 20);
+  }
+
+  renderVals() {
+    const p = this.parse(this.props.value);
+    const label = p ? this.fmtLong.format(new Date(p.y, p.mo, p.d)) : (this.props.placeholder || 'Select a date');
+    const vy = this.state.vy, vm = this.state.vm;
+    const now = new Date();
+    const todayIso = this.isoOf(now);
+    const acc = 'var(--accent,#9ce6b0)';
+    const view = this.state.view;
+
+    const weekdays = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(2024, 8, 1 + i); // Sun Sep 1 2024 → Sun..Sat
+      weekdays.push({ short: this.fmtWdShort.format(d), full: this.fmtWdLong.format(d) });
+    }
+
+    const weeks = [];
+    if (this.state.open && vy != null && view === 'days') {
+      const firstDow = new Date(vy, vm, 1).getDay();
+      for (let w = 0; w < 6; w++) {
+        const cells = [];
+        for (let i = 0; i < 7; i++) {
+          const dt = new Date(vy, vm, w * 7 + i - firstDow + 1);
+          const iso = this.isoOf(dt);
+          const other = dt.getMonth() !== vm;
+          const selected = !!p && iso === this.props.value;
+          const isToday = iso === todayIso;
+          cells.push({
+            day: dt.getDate(), iso, fullLabel: this.fmtFull.format(dt),
+            tabIndex: iso === this.state.focusIso ? 0 : -1,
+            selected: selected ? 'true' : 'false', current: isToday ? 'date' : 'false',
+            onClick: () => this.pick(iso),
+            color: selected ? 'var(--bg,#0d0f0e)' : (other ? 'var(--dim,#59605b)' : 'var(--text,#e8ebe8)'),
+            bg: selected ? acc : 'transparent',
+            border: (isToday && !selected) ? '1px solid color-mix(in srgb, var(--accent) 55%, transparent)' : '1px solid transparent',
+            hoverBg: selected ? acc : 'color-mix(in srgb, var(--accent) 16%, transparent)',
+          });
+        }
+        weeks.push({ cells });
+      }
+    }
+
+    const cellVals = (label, active, onClick) => ({
+      label, onClick, pressed: active ? 'true' : 'false',
+      color: active ? 'var(--bg,#0d0f0e)' : 'var(--text,#e8ebe8)',
+      bg: active ? acc : 'transparent',
+      hoverBg: active ? acc : 'color-mix(in srgb, var(--accent) 16%, transparent)',
+    });
+
+    let monthCells = [], yearCells = [], headerLabel = '';
+    if (this.state.open && vy != null) {
+      if (view === 'days') headerLabel = this.fmtMonthYear.format(new Date(vy, vm, 1));
+      else if (view === 'months') {
+        headerLabel = String(vy);
+        for (let i = 0; i < 12; i++) monthCells.push(cellVals(this.fmtMonthShort.format(new Date(vy, i, 1)), !!p && p.y === vy && p.mo === i, () => this.pickMonth(i)));
+      } else {
+        const start = vy - (vy % 12);
+        headerLabel = start + ' – ' + (start + 11);
+        for (let i = 0; i < 12; i++) { const y = start + i; yearCells.push(cellVals(String(y), !!p && p.y === y, () => this.pickYear(y))); }
+      }
+    }
+
+    const unit = view === 'days' ? 'month' : (view === 'months' ? 'year' : '12 years');
+    return {
+      open: this.state.open, label, expanded: this.state.open ? 'true' : 'false',
+      triggerLabel: (this.props.placeholder || 'Date') + ': ' + (p ? label : 'none selected'),
+      dialogLabel: 'Choose a date',
+      triggerColor: p ? 'var(--text,#e8ebe8)' : 'var(--dim,#59605b)',
+      triggerBorder: this.state.open ? 'color-mix(in srgb, var(--accent) 60%, transparent)' : 'var(--wh)',
+      headerLabel, popRef: this.pop, onDialogKey: this.onDialogKey,
+      prevLabel: 'Previous ' + unit, nextLabel: 'Next ' + unit,
+      cycleLabel: headerLabel + ' — switch to ' + (view === 'days' ? 'month' : (view === 'months' ? 'year' : 'day')) + ' view',
+      isDays: view === 'days', isMonths: view === 'months', isYears: view === 'years',
+      weekdays, weeks, monthCells, yearCells,
+      toggle: this.toggle, close: this.closeScrim,
+      cycleView: this.cycleView, prevArrow: this.prevArrow, nextArrow: this.nextArrow,
+      clear: this.clear, pickToday: this.pickToday,
+    };
+  }
+}
+</script>
+</body>
+</html>

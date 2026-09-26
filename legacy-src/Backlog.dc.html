@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="8c8ae6a9-79fd-4faa-a761-ee81308058c3"></script>
+</head>
+<body>
+
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<style>/* cyrillic-ext */
+/* vietnamese */
+/* latin-ext */
+/* latin */
+/* cyrillic-ext */
+/* vietnamese */
+/* latin-ext */
+/* latin */
+/* cyrillic-ext */
+/* vietnamese */
+/* latin-ext */
+/* latin */
+/* cyrillic-ext */
+/* vietnamese */
+/* latin-ext */
+/* latin */
+/* cyrillic-ext */
+/* cyrillic */
+/* greek */
+/* vietnamese */
+/* latin-ext */
+/* latin */
+/* cyrillic-ext */
+/* cyrillic */
+/* greek */
+/* vietnamese */
+/* latin-ext */
+/* latin */
+/* cyrillic-ext */
+/* cyrillic */
+/* greek */
+/* vietnamese */
+/* latin-ext */
+/* latin */
+</style>
+<script src="d4683cf3-2b6a-4ae8-b8e2-608e59bc0f18"></script>
+<script src="d3634a0b-a981-4fe2-bc9d-256f473644be"></script>
+<script src="9d741160-dc4e-4009-b1b8-a9d2a16534d6"></script>
+<script src="cca6005b-a034-4451-a726-9bc394cd1dc9"></script>
+<script src="1f53b3f2-7ee0-4744-9cb9-b4ca5e724108"></script>
+<script src="f4abc200-8107-4a01-b3a5-97d466f80168"></script>
+<script src="d193ede6-dc70-4b02-affa-434a64f412b5"></script>
+<script src="2f6df631-8ed3-4394-a09c-e34e6fcf59d5"></script>
+<script src="b4e847fd-3156-4fc4-ac6d-49f8fe24962f"></script>
+<script src="9f72c247-c564-4748-b5f9-1ca47c2da2ff"></script>
+<script src="6ac3f7c3-2dbd-465f-9268-60ddb3f80e36"></script>
+<script src="189bbe37-bc9e-4cc4-a97a-e54848186ae1"></script>
+<script src="006b1e30-a3f1-4010-943d-f6a0c19e4308"></script>
+<script src="ba8291ec-c613-461d-a3cd-4b31c38e41e2"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg,#0d0f0e)}
+  body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--text,#e8ebe8)}
+  a{color:var(--accent,#9ce6b0);text-decoration:none}
+  a:hover{color:var(--accent2,#c2e6cd)}
+  input,textarea,select,button{font-family:inherit}
+  input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent,#9ce6b0);outline-offset:1px;border-color:var(--accent,#9ce6b0)!important}
+  :focus-visible{outline:2px solid var(--accent,#9ce6b0);outline-offset:2px}
+  button,[role=button],[role=tab],a,label,summary,input,select,textarea{touch-action:manipulation}
+  ::placeholder{color:var(--dim,#59605b)}
+  ::selection{background:color-mix(in srgb, var(--accent) 25%, transparent)}
+  input[type=date]::-webkit-calendar-picker-indicator{filter:var(--dateInvert,invert(.7))}
+  .g-scroll::-webkit-scrollbar{width:10px;height:10px}
+  .g-scroll::-webkit-scrollbar-thumb{background:#2a302c;border-radius:6px;border:2px solid var(--bg,#0d0f0e)}
+  @keyframes gfade{from{opacity:0}to{opacity:1}}
+  @keyframes gpop{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+  @keyframes gpulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+  @keyframes gpulsebtn{0%,100%{opacity:.55;box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent)}50%{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent)}}
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</helmet>
+
+<div style="--accent:{{ accentVar }};min-height:100dvh;background:var(--bg,#0d0f0e);color:var(--text,#e8ebe8)">
+
+<!-- ===== AUTH GATE ===== -->
+<sc-if value="{{ authLoading }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--dim,#59605b);font-family:'JetBrains Mono',monospace;font-size:13px">loading…</div>
+</sc-if>
+
+<sc-if value="{{ configMissing }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:440px;max-width:100%;background:var(--surface,#121412);border:1px solid var(--wf);border-radius:16px;padding:28px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:10px">Connect Supabase</div>
+      <div style="font-size:13px;line-height:1.65;color:var(--muted,#8b938d)">Paste your Supabase project URL and anon key into <span style="font-family:'JetBrains Mono',monospace;color:var(--text2,#c8d6cb)">SUPA_URL</span> / <span style="font-family:'JetBrains Mono',monospace;color:var(--text2,#c8d6cb)">SUPA_KEY</span> in the code to enable login and cloud sync.</div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showAuth }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:380px;max-width:100%;background:var(--surface,#121412);border:1px solid var(--wf);border-radius:16px;padding:30px 28px 26px">
+      <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:4px">
+        <span data-no-i18n="" style="font-size:20px;font-weight:700;letter-spacing:-.02em">Backlog</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim,#59605b)">// games</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted,#8b938d);margin-bottom:22px">{{ authSubtitle }}</div>
+      <form sc-camel-on-submit="{{ onAuthSubmit }}">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:7px">Email</div>
+        <input value="{{ authEmail }}" sc-camel-on-input="{{ onAuthEmail }}" type="email" autocomplete="email" placeholder="you@example.com" style="width:100%;background:var(--inset,#0f110f);border:1px solid var(--wh);border-radius:9px;padding:10px 12px;color:var(--text,#e8ebe8);font-size:14px;margin-bottom:15px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:7px">Password</div>
+        <input value="{{ authPassword }}" sc-camel-on-input="{{ onAuthPassword }}" type="password" autocomplete="current-password" placeholder="••••••••" style="width:100%;background:var(--inset,#0f110f);border:1px solid var(--wh);border-radius:9px;padding:10px 12px;color:var(--text,#e8ebe8);font-size:14px;margin-bottom:2px">
+        <sc-if value="{{ hasAuthError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;line-height:1.5;color:#d98f8f;margin:10px 0 2px">{{ authError }}</div></sc-if>
+        <button type="submit" style="width:100%;margin-top:16px;font-size:14px;font-weight:700;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border:none;border-radius:10px;padding:12px;cursor:pointer;opacity:{{ authBtnOpacity }}">{{ authBtnLabel }}</button>
+      </form>
+      <div style="text-align:center;font-size:12.5px;color:var(--muted,#8b938d);margin-top:18px">{{ authToggleText }} <span sc-camel-on-click="{{ toggleAuthMode }}" style="color:var(--accent,#9ce6b0);cursor:pointer;font-weight:600">{{ authToggleLink }}</span></div>
+    </div>
+  </div>
+</sc-if>
+
+<!-- ===== LIBRARY PICKER (post-login home) ===== -->
+<sc-if value="{{ showPicker }}" hint-placeholder-val="{{ false }}">
+  <div style="position:relative;min-height:100vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="position:fixed;inset:0;pointer-events:none;background:{{ washBg }};clip-path:{{ washClip }};transition:clip-path .6s cubic-bezier(.22,1,.36,1),background .3s ease"></div>
+    <div style="position:relative;display:flex;align-items:center;gap:10px;padding:18px 22px">
+      <span data-no-i18n="" style="font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--text,#e8ebe8)">Backlog</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ pickerAccent }};transition:color .3s">// choose a library</span>
+      <div style="flex:1"></div>
+      <div sc-camel-on-click="{{ onOpenSettings }}" title="Settings &amp; admin" style="display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted,#8b938d);max-width:230px;cursor:pointer;padding:6px 11px;border-radius:8px;background:var(--topchip,#151816);border:1px solid {{ signOutBorder }};transition:color .25s,border-color .25s,background .25s" style-hover="color:{{ pickerTitle }};border-color:{{ pickerAccent }}">
+        <svg width="13" height="13" sc-camel-view-box="0 0 24 24" style="flex-shrink:0"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="none" stroke="currentColor" stroke-width="1.9"></path><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.6"></path></svg>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ userEmail }}</span>
+      </div>
+      <div sc-camel-on-click="{{ onSignOut }}" title="Sign out" style="font-size:12px;color:{{ pickerTitle }};cursor:pointer;padding:7px 10px;border-radius:7px;background:var(--topchip,#151816);border:1px solid {{ signOutBorder }};transition:color .3s,border-color .3s">Sign out</div>
+    </div>
+    <div style="position:relative;flex:1;display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="width:100%;max-width:760px">
+        <div style="font-size:13px;font-family:'JetBrains Mono',monospace;color:{{ pickerAccent }};margin-bottom:6px;transition:color .25s">// what are we tracking today</div>
+        <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:22px">Choose a library</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(166px,1fr));gap:14px">
+
+          <sc-if value="{{ showGamesCard }}" hint-placeholder-val="{{ true }}">
+          <div sc-camel-on-mouse-enter="{{ enterGames }}" sc-camel-on-mouse-leave="{{ leaveCard }}" sc-camel-on-click="{{ onPickGames }}" style="cursor:pointer;background:var(--card,#141614);border:1px solid {{ gBorder }};border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:14px;transform:{{ gTransform }};transition:border-color .25s,transform .2s">
+            <div style="width:44px;height:44px;border-radius:11px;background:{{ gIconBg }};display:flex;align-items:center;justify-content:center;color:#9ce6b0;filter:{{ gFilter }};transition:filter .25s,background .25s"><svg width="23" height="23" sc-camel-view-box="0 0 24 24" style="display:block"><path d="M8 8.5h8a4.5 4.5 0 0 1 4.4 3.6l.8 4.3a2.4 2.4 0 0 1-4.3 1.9L15.6 16H8.4l-1.1 2.3a2.4 2.4 0 0 1-4.3-1.9l.8-4.3A4.5 4.5 0 0 1 8 8.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M6.4 11.6v3M4.9 13.1h3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="16.4" cy="12.4" r="1.15" fill="currentColor"></circle><circle cx="18.2" cy="14.2" r="1.15" fill="currentColor"></circle></svg></div>
+            <div>
+              <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">Games</div>
+              <div style="font-size:12px;color:var(--muted,#8b938d);margin-top:3px">Your backlog, stats &amp; roulette</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ gCta }};margin-top:auto;transition:color .25s">Open →</div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showBooksCard }}" hint-placeholder-val="{{ true }}">
+          <div sc-camel-on-mouse-enter="{{ enterBooks }}" sc-camel-on-mouse-leave="{{ leaveCard }}" sc-camel-on-click="{{ onPickBooks }}" style="cursor:pointer;background:var(--card,#141614);border:1px solid {{ bBorder }};border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:14px;transform:{{ bTransform }};transition:border-color .25s,transform .2s">
+            <div style="width:44px;height:44px;border-radius:11px;background:{{ bIconBg }};display:flex;align-items:center;justify-content:center;color:#d8b98f;filter:{{ bFilter }};transition:filter .25s,background .25s"><svg width="23" height="23" sc-camel-view-box="0 0 24 24" style="display:block"><path d="M12 6.3C10 4.9 7.3 4.6 4.8 5.4v11.9c2.5-.8 5.2-.5 7.2.9 2-1.4 4.7-1.7 7.2-.9V5.4c-2.5-.8-5.2-.5-7.2.9z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 6.3v13.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+            <div>
+              <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">Books</div>
+              <div style="font-size:12px;color:var(--muted,#8b938d);margin-top:3px">Reading list, stats &amp; roulette</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ bCta }};margin-top:auto;transition:color .25s">Open →</div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showWinesCard }}" hint-placeholder-val="{{ true }}">
+          <div sc-camel-on-mouse-enter="{{ enterWines }}" sc-camel-on-mouse-leave="{{ leaveCard }}" sc-camel-on-click="{{ onPickWines }}" style="cursor:pointer;background:var(--card,#141614);border:1px solid {{ wBorder }};border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:14px;transform:{{ wTransform }};transition:border-color .25s,transform .2s">
+            <div style="width:44px;height:44px;border-radius:11px;background:{{ wIconBg }};display:flex;align-items:center;justify-content:center;color:#c6a9d6;filter:{{ wFilter }};transition:filter .25s,background .25s"><svg width="23" height="23" sc-camel-view-box="0 0 24 24" style="display:block"><path d="M10 3.5h4v3.1l1.5 3.1c.3.6.5 1.3.5 2v7.3a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 19v-7.3c0-.7.2-1.4.5-2L10 6.6V3.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M8 14.2h8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+            <div>
+              <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">Wines</div>
+              <div style="font-size:12px;color:var(--muted,#8b938d);margin-top:3px">Cellar &amp; tasting notes</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ wCta }};margin-top:auto;transition:color .25s">Open →</div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showMoviesCard }}" hint-placeholder-val="{{ true }}">
+          <div sc-camel-on-mouse-enter="{{ enterMovies }}" sc-camel-on-mouse-leave="{{ leaveCard }}" sc-camel-on-click="{{ onPickMovies }}" style="cursor:pointer;background:var(--card,#141614);border:1px solid {{ mvBorder }};border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:14px;transform:{{ mvTransform }};transition:border-color .25s,transform .2s">
+            <div style="width:44px;height:44px;border-radius:11px;background:{{ mvIconBg }};display:flex;align-items:center;justify-content:center;color:#a9aee0;filter:{{ mvFilter }};transition:filter .25s,background .25s"><svg width="23" height="23" sc-camel-view-box="0 0 24 24" style="display:block"><path d="M3.6 11.3h16.8v6.6a1.4 1.4 0 0 1-1.4 1.4H5a1.4 1.4 0 0 1-1.4-1.4z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path><path d="M4 11.1 18.6 6l.5-2.1L4.5 9z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path><path d="M9 9.4 9.5 7.3M13 8l.5-2.1" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg></div>
+            <div>
+              <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">Movies</div>
+              <div style="font-size:12px;color:var(--muted,#8b938d);margin-top:3px">Watchlist, stats &amp; roulette</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ mvCta }};margin-top:auto;transition:color .25s">Open →</div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showExpensesCard }}" hint-placeholder-val="{{ true }}">
+          <div sc-camel-on-mouse-enter="{{ enterExpenses }}" sc-camel-on-mouse-leave="{{ leaveCard }}" sc-camel-on-click="{{ onPickExpenses }}" style="cursor:pointer;background:var(--card,#141614);border:1px solid {{ eBorder }};border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:14px;transform:{{ eTransform }};transition:border-color .25s,transform .2s">
+            <div style="width:44px;height:44px;border-radius:11px;background:{{ eIconBg }};display:flex;align-items:center;justify-content:center;color:#8ecfd6;filter:{{ eFilter }};transition:filter .25s,background .25s"><svg width="23" height="23" sc-camel-view-box="0 0 24 24" style="display:block"><rect x="3.5" y="6.5" width="17" height="12" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.9"></rect><path d="M3.5 10h17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path><circle cx="16.5" cy="14.4" r="1.3" fill="currentColor"></circle></svg></div>
+            <div>
+              <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">Expenses</div>
+              <div style="font-size:12px;color:var(--muted,#8b938d);margin-top:3px">Transactions, months &amp; stats</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ eCta }};margin-top:auto;transition:color .25s">Open →</div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showTripsCard }}" hint-placeholder-val="{{ true }}">
+          <div sc-camel-on-mouse-enter="{{ enterTrips }}" sc-camel-on-mouse-leave="{{ leaveCard }}" sc-camel-on-click="{{ onPickTrips }}" style="cursor:pointer;background:var(--card,#141614);border:1px solid {{ tpBorder }};border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:14px;transform:{{ tpTransform }};transition:border-color .25s,transform .2s">
+            <div style="width:44px;height:44px;border-radius:11px;background:{{ tpIconBg }};display:flex;align-items:center;justify-content:center;color:#8ed6cf;filter:{{ tpFilter }};transition:filter .25s,background .25s"><svg width="23" height="23" sc-camel-view-box="0 0 24 24" style="display:block"><path d="M12 21c4.2-4.2 6.3-7.6 6.3-10.5a6.3 6.3 0 0 0-12.6 0C5.7 13.4 7.8 16.8 12 21z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path><circle cx="12" cy="10.4" r="2.3" fill="none" stroke="currentColor" stroke-width="1.9"></circle></svg></div>
+            <div>
+              <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">Trips</div>
+              <div style="font-size:12px;color:var(--muted,#8b938d);margin-top:3px">Research &amp; itinerary planning</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ tpCta }};margin-top:auto;transition:color .25s">Open →</div>
+          </div>
+          </sc-if>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showTrips }}" hint-placeholder-val="{{ false }}">
+<dc-import name="Trip Planner" sb="{{ sbClient }}" uid="{{ uid }}" user-email="{{ userEmail }}" on-sign-out="{{ onSignOut }}" on-home="{{ onHome }}" on-switch="{{ onSwitch }}" on-open-settings="{{ onOpenSettings }}" enabled-libs="{{ enabledLibs }}" active-collection="{{ activeCollection }}" hint-size="100%,100%"></dc-import>
+</sc-if>
+
+<sc-if value="{{ showCollection }}" hint-placeholder-val="{{ false }}">
+<dc-import name="GamesCollection" sb="{{ sbClient }}" uid="{{ uid }}" user-email="{{ userEmail }}" on-sign-out="{{ onSignOut }}" on-home="{{ onHome }}" on-switch="{{ onSwitch }}" on-open-settings="{{ onOpenSettings }}" enabled-libs="{{ enabledLibs }}" active-collection="{{ activeCollection }}" accent="{{ accent }}" density="{{ density }}" default-view="{{ defaultView }}" theme-mode="{{ themeMode }}" hint-size="100%,100%"></dc-import>
+</sc-if>
+
+<!-- ===== SETTINGS ===== -->
+<sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+  <div sc-camel-on-click="{{ closeSettings }}" style="position:fixed;inset:0;z-index:500;background:rgba(5,6,5,.66);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;animation:gfade .18s ease">
+    <div sc-camel-on-click="{{ stopSettings }}" style="width:470px;max-width:100%;max-height:88vh;overflow-y:auto;background:var(--surface,#121412);border:1px solid var(--wg);border-radius:16px;padding:26px 26px 22px;animation:gpop .22s cubic-bezier(.22,1,.36,1)">
+      <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:4px">
+        <span style="font-size:18px;font-weight:700;letter-spacing:-.02em">Settings</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim,#59605b);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">// {{ userEmail }}</span>
+      </div>
+      <div style="font-size:12.5px;color:var(--muted,#8b938d);margin-bottom:18px">Personalize your home screen.</div>
+
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:9px">Appearance</div>
+      <div style="display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:12px;background:var(--card,#141614);border:1px solid var(--wd);margin-bottom:20px">
+        <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:var(--inset,#0f110f);border:1px solid var(--wf);display:flex;align-items:center;justify-content:center;color:var(--accent,#9ce6b0)"><svg width="16" height="16" sc-camel-view-box="0 0 24 24"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path></svg></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600">Theme</div>
+          <div style="font-size:11.5px;color:var(--muted,#8b938d)">Switch between dark and light.</div>
+        </div>
+        <div style="display:flex;gap:3px;background:var(--inset,#0f110f);border:1px solid var(--wd);border-radius:9px;padding:3px;flex-shrink:0">
+          <div sc-camel-on-click="{{ setDark }}" style="font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;color:{{ themeDarkColor }};background:{{ themeDarkBg }};transition:background .2s,color .2s">Dark</div>
+          <div sc-camel-on-click="{{ setLight }}" style="font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;color:{{ themeLightColor }};background:{{ themeLightBg }};transition:background .2s,color .2s">Light</div>
+        </div>
+      </div>
+
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:9px">Libraries</div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <sc-for list="{{ libToggles }}" as="t" hint-placeholder-count="4">
+          <div sc-camel-on-click="{{ t.onToggle }}" style="display:flex;align-items:center;gap:13px;cursor:{{ t.cursor }};padding:12px 14px;border-radius:12px;background:var(--card,#141614);border:1px solid {{ t.border }};transition:border-color .2s;opacity:{{ t.opacity }}">
+            <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:{{ t.swatch }};transition:background .2s"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:600">{{ t.label }}</div>
+              <div style="font-size:11.5px;color:var(--muted,#8b938d)">{{ t.desc }}</div>
+            </div>
+            <div style="width:38px;height:22px;border-radius:11px;flex-shrink:0;background:{{ t.trackBg }};position:relative;transition:background .2s">
+              <div style="position:absolute;top:2px;left:{{ t.knobLeft }};width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size:11.5px;color:var(--dim,#59605b);margin-top:14px;min-height:16px">{{ settingsHint }}</div>
+
+      <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:22px;padding-top:20px;border-top:1px solid var(--wf)">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:3px">
+          <span style="font-size:15px;font-weight:700;letter-spacing:-.01em">Administration</span>
+          <span style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border-radius:5px;padding:2px 6px">Admin</span>
+          <div style="flex:1"></div>
+          <div sc-camel-on-click="{{ adminReload }}" title="Refresh" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted,#8b938d);cursor:pointer;padding:4px 9px;border-radius:6px;border:1px solid var(--wh)">↻ Refresh</div>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted,#8b938d);margin-bottom:16px">Supabase database storage — total &amp; per user.</div>
+
+        <sc-if value="{{ adminHasError }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px;color:#e6a09c;background:rgba(230,160,156,.08);border:1px solid rgba(230,160,156,.25);border-radius:9px;padding:10px 12px">{{ adminError }}</div>
+        </sc-if>
+
+        <sc-if value="{{ adminHasUsage }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--card,#141614);border:1px solid var(--we);border-radius:12px;padding:15px 16px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px">
+              <span style="font-size:12px;color:var(--muted,#8b938d)">Total database size</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:{{ adminPctColor }}">{{ adminTotal }} <span style="color:var(--dim,#59605b);font-weight:400">/ {{ adminLimit }}</span></span>
+            </div>
+            <div style="height:8px;border-radius:5px;background:var(--inset,#0f110f);overflow:hidden">
+              <div style="height:100%;width:{{ adminPct }};background:{{ adminPctColor }};border-radius:5px;transition:width .4s ease"></div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim,#59605b);margin-top:6px">{{ adminPct }} of quota used</div>
+          </div>
+
+          <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin:18px 0 9px">By user</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ adminUsers }}" as="ux" hint-placeholder-count="2">
+              <div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:{{ ux.nameColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ux.email }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;color:var(--text,#e8ebe8);flex-shrink:0">{{ ux.size }}</span>
+                </div>
+                <div style="height:6px;border-radius:4px;background:var(--inset,#0f110f);overflow:hidden">
+                  <div style="height:100%;width:{{ ux.barW }};background:var(--accent,#9ce6b0);opacity:.7;border-radius:4px;transition:width .4s ease"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ adminEmptyUsers }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:12px;color:var(--dim,#59605b)">No per-user rows returned.</div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ adminBusy }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px;color:var(--dim,#59605b);font-family:'JetBrains Mono',monospace">Loading usage…</div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:14px">
+        <div sc-camel-on-click="{{ closeSettings }}" style="font-size:13px;font-weight:700;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border-radius:9px;padding:9px 20px;cursor:pointer">Done</div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<!-- page-switch wipe overlay: colour fill trailing a thin black leading bar -->
+<div style="{{ wipeStyle }}">
+  <div style="{{ wipeFillStyle }}"></div>
+  <div style="{{ wipeBarStyle }}"></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:820},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#9ce6b0&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;defaultView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;table&quot;,&quot;cards&quot;],&quot;default&quot;:&quot;table&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;compact&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">class Component extends DCLogic {
+  // ===== Supabase config — paste your project values here =====
+  SUPA_URL = 'https://nsjdnpowyxupbvymnarp.supabase.co';
+  SUPA_KEY = 'sb_publishable_9f_EjM80kxXo1_6j_Uqz1g_-jk65iV7';
+
+  state = {
+    authLoading: true, configMissing: false, session: null, activeCollection: null, pickHover: null, wipePhase: null,
+    authMode: 'signin', authEmail: '', authPassword: '', authError: '', authBusy: false,
+    settingsOpen: false, visibleLibs: null,
+    adminUsage: null, adminBusy: false, adminError: '',
+    themeMode: (() => { try { return localStorage.getItem('backlog:theme') || 'dark'; } catch (e) { return 'dark'; } })(),
+  };
+  setTheme = (m) => { try { localStorage.setItem('backlog:theme', m); } catch (e) {} this.setState({ themeMode: m }); };
+  setDark = () => this.setTheme('dark');
+  setLight = () => this.setTheme('light');
+
+  // Light theme = swap the neutral bg/text ramp for a light one; accents stay.
+  LIGHT_NEUTRALS = {
+    bg: '#f2f4ef', surface: '#ffffff', card: '#ffffff', topchip: '#eef1ec',
+    inset: '#eef1ec', chip: '#e4e8e2', chip2: '#edf0ea',
+    text: '#191d19', text2: '#333b34', text3: '#4a534c', muted2: '#5b645d',
+    muted: '#6a726c', dim: '#969d97', dim2: '#c4c9c4',
+  };
+  // Adaptive hairline/fill tokens + on-accent text colour. Dark = the original
+  // rgba(255,255,255,a) whites; light = matching black tints on a pale surface.
+  themeTokens(light) {
+    return light ? {
+      onAccent: '#12140f', dateInvert: 'invert(0)',
+      wa: 'rgba(0,0,0,.05)', wb: 'rgba(0,0,0,.07)', wc: 'rgba(0,0,0,.07)', wd: 'rgba(0,0,0,.09)',
+      we: 'rgba(0,0,0,.1)', wf: 'rgba(0,0,0,.11)', wg: 'rgba(0,0,0,.12)', wh: 'rgba(0,0,0,.14)',
+      wi: 'rgba(0,0,0,.16)', wj: 'rgba(0,0,0,.18)', wk: 'rgba(0,0,0,.2)', wl: 'rgba(0,0,0,.26)',
+    } : {
+      onAccent: '#0d0f0e', dateInvert: 'invert(.7)',
+      wa: 'rgba(255,255,255,.025)', wb: 'rgba(255,255,255,.04)', wc: 'rgba(255,255,255,.05)', wd: 'rgba(255,255,255,.06)',
+      we: 'rgba(255,255,255,.07)', wf: 'rgba(255,255,255,.08)', wg: 'rgba(255,255,255,.09)', wh: 'rgba(255,255,255,.1)',
+      wi: 'rgba(255,255,255,.12)', wj: 'rgba(255,255,255,.13)', wk: 'rgba(255,255,255,.15)', wl: 'rgba(255,255,255,.2)',
+    };
+  }
+  ADMIN_UID = '8ca752c7-962b-4bcf-98a6-392d168b6481';
+  isAdmin() { return this.uid === this.ADMIN_UID; }
+
+  // ---- Trips is private: only these two accounts (you + your brother) can see the
+  //  card or open the page. Data itself is guarded server-side by RLS (trip_members);
+  //  this list just hides the UI from everyone else. Paste each brother's auth user id.
+  TRIP_MEMBERS = [
+    '8ca752c7-962b-4bcf-98a6-392d168b6481', // you (admin account)
+    '7576f6af-09b6-4c22-8357-2e42dd418b94', // your brother
+  ];
+  isTripMember() { return this.TRIP_MEMBERS.includes(this.uid); }
+
+  // ---- library visibility (Settings) ----
+  LIB_DEFS = [
+    { key: 'games', label: 'Games', desc: 'Backlog, stats & roulette', color: '#9ce6b0' },
+    { key: 'books', label: 'Books', desc: 'Reading list, stats & roulette', color: '#d8b98f' },
+    { key: 'wines', label: 'Wines', desc: 'Cellar & tasting notes', color: '#c6a9d6' },
+    { key: 'movies', label: 'Movies', desc: 'Watchlist, stats & roulette', color: '#a9aee0' },
+    { key: 'expenses', label: 'Expenses', desc: 'Transactions, months & stats', color: '#8ecfd6' },
+    { key: 'trips', label: 'Trips', desc: 'Research & itinerary planning', color: '#5fb8b0' },
+  ];
+  allLibKeys() { return this.LIB_DEFS.map(d => d.key); }
+  libsKey() { return 'backlog:libs:' + (this.uid || 'anon'); }
+  loadLibs() {
+    try {
+      const raw = localStorage.getItem(this.libsKey());
+      if (raw) {
+        const a = JSON.parse(raw);
+        if (Array.isArray(a) && a.length) {
+          // Libraries added since this user last saved (e.g. Movies) weren't in
+          // their stored list — default them to visible instead of dropping them,
+          // while genuinely-hidden libs (recorded in `seen`) stay hidden.
+          let seen = [];
+          try { const s = JSON.parse(localStorage.getItem(this.seenKey())); if (Array.isArray(s)) seen = s; } catch (e) {}
+          const fresh = this.allLibKeys().filter(k => !a.includes(k) && !seen.includes(k));
+          let next = this.allLibKeys().filter(k => a.includes(k) || fresh.includes(k));
+          // Trips is a private shared page: if you're one of the two members, it is
+          // always visible \u2014 never hidden by a stale stored toggle from before it existed.
+          if (this.isTripMember() && !next.includes('trips')) next = this.allLibKeys().filter(k => next.includes(k) || k === 'trips');
+          this.markSeen();
+          return next;
+        }
+      }
+    } catch (e) {}
+    this.markSeen();
+    return this.allLibKeys();
+  }
+  seenKey() { return 'backlog:libsSeen:' + (this.uid || 'anon'); }
+  markSeen() { try { localStorage.setItem(this.seenKey(), JSON.stringify(this.allLibKeys())); } catch (e) {} }
+  saveLibs(a) { try { localStorage.setItem(this.libsKey(), JSON.stringify(a)); } catch (e) {} }
+  onOpenSettings = () => { this.setState({ settingsOpen: true }); if (this.isAdmin()) this.loadAdminUsage(); };
+  loadAdminUsage = async () => {
+    if (!this.sb || !this.isAdmin()) return;
+    this.setState({ adminBusy: true, adminError: '' });
+    try {
+      const { data, error } = await this.sb.rpc('admin_usage');
+      if (error) throw error;
+      this.setState({ adminUsage: data, adminBusy: false });
+    } catch (err) {
+      this.setState({ adminBusy: false, adminError: (err && err.message) || 'Could not load usage.' });
+    }
+  };
+  fmtBytes(n) {
+    n = Number(n) || 0;
+    if (n < 1024) return n + ' B';
+    const u = ['KB', 'MB', 'GB', 'TB']; let i = -1;
+    do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+    return n.toFixed(n < 10 ? 1 : 0) + ' ' + u[i];
+  }
+  adminVals() {
+    const u = this.state.adminUsage || {};
+    const LIMIT = Number(u.limit_bytes) || (500 * 1024 * 1024); // Supabase free tier: 500 MB
+    const total = Number(u.total_bytes) || 0;
+    const pct = LIMIT ? Math.min(100, total / LIMIT * 100) : 0;
+    const rawUsers = Array.isArray(u.users) ? u.users : [];
+    const maxUser = rawUsers.reduce((m, x) => Math.max(m, Number(x.bytes) || 0), 0) || 1;
+    const adminUsers = rawUsers
+      .slice().sort((a, b) => (Number(b.bytes) || 0) - (Number(a.bytes) || 0))
+      .map(x => {
+        const b = Number(x.bytes) || 0;
+        return {
+          key: x.user_id || x.email,
+          email: x.email || x.user_id || 'unknown',
+          size: this.fmtBytes(b),
+          nameColor: x.user_id === this.uid ? 'var(--accent,#9ce6b0)' : 'var(--text,#e8ebe8)',
+          barW: (b / maxUser * 100).toFixed(1) + '%',
+          rows: (x.rows != null ? (x.rows + ' rows') : ''),
+        };
+      });
+    return {
+      isAdmin: this.isAdmin(),
+      adminBusy: this.state.adminBusy,
+      adminError: this.state.adminError,
+      adminHasError: !!this.state.adminError,
+      adminHasUsage: !!this.state.adminUsage,
+      adminReload: this.loadAdminUsage,
+      adminTotal: this.fmtBytes(total),
+      adminLimit: this.fmtBytes(LIMIT),
+      adminPct: pct.toFixed(1) + '%',
+      adminPctColor: pct > 85 ? '#e6a09c' : (pct > 60 ? '#e6d19c' : 'var(--accent,#9ce6b0)'),
+      adminUsers,
+      adminEmptyUsers: !!this.state.adminUsage && !adminUsers.length,
+    };
+  }
+  closeSettings = () => this.setState({ settingsOpen: false });
+  stopSettings = (e) => { if (e) e.stopPropagation(); };
+  toggleLib = (key) => this.setState(s => {
+    const cur = s.visibleLibs || this.allLibKeys();
+    let next;
+    if (cur.includes(key)) { if (cur.length <= 1) return {}; next = cur.filter(k => k !== key); }
+    else { next = this.allLibKeys().filter(k => cur.includes(k) || k === key); }
+    this.saveLibs(next);
+    return { visibleLibs: next };
+  });
+
+  configOK() { return this.SUPA_URL && this.SUPA_KEY && !/PASTE_/.test(this.SUPA_URL) && !/PASTE_/.test(this.SUPA_KEY); }
+
+  // Theme the auth/loading screens from the active collection's palette when its
+  // config is loaded (add the collection's *-config.js to <helmet> to enable it
+  // pre-login; otherwise the games fallbacks baked into the styles are used).
+  // Pastel per-library accents used on the picker cards + as the whole-page accent.
+  PALETTES = { games: '#9ce6b0', books: '#d8b98f', wines: '#c6a9d6', movies: '#a9aee0', expenses: '#8ecfd6', trips: '#5fb8b0' };
+  applyTheme() {
+    const key = this.state.activeCollection;
+    const cfg = (window.COLLECTION_CONFIGS || {})[key || 'games'];
+    const t = cfg && cfg.theme; if (!t) return;
+    const root = document.documentElement;
+    root.style.colorScheme = 'dark';
+    // Neutral black & white on the auth + picker screens; real accent inside a collection.
+    // The accent prop is a games-only theme tweak — other collections use their own theme accent.
+    const light = this.state.themeMode === 'light';
+    const accent = !key ? (light ? '#7c847e' : '#d6d8d6') : (key === 'games' ? (this.props.accent || t.accent || '#9ce6b0') : (t.accent || '#9ce6b0'));
+    const set = { ...t, ...(light ? this.LIGHT_NEUTRALS : {}), accent };
+    Object.keys(set).forEach(k => root.style.setProperty('--' + k, set[k]));
+    const tok = this.themeTokens(light);
+    Object.keys(tok).forEach(k => root.style.setProperty('--' + k, tok[k]));
+  }
+  componentDidUpdate() { this.applyTheme(); this.lockScroll(this.state.settingsOpen); }
+  lockScroll(on) { try { document.body.style.overflow = on ? 'hidden' : ''; } catch (e) {} }
+  componentWillUnmount() { this.lockScroll(false); }
+
+  // Shell owns auth only; each collection loads its own data once mounted with sb+uid.
+  applySession = async (session) => {
+    if (!session) { this.uid = null; this.setState({ session: null }); return; }
+    // Token refresh / tab-refocus re-fires this for the SAME user — don't wipe
+    // the open collection back to the picker; just keep the current view.
+    if (this.uid === session.user.id && this.state.session) return;
+    this.uid = session.user.id;
+    const libs = this.loadLibs();
+    this.setState({ session: { email: session.user.email }, authEmail: '', authPassword: '', authError: '', visibleLibs: libs, activeCollection: libs.length === 1 ? libs[0] : null });
+  };
+
+  onAuthEmail = (e) => this.setState({ authEmail: e.target.value });
+  onAuthPassword = (e) => this.setState({ authPassword: e.target.value });
+  toggleAuthMode = () => this.setState(s => ({ authMode: s.authMode === 'signin' ? 'signup' : 'signin', authError: '' }));
+  onAuthSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const email = (this.state.authEmail || '').trim();
+    const password = this.state.authPassword || '';
+    if (!email || !password) { this.setState({ authError: 'Enter your email and password.' }); return; }
+    if (password.length < 6) { this.setState({ authError: 'Password must be at least 6 characters.' }); return; }
+    this.setState({ authBusy: true, authError: '' });
+    try {
+      let res;
+      if (this.state.authMode === 'signup') res = await this.sb.auth.signUp({ email, password });
+      else res = await this.sb.auth.signInWithPassword({ email, password });
+      if (res.error) throw res.error;
+      if (this.state.authMode === 'signup' && !res.data.session) {
+        this.setState({ authBusy: false, authMode: 'signin', authError: 'Account created — check your email to confirm, then sign in.' });
+        return;
+      }
+      this.setState({ authBusy: false });
+    } catch (err) {
+      this.setState({ authBusy: false, authError: (err && err.message) || 'Something went wrong.' });
+    }
+  };
+  onSignOut = async () => { try { await this.sb.auth.signOut(); } catch (e) {} this.setState({ session: null, activeCollection: null, wipePhase: null }); };
+  // ---- page-switch wipe: a black panel sweeps across, the collection swaps while
+  //  it's hidden underneath, then it sweeps off to reveal the new page. ----
+  WIPE_MS = 430;
+  wipeTo = (key) => {
+    if (this.state.wipePhase) return;               // ignore taps mid-transition
+    if (key === this.state.activeCollection) return; // already here
+    this._wipeTarget = key;
+    this.setState({ wipePhase: 'cover' });
+    clearTimeout(this._wt1); clearTimeout(this._wt2);
+    this._wt1 = setTimeout(() => this.setState({ activeCollection: this._wipeTarget, wipePhase: 'reveal' }), this.WIPE_MS);
+    this._wt2 = setTimeout(() => this.setState({ wipePhase: null }), this.WIPE_MS * 2);
+  };
+  onPick = (key) => this.wipeTo(key);
+  onPickGames = () => this.wipeTo('games');
+  onPickBooks = () => this.wipeTo('books');
+  onPickWines = () => this.wipeTo('wines');
+  onPickMovies = () => this.wipeTo('movies');
+  onPickExpenses = () => this.wipeTo('expenses');
+  onPickTrips = () => this.wipeTo('trips');
+  onHome = () => this.wipeTo(null);
+  enterGames = () => this.setState({ pickHover: 'games', lastHover: 'games' });
+  enterBooks = () => this.setState({ pickHover: 'books', lastHover: 'books' });
+  enterWines = () => this.setState({ pickHover: 'wines', lastHover: 'wines' });
+  enterMovies = () => this.setState({ pickHover: 'movies', lastHover: 'movies' });
+  enterExpenses = () => this.setState({ pickHover: 'expenses', lastHover: 'expenses' });
+  enterTrips = () => this.setState({ pickHover: 'trips', lastHover: 'trips' });
+  leaveCard = () => this.setState({ pickHover: null });
+  cardVals(key) {
+    const on = this.state.pickHover === key;
+    const pal = this.PALETTES[key];
+    return {
+      Border: on ? pal : 'var(--wf)',
+      IconBg: on ? `color-mix(in srgb, ${pal} 20%, transparent)` : 'var(--wc)',
+      Filter: on ? 'none' : 'grayscale(1) opacity(.6)',
+      Cta: on ? pal : '#59605b',
+      Transform: on ? 'translateY(-2px)' : 'none',
+    };
+  }
+
+  async componentDidMount() {
+    this.applyTheme();
+    if (!this.configOK()) { this.setState({ authLoading: false, configMissing: true }); return; }
+    let n = 0; while (!window.supabase && n++ < 120) await new Promise(r => setTimeout(r, 50));
+    if (!window.supabase) { this.setState({ authLoading: false, configMissing: true }); return; }
+    try {
+      this.sb = window.supabase.createClient(this.SUPA_URL, this.SUPA_KEY);
+      const { data } = await this.sb.auth.getSession();
+      this.sb.auth.onAuthStateChange((_evt, session) => { this.applySession(session); });
+      await this.applySession(data.session);
+      this.setState({ authLoading: false });
+    } catch (e) { console.error('supabase init error', e); this.setState({ authLoading: false, configMissing: true }); }
+  }
+
+  renderVals() {
+    const st = this.state;
+    const light = st.themeMode === 'light';
+    const cfgAccent = ((window.COLLECTION_CONFIGS || {})[st.activeCollection] || {}).theme;
+    const accent = st.activeCollection === 'games'
+      ? (this.props.accent || '#9ce6b0')
+      : ((cfgAccent && cfgAccent.accent) || this.props.accent || '#9ce6b0');
+    const g = this.cardVals('games'), b = this.cardVals('books'), w = this.cardVals('wines'), mv = this.cardVals('movies'), e = this.cardVals('expenses'), tp = this.cardVals('trips');
+    const H = st.pickHover;
+    const originKey = H || st.lastHover || 'games';
+    const pal = this.PALETTES;
+    // radial wash spreads in from the corner nearest the hovered card
+    const clipPos = { games: '6% 100%', books: '24% 100%', wines: '42% 100%', movies: '60% 100%', expenses: '78% 100%', trips: '96% 100%' };
+    const gradPos = { games: 'bottom left', books: 'bottom center', wines: 'bottom center', movies: 'bottom center', expenses: 'bottom center', trips: 'bottom right' };
+    const washBg = H
+      ? `radial-gradient(120% 120% at ${gradPos[H]}, color-mix(in srgb, ${pal[H]} 26%, transparent), color-mix(in srgb, ${pal[H]} 6%, transparent) 45%, transparent 72%)`
+      : `color-mix(in srgb, ${pal[originKey]} 0%, transparent)`;
+    const washClip = `circle(${H ? '160%' : '0%'} at ${clipPos[originKey]})`;
+    const libs = st.visibleLibs || this.allLibKeys();
+    const libToggles = this.LIB_DEFS.map(d => {
+      const on = libs.includes(d.key);
+      const last = on && libs.length <= 1;
+      return {
+        key: d.key, label: d.label, desc: d.desc,
+        swatch: on ? d.color : `color-mix(in srgb, ${d.color} 20%, transparent)`,
+        border: on ? `color-mix(in srgb, ${d.color} 42%, transparent)` : 'var(--we)',
+        trackBg: on ? d.color : 'var(--chip,#20241f)',
+        knobLeft: on ? '18px' : '2px',
+        cursor: last ? 'not-allowed' : 'pointer',
+        opacity: on ? '1' : '.66',
+        onToggle: () => this.toggleLib(d.key),
+      };
+    });
+    return {
+      accentVar: st.activeCollection ? accent : '#d6d8d6', accent,
+      settingsOpen: st.settingsOpen, onOpenSettings: this.onOpenSettings, closeSettings: this.closeSettings, stopSettings: this.stopSettings,
+      themeMode: st.themeMode, setDark: this.setDark, setLight: this.setLight,
+      themeDarkBg: !light ? 'var(--accent,#9ce6b0)' : 'transparent',
+      themeDarkColor: !light ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)',
+      themeLightBg: light ? 'var(--accent,#9ce6b0)' : 'transparent',
+      themeLightColor: light ? 'var(--onAccent,#0d0f0e)' : 'var(--muted,#8b938d)',
+      libToggles, enabledLibs: libs,
+      settingsHint: libs.length <= 1 ? 'At least one library must stay visible.' : (libs.length + ' of ' + this.LIB_DEFS.length + ' libraries shown.'),
+      ...this.adminVals(),
+      showGamesCard: libs.includes('games'), showBooksCard: libs.includes('books'),
+      showWinesCard: libs.includes('wines'), showMoviesCard: libs.includes('movies'), showExpensesCard: libs.includes('expenses'), showTripsCard: libs.includes('trips') && this.isTripMember(),
+      density: this.props.density || 'compact',
+      defaultView: this.props.defaultView || 'table',
+      activeCollection: st.activeCollection,
+      showPicker: !!st.session && !st.activeCollection,
+      showTrips: !!st.session && st.activeCollection === 'trips' && this.isTripMember(),
+      showCollection: !!st.session && !!st.activeCollection && st.activeCollection !== 'trips',
+      onPickGames: this.onPickGames, onPickBooks: this.onPickBooks, onPickWines: this.onPickWines, onPickMovies: this.onPickMovies, onPickExpenses: this.onPickExpenses, onPickTrips: this.onPickTrips, enterTrips: this.enterTrips, onHome: this.onHome, onSwitch: this.onPick,      enterGames: this.enterGames, enterBooks: this.enterBooks, enterWines: this.enterWines, enterMovies: this.enterMovies, enterExpenses: this.enterExpenses, leaveCard: this.leaveCard,
+      pickerAccent: st.pickHover ? this.PALETTES[st.pickHover] : '#59605b',
+      pickerTitle: st.pickHover ? this.PALETTES[st.pickHover] : 'var(--text,#e8ebe8)',
+      signOutBorder: st.pickHover ? `color-mix(in srgb, ${this.PALETTES[st.pickHover]} 45%, transparent)` : 'var(--wd)',
+      washBg, washClip,
+      ...(() => {
+        // wipe overlay: a thin black bar leads, the NEW collection's bg colour fills
+        // behind it, so the sweep visibly paints the new page in over the old one.
+        const wt = st.wipePhase ? this._wipeTarget : null;
+        const wcfg = ((window.COLLECTION_CONFIGS || {})[wt] || {}).theme || {};
+        const wbg = light ? this.LIGHT_NEUTRALS.bg : (wcfg.bg || '#0d0f0e');
+        const wbar = light ? '#e6e9e3' : '#050605';
+        const wac = !wt ? (light ? '#7c847e' : '#d6d8d6') : (wcfg.accent || this.PALETTES[wt] || '#9ce6b0');
+        const tx = st.wipePhase === 'cover' ? '0' : st.wipePhase === 'reveal' ? '101%' : '-101%';
+        const trans = st.wipePhase ? ('transform ' + this.WIPE_MS + 'ms cubic-bezier(.66,0,.34,1)') : 'none';
+        return {
+          wipeStyle: 'position:fixed;inset:0;z-index:9999;pointer-events:' + (st.wipePhase ? 'auto' : 'none') + ';will-change:transform;transform:translateX(' + tx + ');transition:' + trans,
+          wipeFillStyle: 'position:absolute;inset:0;background:' + wbg,
+          wipeBarStyle: 'position:absolute;top:0;bottom:0;right:0;width:52px;background:' + wbar + ';box-shadow:-1px 0 0 ' + wac,
+        };
+      })(),
+      gBorder: g.Border, gIconBg: g.IconBg, gFilter: g.Filter, gCta: g.Cta, gTransform: g.Transform,
+      bBorder: b.Border, bIconBg: b.IconBg, bFilter: b.Filter, bCta: b.Cta, bTransform: b.Transform,
+      wBorder: w.Border, wIconBg: w.IconBg, wFilter: w.Filter, wCta: w.Cta, wTransform: w.Transform,
+      mvBorder: mv.Border, mvIconBg: mv.IconBg, mvFilter: mv.Filter, mvCta: mv.Cta, mvTransform: mv.Transform,
+      eBorder: e.Border, eIconBg: e.IconBg, eFilter: e.Filter, eCta: e.Cta, eTransform: e.Transform,
+      tpBorder: tp.Border, tpIconBg: tp.IconBg, tpFilter: tp.Filter, tpCta: tp.Cta, tpTransform: tp.Transform,
+      sbClient: this.sb, uid: this.uid,
+      // auth gate
+      authLoading: st.authLoading, configMissing: st.configMissing,
+      isAuthed: !!st.session, showAuth: !st.authLoading && !st.configMissing && !st.session,
+      userEmail: st.session ? st.session.email : '', onSignOut: this.onSignOut, onSwitch: this.wipeTo,
+      authSubtitle: st.authMode === 'signup' ? 'Create an account to start syncing.' : 'Sign in to your backlog.',
+      authEmail: st.authEmail, authPassword: st.authPassword,
+      onAuthEmail: this.onAuthEmail, onAuthPassword: this.onAuthPassword, onAuthSubmit: this.onAuthSubmit,
+      authBtnLabel: st.authBusy ? 'Please wait…' : (st.authMode === 'signup' ? 'Create account' : 'Sign in'),
+      authBtnOpacity: st.authBusy ? '.6' : '1',
+      hasAuthError: !!st.authError, authError: st.authError,
+      toggleAuthMode: this.toggleAuthMode,
+      authToggleText: st.authMode === 'signup' ? 'Already have an account?' : 'New here?',
+      authToggleLink: st.authMode === 'signup' ? 'Sign in' : 'Create one',
+    };
+  }
+}
+</script>
+
+
+</body></html>

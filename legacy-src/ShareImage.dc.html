@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div onClick="{{ closeExport }}" style="position:fixed;inset:0;z-index:60;background:rgba(6,7,7,.78);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow:auto;overscroll-behavior:contain" class="g-scroll">
+  <div onClick="{{ stop }}" ref="{{ dialogRef }}" role="dialog" aria-modal="true" aria-label="Create shareable image" style="width:1000px;max-width:100%;display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;animation:gpop .2s ease">
+
+    <!-- CONTROLS -->
+    <div style="flex:1;min-width:280px;background:var(--card,#141614);border:1px solid var(--wg);border-radius:16px;padding:22px 22px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-size:16px;font-weight:700">Create shareable image</span>
+        <button onClick="{{ closeExport }}" aria-label="Close dialog" style="color:var(--muted,#8b938d);background:none;border:none;padding:0 4px;cursor:pointer;font-size:20px;line-height:1">×</button>
+      </div>
+      <div style="font-size:12.5px;color:var(--muted,#8b938d);margin-bottom:18px">Pick the stats to include, then copy or download.</div>
+
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:7px">Caption · optional</div>
+      <input value="{{ exportTitle }}" onInput="{{ onExportTitle }}" aria-label="Caption (optional)" autocomplete="off" placeholder="My 2026 backlog" style="width:100%;background:var(--inset,#0f110f);border:1px solid var(--wh);border-radius:9px;padding:9px 12px;color:var(--text,#e8ebe8);font-size:13.5px;margin-bottom:18px"/>
+
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:9px">Time range · by completion year</div>
+      <div style="display:flex;gap:5px;margin-bottom:10px">
+        <sc-for list="{{ expYearChips }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.onClick }}" aria-pressed="{{ c.pressed }}" style="font:inherit;flex:1;text-align:center;font-size:12px;font-weight:500;padding:8px 4px;border-radius:8px;cursor:pointer;color:{{ c.color }};background:{{ c.bg }};border:1px solid {{ c.border }}">{{ c.label }}</button></sc-for>
+      </div>
+      <sc-if value="{{ expYearModeYear }}" hint-placeholder-val="{{ false }}">
+        <select value="{{ exportYear }}" onChange="{{ onExportYear }}" aria-label="Completion year" style="width:100%;background:var(--inset,#0f110f);border:1px solid var(--wh);border-radius:9px;padding:9px 12px;color:var(--text,#e8ebe8);font-size:13.5px;font-family:'JetBrains Mono',monospace;margin-bottom:18px">
+          <sc-for list="{{ expYearOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+        </select>
+      </sc-if>
+      <sc-if value="{{ expYearModeRange }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:18px">
+          <select value="{{ exportFrom }}" onChange="{{ onExportFrom }}" aria-label="Range start year" style="flex:1;background:var(--inset,#0f110f);border:1px solid var(--wh);border-radius:9px;padding:9px 12px;color:var(--text,#e8ebe8);font-size:13.5px;font-family:'JetBrains Mono',monospace">
+            <sc-for list="{{ expYearOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+          <span style="font-size:12px;color:var(--dim,#59605b)">to</span>
+          <select value="{{ exportTo }}" onChange="{{ onExportTo }}" aria-label="Range end year" style="flex:1;background:var(--inset,#0f110f);border:1px solid var(--wh);border-radius:9px;padding:9px 12px;color:var(--text,#e8ebe8);font-size:13.5px;font-family:'JetBrains Mono',monospace">
+            <sc-for list="{{ expYearOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+        </div>
+      </sc-if>
+
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:9px">Include</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px">
+        <sc-for list="{{ expModules }}" as="m" hint-placeholder-count="8">
+          <button onClick="{{ m.onToggle }}" aria-pressed="{{ m.pressed }}" style="font:inherit;font-size:12.5px;font-weight:500;padding:7px 13px;border-radius:20px;cursor:pointer;color:{{ m.color }};background:{{ m.bg }};border:1px solid {{ m.border }};display:flex;align-items:center;gap:6px">{{ m.label }} <span aria-hidden="true" style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.75">{{ m.mark }}</span></button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;gap:9px">
+        <button onClick="{{ copyExportImage }}" aria-busy="{{ copyBusy }}" disabled="{{ copyDisabled }}" style="flex:1;font-size:13px;font-weight:700;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border:none;border-radius:9px;padding:11px;cursor:pointer;opacity:{{ copyOpacity }}">{{ copyLabel }}</button>
+        <button onClick="{{ downloadExportImage }}" aria-busy="{{ copyBusy }}" style="font-size:13px;font-weight:600;color:var(--text2,#c8d6cb);background:var(--chip,#20241f);border:1px solid var(--wf);border-radius:9px;padding:11px 16px;cursor:pointer">Download</button>
+      </div>
+      <div aria-live="polite" style="font-size:12px;color:var(--muted,#8b938d);margin-top:11px;text-align:center">{{ exportMsg }}</div>
+    </div>
+
+    <!-- LIVE PREVIEW -->
+    <div style="flex:none;overflow:auto;max-width:100%" class="g-scroll">
+      <div id="export-card" style="width:560px;background:var(--bg,#0d0f0e);border:1px solid var(--wg);border-radius:18px;padding:28px 30px 30px;font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--text,#e8ebe8)">
+        <div style="display:flex;align-items:baseline;gap:9px">
+          <span data-no-i18n style="font-size:19px;font-weight:700;letter-spacing:-.02em">{{ expBrand }}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim,#59605b)">{{ expKind }}</span>
+          <span style="flex:1"></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--onAccent,#0d0f0e);background:var(--accent,#9ce6b0);border-radius:20px;padding:3px 10px;font-weight:600">{{ expScopeLabel }}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim,#59605b)">{{ expDate }}</span>
+        </div>
+        <sc-if value="{{ hasExportTitle }}" hint-placeholder-val="{{ false }}"><div style="font-size:15px;font-weight:600;letter-spacing:-.01em;margin-top:8px;color:var(--text2,#c8d6cb)">{{ exportTitleShown }}</div></sc-if>
+        <div style="height:1px;background:var(--wf);margin:16px 0 4px"></div>
+
+        <sc-if value="{{ expNoneSel }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:38px 10px;text-align:center;color:var(--dim,#59605b);font-size:13px">Select at least one stat to build your image.</div>
+        </sc-if>
+
+        <sc-for list="{{ modules }}" as="m" hint-placeholder-count="3">
+          <div style="margin-top:18px">
+
+            <!-- Overview cards -->
+            <sc-if value="{{ m.isCards }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:11px">{{ m.title }}</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px">
+                <sc-for list="{{ m.cards }}" as="c" hint-placeholder-count="6">
+                  <div style="background:var(--card,#141614);border:1px solid var(--wd);border-radius:11px;padding:13px 14px">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:{{ c.color }};letter-spacing:-.02em">{{ c.value }}</div>
+                    <div style="font-size:11px;color:var(--muted,#8b938d);margin-top:3px">{{ c.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <!-- Horizontal bar list -->
+            <sc-if value="{{ m.isBar }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:11px">{{ m.title }}</div>
+              <div style="display:flex;flex-direction:column;gap:{{ m.rowGap }}">
+                <sc-for list="{{ m.rows }}" as="t" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:11px">
+                    <sc-if value="{{ m.showRank }}" hint-placeholder-val="{{ false }}"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim,#59605b);width:16px;flex:none">{{ t.rank }}</div></sc-if>
+                    <div style="width:{{ m.labelWidth }};flex:none;font-size:{{ m.labelSize }};color:{{ m.labelColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.label }}</div>
+                    <div style="flex:1;height:7px;background:var(--wd);border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ t.pct }};background:{{ t.barColor }};opacity:{{ m.barOpacity }};border-radius:4px"></div></div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:{{ m.valSize }};font-weight:{{ m.valWeight }};width:{{ m.valWidth }};text-align:right;color:{{ m.valColor }}">{{ t.val }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <!-- Score distribution histogram -->
+            <sc-if value="{{ m.isHistogram }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:13px">{{ m.title }}</div>
+              <div style="display:flex;align-items:flex-end;gap:7px;height:104px">
+                <sc-for list="{{ m.bars }}" as="b" hint-placeholder-count="10">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted,#8b938d)">{{ b.count }}</div>
+                    <div style="width:100%;height:{{ b.pct }};min-height:3px;background:{{ b.color }};border-radius:4px 4px 2px 2px"></div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim,#59605b)">{{ b.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <!-- Completed by year -->
+            <sc-if value="{{ m.isByYear }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:13px">{{ m.title }}</div>
+              <div style="display:flex;align-items:flex-end;gap:9px;height:92px">
+                <sc-for list="{{ m.bars }}" as="b" hint-placeholder-count="5">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted,#8b938d)">{{ b.count }}</div>
+                    <div style="width:100%;height:{{ b.pct }};min-height:3px;background:var(--accent,#9ce6b0);opacity:.8;border-radius:4px 4px 2px 2px"></div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim,#59605b)">{{ b.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <!-- Spending -->
+            <sc-if value="{{ m.isSpending }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ m.has }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:13px">{{ m.title }}</div>
+                <div style="display:flex;align-items:center;gap:20px">
+                  <div style="width:104px;height:104px;border-radius:50%;flex:none;background:{{ m.donut }};display:flex;align-items:center;justify-content:center">
+                    <div style="width:70px;height:70px;border-radius:50%;background:var(--bg,#0d0f0e);display:flex;flex-direction:column;align-items:center;justify-content:center">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:oklch(0.8 0.09 85)">{{ m.total }}</div>
+                      <div style="font-size:9px;color:var(--dim,#59605b)">spent</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:10px;flex:1">
+                    <sc-for list="{{ m.legend }}" as="l" hint-placeholder-count="2">
+                      <div style="display:flex;align-items:center;gap:9px">
+                        <span style="width:9px;height:9px;border-radius:2px;background:{{ l.color }};flex:none"></span>
+                        <span style="font-size:12.5px;color:var(--text2,#c8d6cb);flex:1">{{ l.label }}</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;color:var(--text2,#c8d6cb)">{{ l.amount }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ m.hasNot }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim,#59605b);font-weight:600;margin-bottom:11px">{{ m.title }}</div>
+                <div style="font-size:12.5px;color:var(--dim,#59605b);padding:6px 0">{{ m.emptyMsg }}</div>
+              </sc-if>
+            </sc-if>
+
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1000,&quot;height&quot;:760},&quot;d&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any&quot;}}">
+class Component extends DCLogic {
+  // Presentational only — the export card keeps id="export-card" so the owning
+  // collection can rasterize it via html-to-image. All data comes in as `d`.
+  dialog = React.createRef();
+
+  componentDidMount() {
+    this.prevFocus = document.activeElement;
+    this.onKey = (e) => {
+      const d = this.props.d || {};
+      if (e.key === 'Escape') { e.stopPropagation(); d.closeExport && d.closeExport(); return; }
+      if (e.key !== 'Tab') return;
+      const root = this.dialog.current; if (!root) return;
+      const f = [...root.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el => !el.disabled && el.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', this.onKey, true);
+    setTimeout(() => { const r = this.dialog.current; const el = r && r.querySelector('input,button'); el && el.focus(); }, 30);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.onKey, true);
+    if (this.prevFocus && this.prevFocus.focus) this.prevFocus.focus();
+  }
+
+  renderVals() { return { ...(this.props.d || {}), dialogRef: this.dialog }; }
+}
+</script>
+</body>
+</html>
