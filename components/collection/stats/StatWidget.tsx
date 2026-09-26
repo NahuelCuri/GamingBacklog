@@ -3,6 +3,7 @@
 // One stats card. Data comes from lib/collection/stats; presentation options
 // (colours, widths, compact) are read from the widget's spec, as in legacy.
 import type { CSSProperties, ReactNode } from "react";
+import { CountUp } from "@/components/ui/CountUp";
 import type { BarRow, PodiumEntry, Widget } from "@/lib/collection";
 import type { WidgetSpec } from "@/lib/collection/types";
 
@@ -74,7 +75,7 @@ export function BarRows({ rows, showRank, s }: { rows: BarRow[]; showRank: boole
             {t.label}
           </div>
           <div className="h-2 flex-1 overflow-hidden rounded bg-wc">
-            <div className="h-full rounded" style={{ width: t.pct, background: s.barColor, opacity: s.barOpacity }} />
+            <div className="g-grow-x h-full rounded" style={{ width: t.pct, background: s.barColor, opacity: s.barOpacity, "--i": Math.min(i, 10) } as CSSProperties} />
           </div>
           <div className={mono + " text-right"} style={{ fontSize: s.valSize, fontWeight: s.valWeight, width: s.valWidth, color: s.valColor }}>
             {t.val}
@@ -85,6 +86,9 @@ export function BarRows({ rows, showRank, s }: { rows: BarRow[]; showRank: boole
   );
 }
 
+/** Podium reveal: third and second first, then the winner rises with a slight overshoot. */
+const PODIUM_DELAY: Record<number, number> = { 3: 0, 2: 90, 1: 200 };
+
 function Podium({ entries }: { entries: PodiumEntry[] }) {
   return (
     <div className="mb-[18px] grid grid-cols-3 items-end gap-3">
@@ -93,22 +97,26 @@ function Podium({ entries }: { entries: PodiumEntry[] }) {
         return (
           <div
             key={p.rank}
-            className="rounded-[11px] border text-center"
-            style={{
-              background: first ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "var(--chip2)",
-              borderColor: first ? "color-mix(in srgb, var(--accent) 30%, transparent)" : "var(--wd)",
-              padding: first ? "20px 14px" : "13px 12px",
-              transform: `translateY(${first ? "-10px" : "0px"})`,
-            }}
+            style={{ animation: `gpodium ${first ? 460 : 360}ms ${first ? "var(--ease-spring)" : "var(--ease-out)"} ${PODIUM_DELAY[p.rank] ?? 0}ms both` }}
           >
-            <div className={mono + " mb-2 text-[11px] font-semibold"} style={{ color: first ? ACC : "var(--muted)" }}>
-              #{p.rank}
-            </div>
-            <div className={mono + " font-semibold text-accent"} style={{ fontSize: first ? 30 : 21 }}>
-              {p.score}
-            </div>
-            <div className="mt-2 leading-[1.3] font-medium" style={{ fontSize: first ? 13 : 11.5 }}>
-              {p.title}
+            <div
+              className="rounded-[11px] border text-center"
+              style={{
+                background: first ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "var(--chip2)",
+                borderColor: first ? "color-mix(in srgb, var(--accent) 30%, transparent)" : "var(--wd)",
+                padding: first ? "20px 14px" : "13px 12px",
+                transform: `translateY(${first ? "-10px" : "0px"})`,
+              }}
+            >
+              <div className={mono + " mb-2 text-[11px] font-semibold"} style={{ color: first ? ACC : "var(--muted)" }}>
+                #{p.rank}
+              </div>
+              <div className={mono + " font-semibold text-accent"} style={{ fontSize: first ? 30 : 21 }}>
+                <CountUp value={p.score} />
+              </div>
+              <div className="mt-2 leading-[1.3] font-medium" style={{ fontSize: first ? 13 : 11.5 }}>
+                {p.title}
+              </div>
             </div>
           </div>
         );
@@ -143,7 +151,10 @@ function VBars({
           <div className={mono + " text-muted whitespace-nowrap"} style={{ fontSize: labelSize }}>
             {b.top}
           </div>
-          <div className="min-h-[3px] w-full rounded-[4px_4px_2px_2px]" style={{ height: b.pct, background: b.color || color, opacity }} />
+          <div
+            className="g-grow-y min-h-[3px] w-full rounded-[4px_4px_2px_2px]"
+            style={{ height: b.pct, background: b.color || color, opacity, "--i": Math.min(i, 15) } as CSSProperties}
+          />
           <div className={mono + " text-dim whitespace-nowrap"} style={{ fontSize: labelSize }}>
             {b.label}
           </div>
@@ -153,10 +164,12 @@ function VBars({
   );
 }
 
+/** Ring sweeps in clockwise; keyed on the gradient so a new year's data sweeps again. */
 function Donut({ bg, children }: { bg: string; children: ReactNode }) {
   return (
-    <div className="flex h-[120px] w-[120px] flex-none items-center justify-center rounded-full" style={{ background: bg }}>
-      <div className="flex h-[82px] w-[82px] flex-col items-center justify-center rounded-full bg-surface">{children}</div>
+    <div className="relative flex h-[120px] w-[120px] flex-none items-center justify-center">
+      <div key={bg} aria-hidden className="g-sweep absolute inset-0 rounded-full" style={{ background: bg }} />
+      <div className="relative flex h-[82px] w-[82px] flex-col items-center justify-center rounded-full bg-surface">{children}</div>
     </div>
   );
 }
@@ -229,7 +242,7 @@ export function StatWidget({ w, onYear }: { w: Widget; onYear?(year: string): vo
             </div>
             <div className="flex gap-[3px]">
               {w.weeks.map((wk, i) => (
-                <div key={i} className="flex flex-col gap-[3px]">
+                <div key={i} className="flex flex-col gap-[3px]" style={{ animation: `gfade 240ms var(--ease-out) ${i * 6}ms both` }}>
                   {wk.col.map((d) => (
                     <div key={d.title} title={d.title} style={{ ...cell, background: d.color }} />
                   ))}
@@ -252,7 +265,9 @@ export function StatWidget({ w, onYear }: { w: Widget; onYear?(year: string): vo
         <Card title={w.title}>
           <div className="flex items-center gap-5">
             <Donut bg={w.donut}>
-              <div className={mono + " text-[22px] font-semibold text-accent"}>{w.centerValue}</div>
+              <div className={mono + " text-[22px] font-semibold text-accent"}>
+                <CountUp value={w.centerValue} />
+              </div>
               <div className="text-[9.5px] text-dim">{w.centerLabel}</div>
             </Donut>
             <Legend items={w.legend.map((l) => ({ color: l.color, label: l.label, value: l.count }))} />
@@ -281,7 +296,7 @@ export function StatWidget({ w, onYear }: { w: Widget; onYear?(year: string): vo
           <div className="flex items-center gap-5">
             <Donut bg={w.donut}>
               <div className={mono + " font-semibold tracking-[-.02em] whitespace-nowrap"} style={{ fontSize: w.centerSize, color: "oklch(0.8 0.09 85)" }}>
-                {w.centerValue}
+                <CountUp value={w.centerValue} />
               </div>
               <div className="text-[9.5px] text-dim">{w.centerLabel}</div>
             </Donut>

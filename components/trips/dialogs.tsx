@@ -16,8 +16,8 @@ function Dialog({ label, onClose, children, panel, z }: { label: string; onClose
   const ref = useRef<HTMLDivElement>(null);
   useDialog(ref, onClose);
   return (
-    <div onClick={onClose} style={{ ...overlay, ...(z ? { zIndex: z, background: "rgba(6,8,9,.72)" } : {}) }}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onClick={(e) => e.stopPropagation()} style={{ ...dialogPanel, ...panel }}>
+    <div onClick={onClose} style={{ ...overlay, ...(z ? { zIndex: z, background: "rgba(6,8,9,.72)" } : {}), animation: "gfade 160ms ease-out" }}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onClick={(e) => e.stopPropagation()} style={{ ...dialogPanel, ...panel, animation: "gpop 220ms var(--ease-out)" }}>
         {children}
       </div>
     </div>

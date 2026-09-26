@@ -42,6 +42,12 @@
   --z-lang: 950;
   --z-wipe: 1000;    /* library switch transition, above everything */
 
+  /* Motion. One curve and two durations for entrances; springy only where it lands something. */
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --dur-fast: 180ms;
+  --dur-base: 320ms;
+
   color-scheme: dark;
 }
 
@@ -164,7 +170,8 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert);
 @keyframes gslide { from { transform: translateX(14px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
 /* Trip Planner */
 @keyframes slotIn { from { opacity: 0; transform: scaleY(.6) } to { opacity: 1; transform: scaleY(1) } }
-@keyframes pulseGlow { 0%, 100% { box-shadow: inset 0 0 0 1px rgba(111,201,192,.22) } 50% { box-shadow: inset 0 0 0 1px rgba(111,201,192,.6) } }
+/* "Important" trip cards: warm edge glow, run a few times when the card appears. */
+@keyframes pulseGlow { 0%, 100% { box-shadow: inset 0 0 0 1px rgba(224,168,107,.18) } 50% { box-shadow: inset 0 0 0 1px rgba(224,168,107,.65) } }
 @keyframes drawerRise { from { transform: translateY(101%); opacity: .35 } to { transform: translateY(0); opacity: 1 } }
 @keyframes compBtnIn { from { transform: scale(.6) translateY(10px); opacity: 0 } to { transform: scale(1) translateY(0); opacity: 1 } }
 .tp-skip { position: absolute; left: -9999px; top: 8px; z-index: var(--z-skip); background: #5fb8b0; color: #06201e; font-weight: 700; font-size: 13px; padding: 9px 14px; border-radius: 8px; }
@@ -175,9 +182,33 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert);
   50% { opacity: 1; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) }
 }
 
+/* One-shot entrances (stats, table, roulette). Stagger with --i on the element. */
+@property --sweep { syntax: "<angle>"; inherits: false; initial-value: 360deg; }
+@keyframes grise { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+@keyframes gpodium { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+@keyframes ggrowx { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+@keyframes ggrowy { from { transform: scaleY(0) } to { transform: scaleY(1) } }
+@keyframes gsweep { from { --sweep: 0deg } to { --sweep: 360deg } }
+@keyframes gtick { 40% { opacity: .5; transform: translateY(-3px) } to { opacity: 1; transform: none } }
+@keyframes gchipin { from { opacity: 0; transform: translateX(-8px) scale(.92) } to { opacity: 1; transform: none } }
+/* Months drill-down (--dx picks the side) and Trip Planner. */
+@keyframes gslidein { from { opacity: 0; transform: translateX(var(--dx, 8px)) } to { opacity: 1; transform: none } }
+@keyframes gpinpop { from { opacity: 0; transform: scale(0) } to { opacity: 1; transform: scale(1) } }
+@keyframes gtoast { from { opacity: 0; transform: translate(-50%, 12px) } to { opacity: 1; transform: translate(-50%, 0) } }
+@keyframes gdrain { from { transform: scaleX(1) } to { transform: scaleX(0) } }
+@keyframes gliftin { from { opacity: .6; transform: scale(.96) } to { opacity: 1; transform: none } }
+.g-rise { animation: grise var(--dur-base) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
+.g-grow-x { transform-origin: left; animation: ggrowx 560ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 30ms); }
+.g-grow-y { transform-origin: bottom; animation: ggrowy 520ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 20ms); }
+.g-sweep {
+  -webkit-mask: conic-gradient(#000 var(--sweep), transparent 0);
+  mask: conic-gradient(#000 var(--sweep), transparent 0);
+  animation: gsweep 700ms var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important;
     transition: none !important; scroll-behavior: auto !important;
   }
 }

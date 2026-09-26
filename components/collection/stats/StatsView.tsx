@@ -1,7 +1,8 @@
 "use client";
 
 // Stats tab: summary cards plus the two widget columns from cfg.stats.
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
+import { CountUp } from "@/components/ui/CountUp";
 import { accentButton } from "@/components/ui/Pills";
 import { buildStats } from "@/lib/collection";
 import { useCollectionCtx } from "../CollectionContext";
@@ -25,13 +26,13 @@ export function StatsView() {
       </div>
 
       <div className="mb-[26px] grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))" }}>
-        {stats.summary.map((c) => (
-          <div key={c.label} className="min-w-0 rounded-xl border border-wd bg-card px-[17px] py-4">
+        {stats.summary.map((c, i) => (
+          <div key={c.label} className="g-rise min-w-0 rounded-xl border border-wd bg-card px-[17px] py-4" style={{ "--i": i } as CSSProperties}>
             <div
               className="truncate font-mono font-semibold tracking-[-.02em]"
               style={{ fontSize: c.size, color: c.accent ? "var(--accent)" : "var(--text)" }}
             >
-              {c.value}
+              <CountUp value={c.value} />
             </div>
             <div className="mt-1 text-[11.5px] text-pretty text-muted">{c.label}</div>
           </div>

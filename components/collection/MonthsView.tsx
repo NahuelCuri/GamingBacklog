@@ -2,13 +2,21 @@
 
 // Months tab (finance): a card per month, and a drill-down with the daily
 // spending calendar, the category breakdown and the month's transactions.
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { CountUp } from "@/components/ui/CountUp";
 import { monthCards, monthDetail, type MonthCard, type MonthDetail } from "@/lib/collection";
+import type { Item } from "@/lib/collection/types";
+import { flash } from "@/lib/motion";
 import { useCollectionCtx } from "./CollectionContext";
 
 const NEGATIVE = "var(--neg)";
 const panel = "rounded-[14px] border border-wd bg-surface";
 const heading = "text-[11px] font-semibold uppercase tracking-[.09em] text-dim";
+
+/** Drill-down slides in from the right; going back slides the grid in from the left. */
+const slideIn = (dx: number) => ({ "--dx": dx + "px", animation: "gslidein 260ms var(--ease-out) both" }) as CSSProperties;
+/** Stagger index for .g-rise (40ms per step). */
+const rise = (i: number) => ({ "--i": i }) as CSSProperties;
 
 const onActivate = (fn: () => void) => (e: KeyboardEvent) => {
   if (e.key === "Enter" || e.key === " ") {
@@ -20,12 +28,27 @@ const onActivate = (fn: () => void) => (e: KeyboardEvent) => {
 export function MonthsView() {
   const { cfg, items, money: m } = useCollectionCtx();
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [cameBack, setCameBack] = useState(false);
   const cards = useMemo(() => monthCards(cfg, items, m), [cfg, items, m]);
   const open = useMemo(() => (openKey ? monthDetail(cfg, items, openKey, m) : null), [cfg, items, openKey, m]);
 
   return (
     <div className="pt-[22px]" style={{ animation: "gfade .2s ease" }}>
-      {open ? <MonthDrill d={open} onBack={() => setOpenKey(null)} /> : <MonthGrid cards={cards} onOpen={setOpenKey} />}
+      {open ? (
+        <div key={"m:" + openKey} style={slideIn(8)}>
+          <MonthDrill
+            d={open}
+            onBack={() => {
+              setCameBack(true);
+              setOpenKey(null);
+            }}
+          />
+        </div>
+      ) : (
+        <div key="grid" style={cameBack ? slideIn(-8) : undefined}>
+          <MonthGrid cards={cards} onOpen={setOpenKey} />
+        </div>
+      )}
     </div>
   );
 }
@@ -40,15 +63,16 @@ function MonthGrid({ cards, onOpen }: { cards: MonthCard[]; onOpen(key: string):
         </div>
       )}
       <div className="grid gap-[14px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))" }}>
-        {cards.map((c) => (
+        {cards.map((c, i) => (
           <div
             key={c.key}
+            style={rise(Math.min(i, 12))}
             role="button"
             tabIndex={0}
             aria-label={"Open " + c.label}
             onClick={() => onOpen(c.key)}
             onKeyDown={onActivate(() => onOpen(c.key))}
-            className="cursor-pointer rounded-[14px] border border-wd bg-card px-[19px] py-[18px] transition-[border-color,transform] duration-200 hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] active:translate-y-0"
+            className="g-rise cursor-pointer rounded-[14px] border border-wd bg-card px-[19px] py-[18px] transition-[border-color,transform] duration-200 hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] active:translate-y-0"
           >
             <div className="mb-[14px] flex items-baseline justify-between">
               <div className="text-[15.5px] font-bold tracking-[-.01em]">{c.label}</div>
@@ -94,6 +118,18 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
     if (item) openEdit(item);
   };
 
+  // A transaction edited from here flashes once (more than a few changes at once is a sync, not an edit).
+  const rowEls = useRef(new Map<string, HTMLDivElement>());
+  const prevItems = useRef<Map<string, Item> | null>(null);
+  useLayoutEffect(() => {
+    const prev = prevItems.current;
+    prevItems.current = new Map(items.map((x) => [x.id, x]));
+    if (!prev) return;
+    const changed = items.filter((x) => prev.has(x.id) && prev.get(x.id) !== x);
+    if (changed.length > 3) return;
+    changed.forEach((x) => flash(rowEls.current.get(x.id)?.querySelector("[data-flash]")));
+  }, [items]);
+
   return (
     <div>
       <div className="mb-5 flex items-center gap-[14px]">
@@ -104,10 +140,10 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
       </div>
 
       <div className="mb-[22px] grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))" }}>
-        <SummaryCard label="Spent" value={d.spent} size={d.spentSize} color={NEGATIVE} />
-        <SummaryCard label="Income" value={d.income} size={d.incomeSize} color="var(--accent)" />
-        <SummaryCard label="Saved" value={d.saved} size={d.savedSize} color={d.savedColor} />
-        <SummaryCard label="Transactions" value={d.txnCount} size="24px" color="var(--text)" />
+        <SummaryCard i={0} label="Spent" value={d.spent} size={d.spentSize} color={NEGATIVE} />
+        <SummaryCard i={1} label="Income" value={d.income} size={d.incomeSize} color="var(--accent)" />
+        <SummaryCard i={2} label="Saved" value={d.saved} size={d.savedSize} color={d.savedColor} />
+        <SummaryCard i={3} label="Transactions" value={d.txnCount} size="24px" color="var(--text)" />
       </div>
 
       <div className="grid items-start gap-5" style={{ gridTemplateColumns: isMobile ? "1fr" : "1.05fr .95fr" }}>
@@ -130,7 +166,8 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
                     key={i}
                     title={c.tip || undefined}
                     className="flex aspect-square items-start justify-end rounded-md px-[5px] py-1"
-                    style={{ background: c.color }}
+                    // Week by week: every cell in a row shares its row's delay.
+                    style={{ background: c.color, animation: `grise 280ms var(--ease-out) ${Math.floor(i / 7) * 30}ms both` }}
                   >
                     <span className="font-mono text-[9.5px]" style={{ color: c.has ? "var(--text2)" : "var(--dim)" }}>
                       {c.day}
@@ -148,7 +185,7 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
                 <div key={i} className="flex items-center gap-3">
                   <div className="w-24 flex-none truncate text-[12.5px]">{c.label}</div>
                   <div className="h-2 flex-1 overflow-hidden rounded bg-wc">
-                    <div className="h-full rounded bg-accent" style={{ width: c.pct }} />
+                    <div className="g-grow-x h-full rounded bg-accent" style={{ width: c.pct, "--i": Math.min(i, 10) } as CSSProperties} />
                   </div>
                   <div className="w-16 text-right font-mono text-xs font-semibold text-text2">{c.val}</div>
                 </div>
@@ -160,16 +197,26 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
         <div className={panel + " px-5 py-[18px]"}>
           <div className={heading + " mb-[14px]"}>Transactions</div>
           <div className="flex flex-col">
-            {d.txns.map((t) => (
+            {d.txns.map((t, i) => (
               <div
                 key={t.id}
+                ref={(el) => {
+                  if (el) rowEls.current.set(t.id, el);
+                  else rowEls.current.delete(t.id);
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label={"Edit " + (t.title || cfg.noun)}
                 onClick={() => edit(t.id)}
                 onKeyDown={onActivate(() => edit(t.id))}
-                className="flex cursor-pointer items-center gap-3 rounded-md border-b border-wc px-1.5 py-[9px] transition-colors duration-150 hover:bg-wa"
+                // The first dozen fade in 20ms apart (.g-rise steps 40ms per --i).
+                className={
+                  "relative isolate flex cursor-pointer items-center gap-3 overflow-hidden rounded-md border-b border-wc px-1.5 py-[9px] transition-colors duration-150 hover:bg-wa" +
+                  (i < 12 ? " g-rise" : "")
+                }
+                style={i < 12 ? rise(i / 2) : undefined}
               >
+                <span data-flash aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-accent/10 opacity-0" />
                 <div className="w-12 flex-none font-mono text-[11px] text-dim">{t.date}</div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-medium">{t.title}</div>
@@ -187,11 +234,11 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
   );
 }
 
-function SummaryCard({ label, value, size, color }: { label: string; value: string; size: string; color: string }) {
+function SummaryCard({ i, label, value, size, color }: { i: number; label: string; value: string | number; size: string; color: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-wd bg-card px-4 py-[15px]">
+    <div className="g-rise min-w-0 rounded-xl border border-wd bg-card px-4 py-[15px]" style={rise(i)}>
       <div className="truncate font-mono font-semibold tracking-[-.02em]" style={{ fontSize: size, color }}>
-        {value}
+        <CountUp value={value} />
       </div>
       <div className="mt-[3px] text-[11px] text-muted">{label}</div>
     </div>

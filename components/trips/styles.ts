@@ -95,7 +95,13 @@ export const tagChip: CSSProperties = {
   fontSize: 11.5, padding: "4px 9px", borderRadius: 20, color: "#9fd8d1", background: "rgba(95,184,176,.12)", border: "1px solid rgba(95,184,176,.32)",
 };
 
-export const pulse = (important: boolean): CSSProperties => (important ? { animation: "pulseGlow 2.6s ease-in-out infinite" } : {});
+/**
+ * "Important" cards carry a warm frame and tint that read without any motion,
+ * plus a glow that runs three times when the card appears (or turns important).
+ */
+export const IMPORTANT_EDGE = "rgba(224,168,107,.38)";
+export const importantCard = (on: boolean, bg: string): CSSProperties =>
+  on ? { background: `color-mix(in srgb, ${T.must} 7%, ${bg})`, animation: "pulseGlow 2.6s ease-in-out 3" } : { background: bg };
 
 /**
  * A 1px border with one thicker coloured side, as longhands: mixing `border`

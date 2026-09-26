@@ -58,7 +58,9 @@ export function TripsHome() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 260px), 1fr))", gap: 18 }}>
-          {data.trips.map((t) => {
+          {data.trips.map((t, i) => {
+            // Cards rise 40ms apart; each budget bar grows once its card is in.
+            const delay = Math.min(i, 12) * 40;
             const cs = tripCards(data.cards, t.id);
             const b = budget(t, cs);
             const open = () => openTrip(t.id);
@@ -78,7 +80,7 @@ export function TripsHome() {
                 onClick={open}
                 onKeyDown={onKey}
                 className="hover:!border-[#3a6b66]"
-                style={{ cursor: "pointer", background: T.card, border: "1px solid #222829", borderRadius: 16, overflow: "hidden", transition: "border-color .15s" }}
+                style={{ cursor: "pointer", background: T.card, border: "1px solid #222829", borderRadius: 16, overflow: "hidden", transition: "border-color .15s", animation: `grise 320ms var(--ease-out) ${delay}ms both` }}
               >
                 <div style={{ position: "relative", height: 96, background: t.cover, display: "flex", alignItems: "flex-end", padding: "14px 16px" }}>
                   <button
@@ -116,7 +118,7 @@ export function TripsHome() {
                     </div>
                   </div>
                   <div style={{ marginTop: 12, height: 6, borderRadius: 4, background: T.bg, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: b.pct, background: b.color }} />
+                    <div style={{ height: "100%", width: b.pct, background: b.color, transformOrigin: "left", animation: `ggrowx 560ms var(--ease-out) ${delay + 200}ms both` }} />
                   </div>
                   <div style={{ marginTop: 5, fontFamily: T.mono, fontSize: 11, color: T.dim2, fontVariantNumeric: "tabular-nums" }}>{`${b.spentDisp} of ${b.budgetDisp}`}</div>
                 </div>

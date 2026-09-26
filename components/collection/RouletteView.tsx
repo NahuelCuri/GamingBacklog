@@ -1,22 +1,38 @@
 "use client";
 
 // Roulette tab: build a pool (filters or hand-picked), spin the reel, act on
-// the winner. The reel eases out over 4.8s; reduced motion skips straight to it.
-import { useEffect, useMemo, useRef, useState } from "react";
+// the winner. The reel eases out over 4.8s, runs a few px past and settles;
+// reduced motion skips straight to it.
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CloseIcon, PlusIcon } from "@/components/icons";
+import { CountUp } from "@/components/ui/CountUp";
 import { accentButton, neutralButton, toggleChip } from "@/components/ui/Pills";
 import {
-  defaultRouletteState, pickRandom, pickSuggestions, pool as buildPool, primaryKey, pushRecent, reelCard, reelStrip, reelTarget,
+  REEL, defaultRouletteState, pickRandom, pickSuggestions, pool as buildPool, primaryKey, pushRecent, reelCard, reelStrip, reelTarget,
   tagCloud, winnerActive, type RouletteState,
 } from "@/lib/collection";
 import type { Item } from "@/lib/collection/types";
+import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 import { useCollectionCtx } from "./CollectionContext";
 
 const DURATION = 4800;
 const ease = (t: number) => 1 - Math.pow(1 - t, 3.4);
+/** How far past the target the reel runs, and the share of DURATION spent getting there. */
+const OVERSHOOT = 6;
+const MAIN = 0.88;
+
+/** Strip position at t in [0,1]: ease out to just past the target, then settle back onto it. */
+function reelX(target: number, t: number) {
+  const peak = target + Math.sign(target || -1) * OVERSHOOT;
+  if (t < MAIN) return peak * ease(t / MAIN);
+  const u = (t - MAIN) / (1 - MAIN);
+  return peak + (target - peak) * u * u * (3 - 2 * u);
+}
 const eyebrow = "text-[10px] font-semibold tracking-[.09em] text-dim uppercase";
 
 const chip = (on: boolean) => toggleChip(on, "border-wf bg-inset text-text2");
+/** Stagger step for the winner panel's parts (see .g-rise). */
+const rise = (i: number) => ({ "--i": i }) as CSSProperties;
 
 export function RouletteView() {
   const { cfg, items, actions, isMobile, openEdit } = useCollectionCtx();
@@ -30,6 +46,7 @@ export function RouletteView() {
   const [recent, setRecent] = useState<Item[]>([]);
   const strip = useRef<HTMLDivElement>(null);
   const raf = useRef(0);
+  const reduced = useReducedMotion();
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
 
@@ -48,7 +65,7 @@ export function RouletteView() {
   const spin = () => {
     if (blocked) return;
     const w = pickRandom(poolItems);
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    if (reduced) {
       setReel([]);
       finish(w);
       return;
@@ -66,7 +83,7 @@ export function RouletteView() {
       }
       if (!start) start = now;
       const t = Math.min(1, (now - start) / DURATION);
-      el.style.transform = `translateX(${target * ease(t)}px)`;
+      el.style.transform = `translateX(${reelX(target, t)}px)`;
       if (t < 1) raf.current = requestAnimationFrame(step);
       else finish(w);
     };
@@ -82,6 +99,7 @@ export function RouletteView() {
   };
 
   const active = winnerActive(cfg, winner);
+  const landed = !!winner && !spinning;
   const scoreV = winner?.[r.winnerScoreField];
   const subV = winner?.[r.winnerSubField];
 
@@ -92,7 +110,13 @@ export function RouletteView() {
         <div className="mb-[3px] text-[15px] font-bold">Build your pool</div>
         <div className="mb-[18px] text-[12.5px] text-muted">Narrow it down, then let fate pick.</div>
 
-        <div className="mb-[18px] flex gap-1 rounded-[9px] border border-wd bg-inset p-[3px]">
+        <div className="relative mb-[18px] flex gap-1 rounded-[9px] border border-wd bg-inset p-[3px]">
+          {/* one accent pill slides between the two options */}
+          <span
+            aria-hidden
+            className="absolute inset-y-[3px] left-[3px] rounded-md bg-accent transition-transform duration-[320ms] ease-[var(--ease-out)]"
+            style={{ width: "calc(50% - 5px)", transform: st.rmode === "picked" ? "translateX(calc(100% + 4px))" : "none" }}
+          />
           {(["filters", "picked"] as const).map((m) => (
             <button
               key={m}
@@ -100,8 +124,8 @@ export function RouletteView() {
               aria-pressed={st.rmode === m}
               onClick={() => setSt((s) => ({ ...s, rmode: m }))}
               className={
-                "flex-1 cursor-pointer rounded-md border-none p-[7px] text-center text-[12.5px] font-semibold transition-[color,background-color] duration-200 " +
-                (st.rmode === m ? "bg-accent text-on-accent" : "bg-transparent text-muted hover:bg-wc hover:text-text")
+                "relative flex-1 cursor-pointer rounded-md border-none bg-transparent p-[7px] text-center text-[12.5px] font-semibold transition-[color,background-color] duration-200 " +
+                (st.rmode === m ? "text-on-accent" : "text-muted hover:bg-wc hover:text-text")
               }
             >
               {m === "filters" ? "By filters" : "Hand-pick"}
@@ -228,7 +252,11 @@ export function RouletteView() {
         <div className="mb-1.5 text-center">
           <div className="text-xl font-bold tracking-[-.02em]">Can&apos;t decide? Spin.</div>
           <div className="mt-[3px] text-[12.5px] text-muted">
-            <span className="font-mono" style={{ color: poolItems.length ? "var(--accent)" : "var(--neg)" }}>
+            <span
+              key={poolItems.length}
+              className="inline-block font-mono"
+              style={{ color: poolItems.length ? "var(--accent)" : "var(--neg)", animation: "gtick 220ms var(--ease-out)" }}
+            >
               {poolItems.length}
             </span>
             {/* one text node, as in legacy, so i18n leaves the sentence whole */}
@@ -250,7 +278,13 @@ export function RouletteView() {
               {reel.map((g, i) => {
                 const c = reelCard(cfg, g);
                 return (
-                  <div key={i} className="flex h-[90px] w-[150px] flex-none flex-col justify-between rounded-[10px] border border-wd bg-chip2 px-3 py-[11px]">
+                  <div
+                    key={i}
+                    className={
+                      "flex h-[90px] w-[150px] flex-none flex-col justify-between rounded-[10px] border bg-chip2 px-3 py-[11px] transition-[scale,border-color] duration-[320ms] ease-[var(--ease-out)] " +
+                      (landed && i === REEL.winnerIndex ? "scale-[1.04] border-accent" : "border-wd")
+                    }
+                  >
                     <div className="line-clamp-2 text-[12.5px] leading-[1.25] font-semibold">{c.title}</div>
                     <div className="flex items-center gap-1.5">
                       <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: c.dot, boxShadow: c.glow ? "0 0 7px var(--accent)" : "none" }} />
@@ -291,8 +325,10 @@ export function RouletteView() {
               animation: "gpop .3s ease",
             }}
           >
-            <div className="mb-2.5 text-[10px] font-semibold tracking-[.12em] text-accent uppercase">Tonight you play</div>
-            <div className="flex items-start justify-between gap-4" style={{ flexDirection: isMobile ? "column" : "row" }}>
+            <div className="g-rise mb-2.5 text-[10px] font-semibold tracking-[.12em] text-accent uppercase" style={rise(1)}>
+              Tonight you play
+            </div>
+            <div className="g-rise flex items-start justify-between gap-4" style={{ ...rise(2), flexDirection: isMobile ? "column" : "row" }}>
               <div className="min-w-0">
                 <div className="text-2xl leading-[1.15] font-bold tracking-[-.02em]">{String(winner[primary])}</div>
                 <div className="mt-[11px] flex flex-wrap gap-1.5">
@@ -304,14 +340,16 @@ export function RouletteView() {
                 </div>
               </div>
               <div className="flex-none font-mono" style={{ textAlign: isMobile ? "left" : "right" }}>
-                <div className="text-[28px] font-semibold text-accent">{scoreV != null ? String(scoreV) : "—"}</div>
+                <div className="text-[28px] font-semibold text-accent">{scoreV != null ? <CountUp value={String(scoreV)} /> : "—"}</div>
                 <div className="mt-[2px] text-[11px] text-muted">{subV != null ? String(subV) + (r.winnerSubSuffix ?? "") : "—"}</div>
               </div>
             </div>
             {!!String(winner[cfg.detail.reviewField] ?? "").trim() && (
-              <div className="mt-[14px] text-[13px] leading-[1.6] text-text3 italic">{String(winner[cfg.detail.reviewField])}</div>
+              <div className="g-rise mt-[14px] text-[13px] leading-[1.6] text-text3 italic" style={rise(3)}>
+                {String(winner[cfg.detail.reviewField])}
+              </div>
             )}
-            <div className="mt-[18px] flex flex-wrap gap-[9px]">
+            <div className="g-rise mt-[18px] flex flex-wrap gap-[9px]" style={rise(4)}>
               <button type="button" onClick={startAction} className={accentButton + " px-[18px] py-[9px] text-[13px] font-bold"}>
                 {active ? r.startAction.activeLabel : r.startAction.label}
               </button>
@@ -330,7 +368,11 @@ export function RouletteView() {
             <div className={eyebrow + " mb-[9px]"}>Recent spins</div>
             <div className="flex flex-wrap gap-[7px]">
               {recent.map((g) => (
-                <span key={g.id} className="rounded-[20px] border border-wd bg-chip2 px-[11px] py-[5px] text-xs text-muted2">
+                <span
+                  key={g.id}
+                  className="rounded-[20px] border border-wd bg-chip2 px-[11px] py-[5px] text-xs text-muted2"
+                  style={{ animation: "gchipin 260ms var(--ease-out) both" }}
+                >
                   {String(g[primary])}
                 </span>
               ))}

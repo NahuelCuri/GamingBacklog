@@ -158,6 +158,7 @@ export function TripMap() {
     ghosts.forEach((p) => rows.push({ pin: p, meta: [typeMeta(p.c.type).label, p.c.duration].filter(Boolean).join(" · ") }));
   }
 
+  const numbered = drawn ? drawn.pins.filter((p) => p.n).length : 0;
   const overlayMsg: CSSProperties = { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" };
 
   return (
@@ -188,10 +189,14 @@ export function TripMap() {
                     <path d={drawn.a} stroke="#313b3d" strokeWidth={1.7} vectorEffect="non-scaling-stroke" />
                     <path d={drawn.w} stroke="#17292c" strokeWidth={2.2} vectorEffect="non-scaling-stroke" />
                   </g>
-                  {drawn.route && <path d={drawn.route} fill="none" stroke={T.accent} strokeWidth={1.5} strokeDasharray="6 6" opacity={0.5} vectorEffect="non-scaling-stroke" />}
+                  {drawn.route && (
+                    <g key={"route:" + day} style={{ animation: `gfade 400ms ease-out ${Math.min(numbered, 15) * 40}ms both` }}>
+                      <path d={drawn.route} fill="none" stroke={T.accent} strokeWidth={1.5} strokeDasharray="6 6" opacity={0.5} vectorEffect="non-scaling-stroke" />
+                    </g>
+                  )}
                   {drawn.pins.map((p) => (
                     <g
-                      key={p.c.id}
+                      key={p.c.id + ":" + day}
                       className="pin"
                       transform={`translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${(1 / view.k).toFixed(4)})`}
                       style={{ cursor: "pointer" }}
@@ -204,16 +209,18 @@ export function TripMap() {
                         openCard(p.c.id);
                       }}
                     >
-                      {p.n ? (
-                        <>
-                          <circle r={14} fill={p.color || T.accent} stroke="#0a0c0d" strokeWidth={2.5} />
-                          <text y={4.6} textAnchor="middle" fontFamily="var(--font-jetbrains), monospace" fontSize={12.5} fontWeight={700} fill="#0a0c0d">
-                            {p.n}
-                          </text>
-                        </>
-                      ) : (
-                        <circle r={7} fill="#0a0c0d" stroke={p.color || "#5f6b68"} strokeWidth={2.4} />
-                      )}
+                      <g style={pinPop(p.n)}>
+                        {p.n ? (
+                          <>
+                            <circle r={14} fill={p.color || T.accent} stroke="#0a0c0d" strokeWidth={2.5} />
+                            <text y={4.6} textAnchor="middle" fontFamily="var(--font-jetbrains), monospace" fontSize={12.5} fontWeight={700} fill="#0a0c0d">
+                              {p.n}
+                            </text>
+                          </>
+                        ) : (
+                          <circle r={7} fill="#0a0c0d" stroke={p.color || "#5f6b68"} strokeWidth={2.4} />
+                        )}
+                      </g>
                     </g>
                   ))}
                 </g>
@@ -221,7 +228,7 @@ export function TripMap() {
             )}
           </div>
           {tip && (
-            <div style={{ position: "absolute", left: tip.x * view.k + view.tx, top: tip.y * view.k + view.ty, transform: "translate(-50%,-150%)", pointerEvents: "none", zIndex: 7, background: "rgba(15,18,19,.96)", border: `1px solid ${T.border2}`, borderRadius: 9, padding: "7px 10px", boxShadow: "0 10px 28px rgba(0,0,0,.55)" }}>
+            <div key={tip.c.id} style={{ animation: "gfade 140ms ease-out", position: "absolute", left: tip.x * view.k + view.tx, top: tip.y * view.k + view.ty, transform: "translate(-50%,-150%)", pointerEvents: "none", zIndex: 7, background: "rgba(15,18,19,.96)", border: `1px solid ${T.border2}`, borderRadius: 9, padding: "7px 10px", boxShadow: "0 10px 28px rgba(0,0,0,.55)" }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: T.text }}>{(tip.n ? tip.n + ". " : "") + (tip.c.title || "Untitled")}</div>
               <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.muted2, marginTop: 3 }}>
                 {[typeMeta(tip.c.type).label, tip.c.day != null ? "Day " + tip.c.day : "Unscheduled", tip.c.startTime || "", tip.c.duration || ""].filter(Boolean).join(" · ")}
@@ -291,3 +298,10 @@ export function TripMap() {
     </div>
   );
 }
+
+/** Pins pop in stop order (unnumbered ones first); an inner <g>, since the outer one owns the transform attribute. */
+const pinPop = (n: number): CSSProperties => ({
+  transformBox: "fill-box",
+  transformOrigin: "center",
+  animation: `gpinpop 360ms var(--ease-spring) ${Math.min(n, 15) * 40}ms both`,
+});

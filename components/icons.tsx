@@ -189,6 +189,15 @@ export const GlobeIcon = (p: IconProps) => (
   </Glyph>
 );
 
+/** Circled exclamation: an "important" marker. */
+export const WarningCircleIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <circle cx="12" cy="12" r="9" {...stroke} />
+    <path d="M12 7.5v5.5" {...stroke} />
+    <circle cx="12" cy="16.4" r="1.15" fill="currentColor" />
+  </Glyph>
+);
+
 export const PlusIcon = (p: IconProps) => (
   <Glyph {...p}>
     <path d="M12 5v14M5 12h14" {...stroke} />
