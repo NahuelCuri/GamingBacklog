@@ -3,15 +3,17 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { COLLECTIONS } from "@/config/collections";
-import { blankDraft, draftFromItem } from "@/lib/collection";
+import { blankDraft, draftFromItem, monthCards, monthDetail } from "@/lib/collection";
 import type { CollectionKey, Item } from "@/lib/collection/types";
-import { DEFAULT_URL_STATE, readUrlState, writeUrlState, type UrlState } from "@/lib/collection/url-state";
+import { DEFAULT_URL_STATE, hasView, readUrlState, writeUrlState, type UrlState } from "@/lib/collection/url-state";
 import { initialCollectionState } from "@/lib/data/collection-state";
+import { currencyMoney, fetchRate, useCurrency } from "@/lib/hooks/useCurrency";
 import { usd } from "@/lib/spending";
 import { seed } from "@/tests/legacy";
 import { CollectionContext, type CollectionCtx } from "./CollectionContext";
 import { ItemModal, type ModalState } from "./ItemModal";
 import { LibraryView } from "./LibraryView";
+import { MonthsView } from "./MonthsView";
 
 afterEach(cleanup);
 
@@ -199,5 +201,95 @@ describe("url state", () => {
     expect(readUrlState(qs)).toEqual(s);
     expect(writeUrlState("", DEFAULT_URL_STATE)).toBe("");
     expect(readUrlState("?view=bogus").view).toBe("library");
+  });
+});
+
+describe("months view (expenses seed)", () => {
+  const txns = seed("expenses");
+
+  it("lists months newest first and drills into one", () => {
+    const { ctx } = makeCtx("expenses", txns);
+    render(
+      <CollectionContext.Provider value={ctx}>
+        <MonthsView />
+      </CollectionContext.Provider>,
+    );
+    const cards = screen.getAllByRole("button", { name: /^Open / });
+    const cardsData = monthCards(COLLECTIONS.expenses, txns);
+    expect(cards.map((c) => c.getAttribute("aria-label"))).toEqual(cardsData.map((c) => "Open " + c.label));
+
+    fireEvent.keyDown(cards[0], { key: "Enter" });
+    const detail = monthDetail(COLLECTIONS.expenses, txns, cardsData[0].key)!;
+    expect(screen.getByText(detail.label)).toBeTruthy();
+    const rows = screen.getAllByRole("button", { name: /^Edit / });
+    expect(rows).toHaveLength(detail.txns.length);
+
+    fireEvent.click(rows[0]);
+    expect(ctx.openEdit).toHaveBeenCalledWith(txns.find((x) => x.id === detail.txns[0].id));
+
+    fireEvent.click(screen.getByRole("button", { name: "← All months" }));
+    expect(screen.getAllByRole("button", { name: /^Open / })).toHaveLength(cards.length);
+  });
+
+  it("shows the empty state without transactions", () => {
+    const { ctx } = makeCtx("expenses", []);
+    render(
+      <CollectionContext.Provider value={ctx}>
+        <MonthsView />
+      </CollectionContext.Provider>,
+    );
+    expect(screen.getByText("No transactions yet.")).toBeTruthy();
+  });
+});
+
+describe("tabs a collection lacks", () => {
+  it("fall back to the library", () => {
+    expect(hasView(COLLECTIONS.games, "months")).toBe(false);
+    expect(hasView(COLLECTIONS.expenses, "months")).toBe(true);
+    expect(hasView(COLLECTIONS.wines, "map")).toBe(true);
+    expect(hasView(COLLECTIONS.expenses, "roulette")).toBe(false);
+    expect(hasView(COLLECTIONS.games, "stats")).toBe(true);
+  });
+});
+
+describe("display currency", () => {
+  const cur = { base: "USD", baseSymbol: "US$", alt: "ARS", altSymbol: "AR$", fallbackRate: 1000, api: "https://rates.test/latest/USD" };
+
+  it("formats in the base currency, or the alternative at the live or fallback rate", () => {
+    expect(currencyMoney(undefined, "alt", 5).money(12)).toBe("$12");
+    expect(currencyMoney(cur, "base", 1200).money(12)).toBe("US$12");
+    expect(currencyMoney(cur, "alt", 1200).money(12)).toBe("AR$14,400");
+    expect(currencyMoney(cur, "alt", null).money(12)).toBe("AR$12,000");
+  });
+
+  it("reads the rate from the API and ignores bad answers", async () => {
+    const answer = (body: unknown) => (async () => ({ json: async () => body })) as unknown as typeof fetch;
+    expect(await fetchRate(cur, answer({ rates: { ARS: 1234.5 } }))).toBe(1234.5);
+    expect(await fetchRate(cur, answer({ rates: {} }))).toBeNull();
+    expect(await fetchRate(cur, (async () => { throw new Error("offline"); }) as never)).toBeNull();
+    expect(await fetchRate({ ...cur, api: undefined })).toBeNull();
+  });
+
+  it("the header toggle switches every amount", () => {
+    function Harness() {
+      const { money, toggle } = useCurrency(cur);
+      const { ctx } = makeCtx("expenses", seed("expenses"), { money, currency: toggle });
+      return (
+        <CollectionContext.Provider value={ctx}>
+          <span data-testid="amt">{money.money(1)}</span>
+          {toggle && (
+            <button type="button" onClick={() => toggle.setChoice("alt")}>
+              alt
+            </button>
+          )}
+        </CollectionContext.Provider>
+      );
+    }
+    vi.stubGlobal("fetch", async () => ({ json: async () => ({}) }));
+    render(<Harness />);
+    expect(screen.getByTestId("amt").textContent).toBe("US$1");
+    fireEvent.click(screen.getByRole("button", { name: "alt" }));
+    expect(screen.getByTestId("amt").textContent).toBe("AR$1,000");
+    vi.unstubAllGlobals();
   });
 });

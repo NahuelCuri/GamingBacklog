@@ -14,7 +14,7 @@ export function TopBar({ kicker, children }: { kicker: string; children?: ReactN
   return (
     <header className="flex flex-wrap items-center gap-2.5 px-[22px] py-[18px]">
       <button type="button" onClick={() => navigate(null)} className="flex cursor-pointer items-baseline gap-2.5" title="Back to libraries">
-        <span className="text-lg font-bold tracking-[-.02em] text-text">Backlog</span>
+        <span translate="no" className="text-lg font-bold tracking-[-.02em] text-text">Backlog</span>
         <span className="font-mono text-[11px] text-accent">{kicker}</span>
       </button>
       {children}

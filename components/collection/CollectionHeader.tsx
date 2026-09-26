@@ -7,25 +7,25 @@ import { GearIcon } from "@/components/icons";
 import { useShell } from "@/components/shell/ShellProvider";
 import { Pill, PillGroup, accentButton, chipButton } from "@/components/ui/Pills";
 import { useAuth } from "@/lib/auth";
-import type { CollectionView } from "@/lib/collection/url-state";
+import { hasView, type CollectionView } from "@/lib/collection/url-state";
 import { canTransfer } from "@/lib/data/collection-state";
 import { isShared } from "@/lib/data/store";
 import { parseImport } from "@/lib/data/transfer";
 import { useCollectionCtx } from "./CollectionContext";
 
 export function CollectionHeader() {
-  const { cfg, collection, data, actions, isMobile, url, setUrl, openAdd } = useCollectionCtx();
+  const { cfg, collection, data, actions, currency, isMobile, url, setUrl, openAdd } = useCollectionCtx();
   const { navigate, openSettings } = useShell();
   const { user, signOut } = useAuth();
   const [notice, setNotice] = useState("");
   const ready = canTransfer(data);
 
-  const tabs: { view: CollectionView; label: string; show: boolean }[] = [
-    { view: "library", label: cfg.libraryLabel || "Library", show: true },
-    { view: "stats", label: "Stats", show: true },
-    { view: "months", label: cfg.months?.label || "Months", show: !!cfg.months },
-    { view: "map", label: "Map", show: !!cfg.geo },
-    { view: "roulette", label: "Roulette", show: !!cfg.roulette },
+  const tabs: { view: CollectionView; label: string }[] = [
+    { view: "library", label: cfg.libraryLabel || "Library" },
+    { view: "stats", label: "Stats" },
+    { view: "months", label: cfg.months?.label || "Months" },
+    { view: "map", label: "Map" },
+    { view: "roulette", label: "Roulette" },
   ];
 
   const onImport = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +67,7 @@ export function CollectionHeader() {
 
         <PillGroup role="tablist" label="Views" style={{ flex: isMobile ? "1 1 100%" : "0 0 auto", order: isMobile ? 3 : 0 }}>
           {tabs
-            .filter((t) => t.show)
+            .filter((t) => hasView(cfg, t.view))
             .map((t) => (
               <Pill
                 key={t.view}
@@ -83,6 +83,22 @@ export function CollectionHeader() {
         </PillGroup>
 
         <div style={{ flex: isMobile ? "0 0 0" : 1 }} />
+
+        {currency && (
+          <PillGroup label="Display currency (live rate)">
+            {(["base", "alt"] as const).map((c) => (
+              <Pill
+                key={c}
+                active={currency.choice === c}
+                onClick={() => currency.setChoice(c)}
+                aria-label={"Show amounts in " + (c === "base" ? currency.cfg.base : currency.cfg.alt)}
+                className="px-[11px] py-1.5 font-mono text-xs font-semibold"
+              >
+                {c === "base" ? currency.cfg.baseSymbol : currency.cfg.altSymbol}
+              </Pill>
+            ))}
+          </PillGroup>
+        )}
 
         <button type="button" onClick={() => actions?.exportNow()} disabled={!ready} title="Export backup (JSON)" className={chipButton}>
           Export

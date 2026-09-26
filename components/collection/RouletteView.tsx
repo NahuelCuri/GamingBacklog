@@ -240,8 +240,9 @@ export function RouletteView() {
           <div className="mt-[3px] text-[12.5px] text-muted">
             <span className="font-mono" style={{ color: poolItems.length ? "var(--accent)" : "#d98f8f" }}>
               {poolItems.length}
-            </span>{" "}
-            {cfg.nounPlural} in the pool
+            </span>
+            {/* one text node, as in legacy, so i18n leaves the sentence whole */}
+            {` ${cfg.nounPlural} in the pool`}
           </div>
         </div>
 

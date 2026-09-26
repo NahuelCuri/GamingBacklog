@@ -60,7 +60,7 @@ function AuthCard() {
     <div className="flex min-h-dvh items-center justify-center p-6">
       <div className="w-[380px] max-w-full rounded-2xl border border-wf bg-surface px-7 pt-[30px] pb-[26px]">
         <div className="mb-1 flex items-baseline gap-[9px]">
-          <span className="text-xl font-bold tracking-[-.02em]">Backlog</span>
+          <span translate="no" className="text-xl font-bold tracking-[-.02em]">Backlog</span>
           <span className="font-mono text-[11px] text-dim">{"// games"}</span>
         </div>
         <div className="mb-[22px] text-[13px] text-muted">{signup ? "Create an account to start syncing." : "Sign in to your backlog."}</div>

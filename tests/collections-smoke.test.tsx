@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CollectionContext, type CollectionCtx } from "@/components/collection/CollectionContext";
 import { ItemModal, type ModalState } from "@/components/collection/ItemModal";
 import { LibraryView } from "@/components/collection/LibraryView";
+import { MonthsView } from "@/components/collection/MonthsView";
 import { RouletteView } from "@/components/collection/RouletteView";
 import { ShareCardDialog } from "@/components/collection/share/ShareCardDialog";
 import { ShareImageDialog } from "@/components/collection/share/ShareImageDialog";
@@ -76,6 +77,18 @@ describe.each(KEYS)("%s", (key) => {
     });
   }
 
+  if (cfg.months) {
+    it("months render and every month drills down", () => {
+      wrap(<MonthsView />);
+      const n = screen.getAllByRole("button", { name: /^Open / }).length;
+      for (let i = 0; i < n; i++) {
+        fireEvent.click(screen.getAllByRole("button", { name: /^Open / })[i]);
+        fireEvent.click(screen.getByRole("button", { name: "← All months" }));
+      }
+      expect(errors).toEqual([]);
+    });
+  }
+
   it("add form renders", () => {
     wrap(<Modal initial={{ mode: "add", draft: blankDraft(cfg) }} />);
     expect(errors).toEqual([]);
@@ -113,6 +126,14 @@ describe.each(KEYS)("%s", (key) => {
     cleanup();
     if (cfg.roulette) {
       r(<RouletteView />);
+      cleanup();
+    }
+    if (cfg.months) {
+      r(<MonthsView />);
+      screen.getAllByRole("button", { name: /^Open / }).forEach((_, i) => {
+        fireEvent.click(screen.getAllByRole("button", { name: /^Open / })[i]);
+        fireEvent.click(screen.getByRole("button", { name: "← All months" }));
+      });
       cleanup();
     }
     r(<ShareImageDialog onClose={() => {}} />);

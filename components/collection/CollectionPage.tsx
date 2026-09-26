@@ -11,14 +11,16 @@ import type { CollectionKey, Item } from "@/lib/collection/types";
 import type { CollectionStore } from "@/lib/data/store";
 import { useCollection } from "@/lib/data/useCollection";
 import { useStore } from "@/lib/data/useStore";
+import { useCurrency } from "@/lib/hooks/useCurrency";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { hasView } from "@/lib/collection/url-state";
 import { useUrlState } from "@/lib/hooks/useUrlState";
-import { usd } from "@/lib/spending";
 import { CollectionContext, type CollectionCtx } from "./CollectionContext";
 import { CollectionHeader } from "./CollectionHeader";
 import { ItemModal, type ModalState } from "./ItemModal";
 import { LibraryFab } from "./LibraryFab";
 import { LibraryView } from "./LibraryView";
+import { MonthsView } from "./MonthsView";
 import { RouletteView } from "./RouletteView";
 import { ShareCardDialog } from "./share/ShareCardDialog";
 import { ShareImageDialog } from "./share/ShareImageDialog";
@@ -42,7 +44,9 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
   const userStore = useStore(collection);
   const { state: data, actions } = useCollection(collection, store === undefined ? userStore : store);
   const isMobile = useIsMobile();
-  const [url, setUrl] = useUrlState();
+  const { money, toggle: currency } = useCurrency(cfg.currency);
+  const [rawUrl, setUrl] = useUrlState();
+  const url = useMemo(() => (hasView(cfg, rawUrl.view) ? rawUrl : { ...rawUrl, view: "library" as const }), [cfg, rawUrl]);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [shareItem, setShareItem] = useState<Item | null>(null);
   const [statsImage, setStatsImage] = useState(false);
@@ -53,11 +57,11 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
 
   const ctx = useMemo<CollectionCtx>(
     () => ({
-      collection, cfg, data, items: data.items, actions, money: usd, isMobile, url, setUrl, openAdd, openEdit,
+      collection, cfg, data, items: data.items, actions, money, currency, isMobile, url, setUrl, openAdd, openEdit,
       openShare: setShareItem,
       openStatsImage: () => setStatsImage(true),
     }),
-    [collection, cfg, data, actions, isMobile, url, setUrl, openAdd, openEdit],
+    [collection, cfg, data, actions, money, currency, isMobile, url, setUrl, openAdd, openEdit],
   );
 
   return (
@@ -83,9 +87,10 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
           )}
           {data.status !== "error" && url.view === "library" && <LibraryView />}
           {data.status === "ready" && url.view === "stats" && <StatsView />}
-          {data.status === "ready" && url.view === "roulette" && cfg.roulette && <RouletteView />}
-          {data.status !== "error" && !["library", "stats", "roulette"].includes(url.view) && (
-            <p className="py-16 text-center font-mono text-[13px] text-dim">This view is being ported — coming later in phase 4.</p>
+          {data.status === "ready" && url.view === "months" && <MonthsView />}
+          {data.status === "ready" && url.view === "roulette" && <RouletteView />}
+          {data.status !== "error" && url.view === "map" && (
+            <p className="py-16 text-center font-mono text-[13px] text-dim">The map is being ported — coming in phase 7.</p>
           )}
         </main>
         {modal && <ItemModal modal={modal} setModal={setModal} onClose={closeModal} />}

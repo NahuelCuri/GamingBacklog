@@ -123,7 +123,7 @@ export function LibraryView() {
       </div>
 
       <div aria-live="polite" className="sr-only">
-        {rows.length} {cfg.nounPlural} shown
+        {`${rows.length} ${cfg.nounPlural} shown`}
       </div>
 
       {categories.length > 1 && (

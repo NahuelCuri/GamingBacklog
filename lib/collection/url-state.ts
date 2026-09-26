@@ -1,9 +1,18 @@
 // View + filters live in the query string (legacy readUrl/syncUrl) so any
 // filtered view is linkable and survives refresh and the back button.
+import type { CollectionConfig } from "./types";
 
 export type CollectionView = "library" | "stats" | "months" | "map" | "roulette";
 
 export const VIEWS: CollectionView[] = ["library", "stats", "months", "map", "roulette"];
+
+/** Does this collection have the tab? (`?view=map` on Games falls back to the library.) */
+export function hasView(cfg: CollectionConfig, view: CollectionView): boolean {
+  if (view === "months") return !!cfg.months;
+  if (view === "map") return !!cfg.geo;
+  if (view === "roulette") return !!cfg.roulette;
+  return true;
+}
 
 export interface UrlState {
   view: CollectionView;

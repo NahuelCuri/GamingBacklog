@@ -5,6 +5,7 @@ import type { CollectionConfig, CollectionKey, Item } from "@/lib/collection/typ
 import type { UrlState } from "@/lib/collection/url-state";
 import type { CollectionActions } from "@/lib/data/collection-actions";
 import type { CollectionState } from "@/lib/data/collection-state";
+import type { CurrencyToggle } from "@/lib/hooks/useCurrency";
 import type { MoneyFormat } from "@/lib/spending";
 
 export interface CollectionCtx {
@@ -14,6 +15,8 @@ export interface CollectionCtx {
   items: Item[];
   actions: CollectionActions | null;
   money: MoneyFormat;
+  /** Present only when the config defines `currency`. */
+  currency?: CurrencyToggle | null;
   isMobile: boolean;
   url: UrlState;
   setUrl(patch: Partial<UrlState> | ((s: UrlState) => Partial<UrlState>)): void;

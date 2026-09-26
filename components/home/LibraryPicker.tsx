@@ -44,7 +44,7 @@ export function LibraryPicker() {
       />
 
       <header className="relative flex items-center gap-2.5 px-[22px] py-[18px]">
-        <span className="text-lg font-bold tracking-[-.02em] text-text">Backlog</span>
+        <span translate="no" className="text-lg font-bold tracking-[-.02em] text-text">Backlog</span>
         <span className="font-mono text-[11px] transition-colors duration-300" style={{ color: pickerAccent }}>
           {"// choose a library"}
         </span>

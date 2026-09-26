@@ -90,7 +90,18 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
      - The Expenses category split showed "Other" twice and dropped blank categories (a user report; the fix is in its own commit).
    - **Wines realtime:** the payload mapping and the hook applying remote changes are covered by tests. A live two-account check is for the user.
    - **Still placeholders:** the Months tab (Expenses) arrives in phase 6, and the Map tab (Wines) in phase 7.
-6. **MonthsView, i18n, currency.**
+6. **MonthsView, i18n, currency.** ✅
+   - **Months (Expenses):** month cards, then a drill-down with the daily spending calendar, the category breakdown and the transactions (click one to edit it). Like legacy, the open month is not in the URL.
+   - **Missing tabs:** `?view=months` (or `map` / `roulette`) on a collection without that tab falls back to the library. Legacy rendered an empty view.
+   - **i18n (EN/ES):**
+     - The same fixed toggle on every page and the same `bl_lang` localStorage key, so the choice carries over from legacy.
+     - `lib/i18n/es.ts` is the legacy dictionary. A test checks it still matches.
+     - The approach is still legacy's: rendered text that exactly matches a key is swapped in the DOM, and a MutationObserver re-applies it after React renders.
+     - Improvements: it translates before paint (legacy flashed English after each render), restores the original text when switching back instead of reverse-mapping, starts after hydration, and sets `<html lang>`.
+     - `tests/i18n-parity.test.tsx` runs legacy `i18n.js` and ours on the same rendered views of every collection and requires identical Spanish output.
+     - Two sentences are now rendered as a single text node, as in legacy, so they stay whole instead of translating one word ("10 libros shown").
+     - A typed `t()` can replace the DOM approach after cutover if needed.
+   - **Currency:** the US$/AR$ toggle and the live rate (`cfg.currency`, with `fallbackRate` if the API fails) are ported. As in legacy, no config defines `currency`, so the toggle stays hidden. Adding the block to `config/collections/expenses.ts` turns it on.
 7. **GeoMap + Trip Planner.**
 8. **Cutover.**
    1. Add a GitHub Actions deploy workflow. `public/legacy/index.html` ships at `/legacy/`.
