@@ -3,6 +3,8 @@
 // Fixed EN/ES switch (bottom-left, every page), as in legacy. The choice is per
 // device (localStorage `bl_lang`) and translates the page in place.
 import { useEffect, useRef, useState } from "react";
+import { ES } from "@/lib/i18n/es";
+import { ES_ADDED } from "@/lib/i18n/es-added";
 import { createTranslator, readLang, saveLang, type Lang, type Translator } from "@/lib/i18n/translator";
 
 export function LanguageToggle() {
@@ -11,7 +13,7 @@ export function LanguageToggle() {
 
   useEffect(() => {
     // Starts after hydration so React never sees translated markup.
-    const t = createTranslator(document.body);
+    const t = createTranslator(document.body, { ...ES, ...ES_ADDED });
     translator.current = t;
     const saved = readLang();
     t.setLang(saved);
@@ -34,12 +36,12 @@ export function LanguageToggle() {
       role="group"
       aria-label="Language / Idioma"
       title="Language / Idioma"
-      className="fixed z-[9998] flex select-none gap-[2px] rounded-[9px] bg-topchip p-[3px] font-mono text-[11px]"
+      className="fixed z-(--z-lang) flex select-none gap-[2px] rounded-[9px] bg-topchip p-[3px] font-mono text-[11px]"
       style={{
         left: "max(env(safe-area-inset-left, 0px), 16px)",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
-        border: "1px solid rgba(255,255,255,.1)",
-        boxShadow: "0 4px 14px rgba(0,0,0,.4)",
+        border: "1px solid var(--wh)",
+        boxShadow: "var(--shadow-float)",
       }}
     >
       {(["en", "es"] as const).map((l) => (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MoonIcon } from "@/components/icons";
 import { useShell } from "@/components/shell/ShellProvider";
 import { Eyebrow, Modal, Switch } from "@/components/ui/Modal";
+import { accentButton } from "@/components/ui/Pills";
 import { LIBRARIES, isAdmin } from "@/config/libraries";
 import { usageView, type AdminUsage } from "@/lib/admin";
 import { useAuth } from "@/lib/auth";
@@ -39,7 +40,7 @@ export function SettingsModal() {
               type="button"
               aria-pressed={themeMode === m}
               onClick={() => setThemeMode(m)}
-              className="cursor-pointer rounded-md px-[14px] py-1.5 text-[12.5px] font-semibold text-muted transition-colors duration-200 aria-pressed:bg-accent aria-pressed:text-on-accent"
+              className="cursor-pointer rounded-md px-[14px] py-1.5 text-[12.5px] font-semibold text-muted transition-colors duration-200 not-aria-pressed:hover:bg-wc not-aria-pressed:hover:text-text aria-pressed:bg-accent aria-pressed:text-on-accent"
             >
               {m === "dark" ? "Dark" : "Light"}
             </button>
@@ -60,11 +61,14 @@ export function SettingsModal() {
               aria-checked={on}
               aria-disabled={last}
               onClick={() => toggleLib(d.key)}
-              className={row + " text-left transition-[border-color] duration-200"}
+              className={
+                row +
+                " text-left transition-[border-color,opacity,transform] duration-200 not-aria-disabled:active:translate-y-px" +
+                (on ? "" : " opacity-65 hover:opacity-100")
+              }
               style={{
                 borderColor: on ? `color-mix(in srgb, ${d.color} 42%, transparent)` : "var(--we)",
                 cursor: last ? "not-allowed" : "pointer",
-                opacity: on ? 1 : 0.66,
               }}
             >
               <div
@@ -87,7 +91,7 @@ export function SettingsModal() {
       {isAdmin(user?.id) && <AdminUsagePanel uid={user!.id} />}
 
       <div className="mt-[14px] flex justify-end">
-        <button type="button" onClick={closeSettings} className="cursor-pointer rounded-[9px] bg-accent px-5 py-[9px] text-[13px] font-bold text-on-accent">
+        <button type="button" onClick={closeSettings} className={accentButton + " px-5 py-[9px] text-[13px] font-bold"}>
           Done
         </button>
       </div>
@@ -131,7 +135,7 @@ function AdminUsagePanel({ uid }: { uid: string }) {
           type="button"
           onClick={load}
           title="Refresh"
-          className="cursor-pointer rounded-md border border-wh px-[9px] py-1 font-mono text-[11px] text-muted"
+          className="cursor-pointer rounded-md border border-wh px-[9px] py-1 font-mono text-[11px] text-muted transition-[color,border-color] duration-200 hover:border-wk hover:text-text"
         >
           ↻ Refresh
         </button>
@@ -139,7 +143,7 @@ function AdminUsagePanel({ uid }: { uid: string }) {
       <div className="mb-4 text-[12.5px] text-muted">Supabase database storage — total &amp; per user.</div>
 
       {error && (
-        <div className="rounded-[9px] border px-3 py-2.5 text-xs" style={{ color: "#e6a09c", background: "rgba(230,160,156,.08)", borderColor: "rgba(230,160,156,.25)" }}>
+        <div className="rounded-[9px] border border-neg/25 bg-neg/8 px-3 py-2.5 text-xs text-neg">
           {error}
         </div>
       )}

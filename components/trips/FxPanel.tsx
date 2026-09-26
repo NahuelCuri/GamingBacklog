@@ -9,6 +9,7 @@ type Which = "from" | "to";
 
 export function FxPanel({ onClose }: { onClose(): void }) {
   const [pair, setPair] = useState(readFxPref);
+  const [turn, setTurn] = useState(0);
   const [amount, setAmount] = useState("100");
   const [drop, setDrop] = useState<Which | null>(null);
   const [search, setSearch] = useState("");
@@ -125,7 +126,17 @@ export function FxPanel({ onClose }: { onClose(): void }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "2px 0 8px" }}>
           <div style={{ flex: 1, height: 1, background: "#222829" }} />
-          <button type="button" onClick={swap} title="Swap" aria-label="Swap currencies" className="hover:!border-[#5fb8b0]" style={{ cursor: "pointer", flex: "0 0 auto", width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg, border: `1px solid ${T.border2}`, color: T.accent, fontSize: 15, transition: "border-color .15s" }}>
+          <button
+            type="button"
+            onClick={() => {
+              swap();
+              setTurn((r) => r + 180);
+            }}
+            title="Swap"
+            aria-label="Swap currencies"
+            className="hover:!border-[#5fb8b0]"
+            style={{ transform: `rotate(${turn}deg)`, cursor: "pointer", flex: "0 0 auto", width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg, border: `1px solid ${T.border2}`, color: T.accent, fontSize: 15, transition: "border-color .15s, transform 260ms var(--ease-out)" }}
+          >
             ⇅
           </button>
           <div style={{ flex: 1, height: 1, background: "#222829" }} />

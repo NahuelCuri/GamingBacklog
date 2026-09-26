@@ -160,15 +160,15 @@ export function DatePicker({ value, onChange, placeholder = "Select a date" }: {
 
       {open && (
         <>
-          <div aria-hidden onClick={() => close(false)} className="fixed inset-0 z-[60]" />
+          <div aria-hidden onClick={() => close(false)} className="fixed inset-0 z-(--z-popover)" />
           <div
             ref={pop}
             role="dialog"
             aria-modal="false"
             aria-label="Choose a date"
             onKeyDown={onKey}
-            className="absolute top-[calc(100%+8px)] left-0 z-[61] w-[280px] max-w-[calc(100vw-40px)] rounded-[13px] border border-wi bg-card p-[14px] overscroll-contain"
-            style={{ boxShadow: "0 18px 50px rgba(0,0,0,.55)", animation: "dpop .14s ease" }}
+            className="absolute top-[calc(100%+8px)] left-0 z-(--z-popover) w-[280px] max-w-[calc(100vw-40px)] rounded-[13px] border border-wi bg-card p-[14px] overscroll-contain"
+            style={{ boxShadow: "var(--shadow-pop)", animation: "dpop .14s ease" }}
           >
             <div className="mb-3 flex items-center justify-between">
               <ArrowButton dir="prev" label={"Previous " + unit} onClick={() => step(-1)} />

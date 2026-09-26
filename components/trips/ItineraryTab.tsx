@@ -7,8 +7,12 @@
 // or the buttons).
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
 import { cardAriaLabel, dayHint, money, quickAddCard, setCardDay, statusMeta, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
-import { T, filterPill, frame, input, pulse, statusDot } from "./styles";
+import { IMPORTANT_EDGE, T, filterPill, frame, importantCard, input, statusDot } from "./styles";
+import { WarningCircleIcon } from "@/components/icons";
 import { useTripCtx } from "./TripPlanner";
+import { Tick } from "@/components/ui/Tick";
+import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
+import { play } from "@/lib/motion";
 
 type Over = { day: number | null; index: number } | "none" | null;
 
@@ -65,6 +69,24 @@ export function ItineraryTab() {
   const pending = useRef<{ id: string; sx: number; sy: number; moved: boolean; armed: boolean } | null>(null);
   const cleanup = useRef<() => void>(() => {});
   useFlip(cards);
+
+  // A card dropped on a day settles with a small pop once the move lands in `cards`.
+  const landed = useRef<{ id: string; at: number } | null>(null);
+  useLayoutEffect(() => {
+    const l = landed.current;
+    landed.current = null;
+    if (!l || Date.now() - l.at > 1500) return;
+    const el = [...document.querySelectorAll("[data-flip]")].find((x) => x.getAttribute("data-flip") === l.id);
+    // `scale` rather than `transform`, so it composes with the FLIP slide.
+    play(el, [{ scale: "1.03" }, { scale: "1" }], { duration: 260 });
+  }, [cards]);
+
+  // "+ Add day": only columns added after mount slide in.
+  useEnterStagger(
+    Array.from({ length: trip?.dayCount || 0 }, (_, i) => String(i + 1)),
+    (d) => canvas.current?.querySelector(`[data-day="${d}"]`),
+    { skipInitial: true, keyframes: [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }] },
+  );
 
   useEffect(() => () => cleanup.current(), []);
 
@@ -147,7 +169,10 @@ export function ItineraryTab() {
       if (!p || ev.type === "pointercancel") return;
       if (!p.armed || !p.moved) return openCard(p.id);
       const t = dropTarget(ev.clientX, ev.clientY);
-      if (t) void persist({ cards: setCardDay(data.cards, p.id, t.day) });
+      if (t) {
+        landed.current = { id: p.id, at: Date.now() };
+        void persist({ cards: setCardDay(data.cards, p.id, t.day) });
+      }
     };
     cleanup.current = cancel;
     window.addEventListener("pointermove", move);
@@ -307,7 +332,9 @@ export function ItineraryTab() {
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{"Day " + d}</div>
                     <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim2, marginTop: 1 }}>{dayHint(trip, d)}</div>
                   </div>
-                  <div style={{ fontFamily: T.mono, fontSize: 11, color: T.dim2, background: T.panel, padding: "3px 7px", borderRadius: 6 }}>{dayCards.length}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 11, color: T.dim2, background: T.panel, padding: "3px 7px", borderRadius: 6 }}>
+                    <Tick value={dayCards.length} />
+                  </div>
                 </div>
                 <div style={{ minHeight: 40, display: "flex", flexDirection: "column", gap: 7 }}>
                   {shown.map((c, i) => (
@@ -335,7 +362,7 @@ export function ItineraryTab() {
       </div>
 
       {drag && dragCard && (
-        <div style={{ position: "fixed", left: drag.x - 18, top: drag.y - 16, pointerEvents: "none", zIndex: 200, background: "#1b2123", ...frame("#3a6b66", "left", typeMeta(dragCard.type).color), borderRadius: 9, padding: "9px 12px", boxShadow: "0 14px 34px rgba(0,0,0,.55)", transform: "rotate(-2deg)", maxWidth: 240 }}>
+        <div style={{ position: "fixed", left: drag.x - 18, top: drag.y - 16, pointerEvents: "none", zIndex: 200, animation: "gliftin 140ms var(--ease-out)", background: "#1b2123", ...frame("#3a6b66", "left", typeMeta(dragCard.type).color), borderRadius: 9, padding: "9px 12px", boxShadow: "0 14px 34px rgba(0,0,0,.55)", transform: "rotate(-2deg)", maxWidth: 240 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dragCard.title}</div>
         </div>
       )}
@@ -357,31 +384,39 @@ function FragmentWithGhost({ ghost, children }: { ghost: React.ReactNode; childr
 function BoardCard({ card: c, lane, mob, currency, onDown, onKey }: { card: TripCard; lane: boolean; mob: boolean; currency?: string; onDown(e: RPointerEvent): void; onKey(e: KeyboardEvent): void }) {
   const tm = typeMeta(c.type), sm = statusMeta(c.status);
   const tags = c.tags || [];
-  const base: CSSProperties = { cursor: "grab", touchAction: mob ? "auto" : "none", ...pulse(c.type === "important") };
+  const important = c.type === "important";
+  const base: CSSProperties = { cursor: "grab", touchAction: mob ? "auto" : "none" };
+  const edge = (plain: string) => (important ? IMPORTANT_EDGE : plain);
+  const label = (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      {important && <WarningCircleIcon size={10} />}
+      {tm.label}
+    </span>
+  );
   const price = c.price != null ? money(c.price, currency) : "";
   if (lane)
     return (
-      <div data-flip={c.id} role="button" tabIndex={0} aria-label={cardAriaLabel(c)} onPointerDown={onDown} onKeyDown={onKey} style={{ ...base, background: "#161a1b", ...frame("#232a2b", "left", tm.color), borderRadius: 9, padding: "9px 10px" }}>
+      <div data-flip={c.id} role="button" tabIndex={0} aria-label={cardAriaLabel(c)} onPointerDown={onDown} onKeyDown={onKey} style={{ ...base, ...importantCard(important, "#161a1b"), ...frame(edge("#232a2b"), "left", tm.color), borderRadius: 9, padding: "9px 10px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.3 }}>{c.title}</div>
           <div style={{ ...statusDot(sm.dot, sm.glow, 8), marginTop: 4 }} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6, flexWrap: "wrap" }}>
           {c.startTime && <span style={{ fontFamily: T.mono, fontSize: 10.5, fontWeight: 600, color: "#93ddd5" }}>{c.startTime}</span>}
-          <span style={{ fontFamily: T.mono, fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", color: tm.color }}>{tm.label}</span>
+          <span style={{ fontFamily: T.mono, fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", color: tm.color }}>{label}</span>
           {c.duration && <span style={{ fontSize: 10.5, color: T.dim }}>{c.duration}</span>}
           {price && <span style={{ fontFamily: T.mono, fontSize: 10.5, color: T.price }}>{price}</span>}
         </div>
       </div>
     );
   return (
-    <div data-flip={c.id} role="button" tabIndex={0} aria-label={cardAriaLabel(c)} onPointerDown={onDown} onKeyDown={onKey} style={{ ...base, ...(mob ? { flex: "0 0 auto", width: 212 } : {}), background: "#171b1d", ...frame("#23292b", "left", tm.color), borderRadius: 10, padding: "10px 12px" }}>
+    <div data-flip={c.id} role="button" tabIndex={0} aria-label={cardAriaLabel(c)} onPointerDown={onDown} onKeyDown={onKey} style={{ ...base, ...(mob ? { flex: "0 0 auto", width: 212 } : {}), ...importantCard(important, "#171b1d"), ...frame(edge("#23292b"), "left", tm.color), borderRadius: 10, padding: "10px 12px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.3, color: T.text }}>{c.title}</div>
         <div style={{ ...statusDot(sm.dot, sm.glow), marginTop: 4 }} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: tm.color }}>{tm.label}</span>
+        <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: tm.color }}>{label}</span>
         {price && <span style={{ fontFamily: T.mono, fontSize: 11, color: T.price }}>{price}</span>}
         {tags.length > 0 && <span style={{ fontSize: 11, color: T.dim2 }}>{tags.slice(0, 2).join(" · ")}</span>}
         {c.priority === "must" && <span style={{ fontSize: 10, fontWeight: 700, color: T.must }}>★ must</span>}

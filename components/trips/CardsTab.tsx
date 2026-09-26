@@ -2,11 +2,13 @@
 
 // Cards tab: search, type filters and a grid of every card in the trip. In
 // compare mode a tap adds or removes the card from the compare drawer.
-import { useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
+import { WarningCircleIcon } from "@/components/icons";
+import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
 import { matchesSearch, matchesType, money, statusMeta, typeFilterOptions, typeMeta } from "@/lib/trips/model";
 import { toggleInCompare } from "./CompareDrawer";
 import { FxPanel } from "./FxPanel";
-import { T, filterPill, frame, input, pulse, statusDot, typeTag } from "./styles";
+import { IMPORTANT_EDGE, T, filterPill, frame, importantCard, input, statusDot, typeTag } from "./styles";
 import { useTripCtx } from "./TripPlanner";
 
 export function CardsTab() {
@@ -15,6 +17,11 @@ export function CardsTab() {
   const [fxOpen, setFxOpen] = useState(false);
   const shown = cards.filter((c) => matchesType(c, poolFilter) && matchesSearch(c, search));
   const open = (id: string) => (compare.on ? setCompare((c) => toggleInCompare(c, id)) : openCard(id));
+  const cardEls = useRef(new Map<string, HTMLDivElement>());
+  useEnterStagger(
+    shown.map((c) => c.id),
+    (id) => cardEls.current.get(id),
+  );
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: "auto", background: T.bg }}>
@@ -59,6 +66,7 @@ export function CardsTab() {
           {shown.map((c) => {
             const tm = typeMeta(c.type), sm = statusMeta(c.status);
             const isOpen = compare.open.some((o) => o.id === c.id);
+            const important = c.type === "important";
             const tags = c.tags || [];
             const onKey = (e: KeyboardEvent) => {
               if (e.target !== e.currentTarget) return;
@@ -70,12 +78,16 @@ export function CardsTab() {
             return (
               <div
                 key={c.id}
+                ref={(el) => {
+                  if (el) cardEls.current.set(c.id, el);
+                  else cardEls.current.delete(c.id);
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label={(c.title || "Card") + " — open"}
                 onClick={() => open(c.id)}
                 onKeyDown={onKey}
-                style={{ cursor: "pointer", background: T.card, ...frame(isOpen ? T.accent : "#232a2b", "left", tm.color), borderRadius: 12, padding: "13px 14px", display: "flex", flexDirection: "column", gap: 9, transition: "border-color .15s", ...pulse(c.type === "important") }}
+                style={{ cursor: "pointer", ...importantCard(important, T.card), ...frame(isOpen ? T.accent : important ? IMPORTANT_EDGE : "#232a2b", "left", tm.color), borderRadius: 12, padding: "13px 14px", display: "flex", flexDirection: "column", gap: 9, transition: "border-color .15s" }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.3, color: T.text }}>{c.title}</div>
@@ -97,7 +109,10 @@ export function CardsTab() {
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-                  <span style={typeTag(tm.color)}>{tm.label}</span>
+                  <span style={{ ...typeTag(tm.color), display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    {important && <WarningCircleIcon size={11} />}
+                    {tm.label}
+                  </span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: sm.text }}>{sm.label}</span>
                   {c.price != null && <span style={{ fontFamily: T.mono, fontSize: 11.5, color: T.price }}>{money(c.price, trip?.currency)}</span>}
                 </div>

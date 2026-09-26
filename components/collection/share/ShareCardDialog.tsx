@@ -24,7 +24,6 @@ export function ShareCardDialog({ item, onClose }: { item: Item; onClose(): void
       label={"Share this " + (cfg.noun || "item")}
       subtitle="Pick what to show on the card, then copy or download."
       width={940}
-      zIndex={70}
       onClose={onClose}
       previewRef={card}
       pixelRatio={2.5}

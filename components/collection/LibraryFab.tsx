@@ -3,17 +3,17 @@
 // Floating library switcher (bottom-right): the main button shows the current
 // library; opening it fans out "All libraries" plus every visible library.
 import { useState } from "react";
-import { FabIcon } from "@/components/icons";
+import { FabIcon, LIBRARY_ICON_COLOR } from "@/components/icons";
 import { useShell } from "@/components/shell/ShellProvider";
 import type { LibraryKey } from "@/config/libraries";
 
 const ITEMS: { key: LibraryKey | "_home"; label: string; color: string }[] = [
   { key: "_home", label: "All libraries", color: "#d6d8d6" },
-  { key: "games", label: "Games", color: "#9ce6b0" },
-  { key: "books", label: "Books", color: "#d8b98f" },
-  { key: "wines", label: "Wines", color: "#c6a9d6" },
-  { key: "movies", label: "Movies", color: "#a9aee0" },
-  { key: "expenses", label: "Expenses", color: "#8ecfd6" },
+  { key: "games", label: "Games", color: LIBRARY_ICON_COLOR.games },
+  { key: "books", label: "Books", color: LIBRARY_ICON_COLOR.books },
+  { key: "wines", label: "Wines", color: LIBRARY_ICON_COLOR.wines },
+  { key: "movies", label: "Movies", color: LIBRARY_ICON_COLOR.movies },
+  { key: "expenses", label: "Expenses", color: LIBRARY_ICON_COLOR.expenses },
 ];
 
 const EASE = "cubic-bezier(.22,1,.36,1)";
@@ -25,7 +25,7 @@ export function LibraryFab({ current }: { current: LibraryKey }) {
 
   return (
     <div
-      className="fixed z-[300] flex flex-col-reverse items-center gap-3"
+      className="fixed z-(--z-fab) flex flex-col-reverse items-center gap-3"
       style={{ right: "max(env(safe-area-inset-right, 0px), 22px)", bottom: "calc(env(safe-area-inset-bottom, 0px) + 22px)" }}
     >
       <button
@@ -34,12 +34,12 @@ export function LibraryFab({ current }: { current: LibraryKey }) {
         title="Switch library"
         aria-label="Switch library"
         aria-expanded={open}
-        className="flex h-[54px] w-[54px] cursor-pointer items-center justify-center rounded-full text-accent"
+        className="flex h-[54px] w-[54px] cursor-pointer items-center justify-center rounded-full text-accent hover:brightness-125"
         style={{
-          background: "#141210",
-          boxShadow: "0 6px 20px rgba(0,0,0,.5)",
+          background: "var(--fab-bg)",
+          boxShadow: "var(--shadow-float)",
           border: "1.5px solid color-mix(in srgb, var(--accent) 45%, transparent)",
-          transition: `transform .3s ${EASE}`,
+          transition: `transform .3s ${EASE}, filter .2s ease`,
           transform: open ? "rotate(90deg)" : "none",
         }}
       >
@@ -59,16 +59,16 @@ export function LibraryFab({ current }: { current: LibraryKey }) {
               setOpen(false);
               navigate(d.key === "_home" ? null : d.key);
             }}
-            className="flex h-[46px] w-[46px] cursor-pointer items-center justify-center rounded-full"
+            className="flex h-[46px] w-[46px] cursor-pointer items-center justify-center rounded-full hover:brightness-125"
             style={{
-              background: "#141210",
+              background: "var(--fab-bg)",
               color: d.color,
-              boxShadow: "0 4px 14px rgba(0,0,0,.45)",
+              boxShadow: "var(--shadow-float)",
               border: d.key === current ? `2px solid ${d.color}` : "1.5px solid var(--wg)",
               opacity: open ? 1 : 0,
               transform: open ? "translateY(0) scale(1)" : "translateY(16px) scale(.4)",
               pointerEvents: open ? "auto" : "none",
-              transition: `opacity .3s ${EASE} ${delay}ms, transform .3s ${EASE} ${delay}ms`,
+              transition: `opacity .3s ${EASE} ${delay}ms, transform .3s ${EASE} ${delay}ms, filter .2s ease`,
             }}
           >
             <FabIcon name={d.key} />

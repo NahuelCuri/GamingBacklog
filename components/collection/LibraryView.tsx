@@ -3,12 +3,13 @@
 // Library tab: metric strip, search + filters, table or card layout, and the
 // empty states.
 import { useMemo, useState } from "react";
-import { Pill, PillGroup, accentButton } from "@/components/ui/Pills";
+import { CloseIcon, GridIcon, ResetIcon, RowsIcon, SearchIcon } from "@/components/icons";
+import { Pill, PillGroup, accentButton, secondaryButton } from "@/components/ui/Pills";
 import { buildStrip, categoryValues, nextSort, visibleRows, type LibraryFilters } from "@/lib/collection";
 import type { Item } from "@/lib/collection/types";
 import { useCollectionCtx } from "./CollectionContext";
-import { ItemCards } from "./ItemCards";
-import { ItemTable } from "./ItemTable";
+import { ItemCards, ItemCardsSkeleton } from "./ItemCards";
+import { ItemTable, ItemTableSkeleton } from "./ItemTable";
 
 type Layout = "table" | "cards";
 
@@ -68,12 +69,10 @@ export function LibraryView() {
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div
-          className="flex flex-1 items-center gap-[9px] rounded-[9px] border border-wf bg-topchip px-[13px] py-[9px]"
+          className="flex flex-1 items-center gap-[9px] rounded-[9px] border border-wf bg-topchip px-[13px] py-[9px] text-dim transition-colors duration-200 focus-within:border-wi focus-within:text-text2 hover:border-wh"
           style={{ minWidth: isMobile ? "100%" : 220 }}
         >
-          <span aria-hidden className="text-sm text-dim">
-            ⌕
-          </span>
+          <SearchIcon size={14} />
           <input
             type="search"
             value={url.q}
@@ -89,9 +88,9 @@ export function LibraryView() {
               type="button"
               onClick={() => setUrl({ q: "" })}
               aria-label="Clear search"
-              className="-my-1 -mr-1.5 flex h-[26px] w-[26px] cursor-pointer items-center justify-center border-none bg-transparent text-[15px] leading-none text-dim"
+              className="-my-1 -mr-1.5 flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-dim transition-colors duration-150 hover:bg-wc hover:text-text"
             >
-              ×
+              <CloseIcon size={12} />
             </button>
           )}
         </div>
@@ -107,17 +106,17 @@ export function LibraryView() {
           onClick={() => setSort({ sortKey: "default", sortDir: "asc" })}
           title="Reset sort order"
           aria-label="Reset sort order"
-          className="cursor-pointer rounded-[9px] border border-wd bg-topchip px-[11px] py-2 text-[15px] leading-none"
-          style={{ color: isDefaultSort ? "var(--dim2)" : "var(--text2)", opacity: isDefaultSort ? 0.5 : 1 }}
+          disabled={isDefaultSort}
+          className="flex cursor-pointer items-center self-stretch rounded-[9px] border border-wd bg-topchip px-[11px] text-text2 transition-[color,border-color,opacity,transform] duration-200 not-disabled:hover:border-wi not-disabled:hover:text-text not-disabled:active:translate-y-px disabled:cursor-default disabled:opacity-40"
         >
-          ↺
+          <ResetIcon size={15} />
         </button>
         <PillGroup label="Layout">
-          <Pill active={layout === "table"} onClick={() => setLayout("table")} title="Table view" aria-label="Table view" className="px-2.5 py-1.5 text-[13px]">
-            ▤
+          <Pill active={layout === "table"} onClick={() => setLayout("table")} title="Table view" aria-label="Table view" className="px-2.5 py-[7px]">
+            <RowsIcon size={15} />
           </Pill>
-          <Pill active={layout === "cards"} onClick={() => setLayout("cards")} title="Card view" aria-label="Card view" className="px-2.5 py-1.5 text-[13px]">
-            ▦
+          <Pill active={layout === "cards"} onClick={() => setLayout("cards")} title="Cards view" aria-label="Card view" className="px-2.5 py-[7px]">
+            <GridIcon size={15} />
           </Pill>
         </PillGroup>
       </div>
@@ -144,22 +143,20 @@ export function LibraryView() {
               type="button"
               aria-label={"Remove tag " + t}
               onClick={() => setUrl((s) => ({ tagFilters: s.tagFilters.filter((x) => x !== t) }))}
-              className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-2.5 py-[5px] text-xs text-accent"
+              className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-2.5 py-[5px] text-xs text-accent transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[.97]"
               style={{
                 background: "color-mix(in srgb, var(--accent) 13%, transparent)",
                 borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
               }}
             >
-              {t}{" "}
-              <span aria-hidden className="text-[13px] leading-none">
-                ×
-              </span>
+              {t}
+              <CloseIcon size={10} />
             </button>
           ))}
         </div>
       )}
 
-      {data.status === "loading" && <p className="py-10 text-center font-mono text-[13px] text-dim">loading…</p>}
+      {data.status === "loading" && (layout === "table" ? <ItemTableSkeleton /> : <ItemCardsSkeleton />)}
 
       {loaded && rows.length > 0 && layout === "table" && (
         <ItemTable
@@ -183,7 +180,7 @@ export function LibraryView() {
       {loaded && items.length === 0 && (
         <div className="px-5 py-[70px] text-center">
           <div className="mb-2 text-[17px] font-semibold text-text2">{cfg.emptyTitle}</div>
-          <div className="mb-[22px] text-[13px] text-dim">{cfg.emptySub}</div>
+          <div className="mx-auto mb-[22px] max-w-[52ch] text-[13px] text-pretty text-dim">{cfg.emptySub}</div>
           <div className="flex flex-wrap justify-center gap-2.5">
             <button type="button" onClick={openAdd} className={accentButton + " px-[18px] py-2.5 text-[13px] font-bold"}>
               + Add a {cfg.noun}
@@ -191,7 +188,7 @@ export function LibraryView() {
             <button
               type="button"
               onClick={() => actions?.loadStarter()}
-              className="cursor-pointer rounded-[9px] border border-wf bg-topchip px-[18px] py-2.5 text-[13px] font-semibold text-muted"
+              className={secondaryButton + " px-[18px] py-2.5 text-[13px]"}
             >
               Load starter set
             </button>
@@ -203,7 +200,7 @@ export function LibraryView() {
           <div className="mb-1.5 text-[15px]">No {cfg.nounPlural} match.</div>
           <div className="text-[13px]">
             Try clearing filters or{" "}
-            <button type="button" onClick={openAdd} className="cursor-pointer border-none bg-transparent p-0 text-accent">
+            <button type="button" onClick={openAdd} className="cursor-pointer border-none bg-transparent p-0 text-accent underline-offset-2 hover:underline">
               add a new {cfg.noun}
             </button>
             .

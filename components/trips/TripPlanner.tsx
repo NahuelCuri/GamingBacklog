@@ -6,6 +6,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { LibraryFab } from "@/components/collection/LibraryFab";
 import { TRIPS_MOBILE_QUERY, useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useAuth } from "@/lib/auth";
+import { rememberSummary, tripsSummary } from "@/lib/home";
 import {
   blankCard, blankTrip, cleanCard, cleanTrip, moveCardDay, moveCardOrder, tripCards,
   type CardDraft, type Trip, type TripCard, type TripData,
@@ -55,19 +57,25 @@ function navUrl(n: Nav): string {
 /** Trip, tab and open card live in the query string (every change is a history entry, as in legacy). */
 function useNav() {
   const [nav, setNavState] = useState<Nav>(HOME);
+  // The latest nav, so back-to-back setNav calls compose without reading it inside an updater.
+  const current = useRef<Nav>(HOME);
   useEffect(() => {
-    const sync = () => setNavState(readNav(location.search));
+    const sync = () => {
+      current.current = readNav(location.search);
+      setNavState(current.current);
+    };
     sync();
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
   }, []);
+  // Push outside the state updater: Next's router listens to pushState, and updating
+  // it from inside another component's updater is a setState-during-render.
   const setNav = useCallback((patch: Partial<Nav>) => {
-    setNavState((cur) => {
-      const next = { ...cur, ...patch };
-      const url = navUrl(next);
-      if (url !== location.pathname + location.search + location.hash) history.pushState({ tp: 1 }, "", url);
-      return next;
-    });
+    const next = { ...current.current, ...patch };
+    current.current = next;
+    const url = navUrl(next);
+    if (url !== location.pathname + location.search + location.hash) history.pushState({ tp: 1 }, "", url);
+    setNavState(next);
   }, []);
   return [nav, setNav] as const;
 }
@@ -116,13 +124,18 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const userStore = useTripStore();
   const store = override === undefined ? userStore : override;
   const { state: data, persist, retry, dismissSyncError } = useTrips(store);
+  const { user } = useAuth();
+  // Numbers for the Trips tile on the home page, kept on this device.
+  useEffect(() => {
+    if (override === undefined && data.status === "ready") rememberSummary(user?.id, "trips", tripsSummary(data.trips));
+  }, [override, data.status, data.trips, user?.id]);
   const isMobile = useIsMobile(TRIPS_MOBILE_QUERY);
   const [nav, setNav] = useNav();
   const [modal, setModal] = useState<CardModal | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
   const [tripModal, setTripModal] = useState<TripModal | null>(null);
   const [delTrip, setDelTrip] = useState<{ id: string; name: string } | null>(null);
-  const [undo, setUndo] = useState<{ label: string; cards: TripCard[] } | null>(null);
+  const [undo, setUndo] = useState<{ id: number; label: string; cards: TripCard[] } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [liveMsg, setLiveMsg] = useState("");
   const [poolFilter, setPoolFilter] = useState("all");
@@ -201,7 +214,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
     setModal(null);
     setConfirmDel(false);
     clearTimeout(undoTimer.current);
-    setUndo({ label: (m.title || "Card") + " deleted", cards: before });
+    setUndo({ id: Date.now(), label: (m.title || "Card") + " deleted", cards: before });
     undoTimer.current = setTimeout(() => setUndo(null), 8000);
   };
 
@@ -285,7 +298,8 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
         </div>
 
         {undo && (
-          <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)", zIndex: 400, display: "flex", alignItems: "center", gap: 14, background: "#171b1d", border: `1px solid ${T.border2}`, borderRadius: 12, padding: "11px 14px", boxShadow: "0 14px 40px rgba(0,0,0,.55)" }}>
+          <div key={undo.id} role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", overflow: "hidden", animation: "gtoast 260ms var(--ease-out) both", bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)", zIndex: 400, display: "flex", alignItems: "center", gap: 14, background: "#171b1d", border: `1px solid ${T.border2}`, borderRadius: 12, padding: "11px 14px", boxShadow: "0 14px 40px rgba(0,0,0,.55)" }}>
+            <span aria-hidden style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 2, background: T.accent, opacity: 0.55, transformOrigin: "left", animation: "gdrain 8s linear both" }} />
             <span style={{ fontSize: 13, color: T.text2 }}>{undo.label}</span>
             <button
               type="button"

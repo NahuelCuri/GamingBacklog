@@ -3,7 +3,9 @@
 // Add / edit form, generated from cfg.modal.groups. Conditional groups slide
 // open and closed; hiding a group blanks its fields.
 import { useRef, type Dispatch, type SetStateAction } from "react";
+import { CloseIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { accentButton, closeButton, dangerButton, neutralButton, toggleChip } from "@/components/ui/Pills";
 import {
   comboSuggestions, enumNext, fieldsHiddenBy, findDuplicate, groupVisible, isDraftValid, itemFromDraft, tagInputKey,
   tagSuggestions, withTag, withoutTag, type Draft,
@@ -21,10 +23,10 @@ export interface ModalState {
   confirmDel?: boolean;
 }
 
-const NEG = "#d98f8f";
 const label = "mb-[7px] text-[11px] font-semibold tracking-[.06em] text-muted uppercase";
 const input = "w-full rounded-[9px] border border-wh bg-inset px-3 py-2.5 text-sm text-text";
-const chipBtn = "cursor-pointer rounded-[20px] border border-wd bg-chip px-2.5 py-1 text-[11.5px] text-muted2";
+const chipBtn =
+  "cursor-pointer rounded-[20px] border border-wd bg-chip px-2.5 py-1 text-[11.5px] text-muted2 transition-[color,border-color] duration-150 hover:border-wi hover:text-text";
 
 export function ItemModal({
   modal,
@@ -114,7 +116,7 @@ export function ItemModal({
                   <button
                     type="button"
                     onClick={() => runLookup(f)}
-                    className="flex-none cursor-pointer rounded-[9px] border px-[14px] py-2.5 text-xs font-semibold whitespace-nowrap text-accent"
+                    className="flex-none cursor-pointer rounded-[9px] border px-[14px] py-2.5 text-xs font-semibold whitespace-nowrap text-accent transition-[filter,transform] duration-200 hover:brightness-125 active:translate-y-px"
                     style={{
                       background: "color-mix(in srgb, var(--accent) 12%, transparent)",
                       borderColor: "color-mix(in srgb, var(--accent) 32%, transparent)",
@@ -127,7 +129,7 @@ export function ItemModal({
                 {modal.lookupMsg && (
                   <div
                     className="mt-1.5 text-xs leading-[1.4]"
-                    style={{ color: modal.lookup === "error" ? NEG : modal.lookup === "done" ? "var(--accent)" : "var(--muted)" }}
+                    style={{ color: modal.lookup === "error" ? "var(--neg)" : modal.lookup === "done" ? "var(--accent)" : "var(--muted)" }}
                   >
                     {modal.lookupMsg}{" "}
                     {modal.lookup === "error" && (
@@ -199,7 +201,7 @@ export function ItemModal({
                   type="button"
                   aria-label={"Remove tag " + t}
                   onClick={() => setModal((m) => m && { ...m, draft: withoutTag(m.draft, f.key, t) })}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-2.5 py-[5px] text-xs text-accent"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-2.5 py-[5px] text-xs text-accent transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[.97]"
                   style={{ background: "color-mix(in srgb, var(--accent) 13%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
                 >
                   {t}{" "}
@@ -257,12 +259,7 @@ export function ItemModal({
                     type="button"
                     aria-pressed={on}
                     onClick={() => setGated(f.key, f.kind === "status" ? o.value : enumNext(v, o.value))}
-                    className="min-w-[74px] flex-1 cursor-pointer rounded-[9px] border px-1.5 py-[9px] text-center text-[13px] font-medium"
-                    style={{
-                      color: on ? "var(--onAccent)" : "var(--muted)",
-                      background: on ? "var(--accent)" : "var(--chip)",
-                      borderColor: on ? "var(--accent)" : "var(--wd)",
-                    }}
+                    className={toggleChip(on, "border-wd bg-chip text-muted") + " min-w-[74px] flex-1 rounded-[9px] px-1.5 py-[9px] text-center text-[13px] font-medium"}
                   >
                     {o.label}
                   </button>
@@ -324,7 +321,7 @@ export function ItemModal({
   return (
     <div
       onClick={onClose}
-      className="g-scroll fixed inset-0 z-50 flex items-start justify-center overflow-auto overscroll-contain px-5 py-12 backdrop-blur-[3px]"
+      className="g-scroll fixed inset-0 z-(--z-overlay) flex items-start justify-center overflow-auto overscroll-contain px-5 py-12 backdrop-blur-[3px]"
       style={{ background: "rgba(6,7,7,.72)" }}
     >
       <div
@@ -335,12 +332,12 @@ export function ItemModal({
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="w-[560px] max-w-full rounded-2xl border border-wg bg-card outline-none"
-        style={{ boxShadow: "0 24px 70px rgba(0,0,0,.6)", animation: "gpop .2s ease" }}
+        style={{ boxShadow: "var(--shadow-pop)", animation: "gpop .2s ease" }}
       >
         <div className="flex items-center justify-between border-b border-wd px-6 py-5">
           <span className="text-base font-bold">{title}</span>
-          <button type="button" onClick={onClose} aria-label="Close dialog" className="cursor-pointer border-none bg-transparent px-1 text-xl leading-none text-muted">
-            ×
+          <button type="button" onClick={onClose} aria-label="Close dialog" className={closeButton + " -mr-2"}>
+            <CloseIcon size={15} />
           </button>
         </div>
         <div className="flex flex-col gap-[17px] px-6 py-[22px]">
@@ -373,12 +370,7 @@ export function ItemModal({
             <button
               type="button"
               onClick={del}
-              className="cursor-pointer rounded-[9px] border px-4 py-[9px] text-[13px] font-semibold"
-              style={{
-                color: modal.confirmDel ? "var(--onAccent)" : NEG,
-                background: modal.confirmDel ? NEG : "transparent",
-                borderColor: modal.confirmDel ? NEG : "rgba(217,143,143,.4)",
-              }}
+              className={dangerButton(!!modal.confirmDel) + " rounded-[9px] px-4 py-[9px] text-[13px]"}
             >
               {modal.confirmDel ? "Confirm delete" : "Delete"}
             </button>
@@ -390,20 +382,19 @@ export function ItemModal({
               <button
                 type="button"
                 onClick={() => openShare(itemFromDraft(cfg, draft) as Item)}
-                className="cursor-pointer rounded-[9px] border border-wf bg-chip px-4 py-[9px] text-[13px] font-semibold text-text2"
+                className={neutralButton + " px-4 py-[9px] text-[13px]"}
               >
                 Share
               </button>
             )}
-            <button type="button" onClick={onClose} className="cursor-pointer rounded-[9px] border border-wf bg-chip px-[18px] py-[9px] text-[13px] font-semibold text-text2">
+            <button type="button" onClick={onClose} className={neutralButton + " px-[18px] py-[9px] text-[13px]"}>
               Cancel
             </button>
             <button
               type="button"
               onClick={save}
               aria-disabled={!valid}
-              className="cursor-pointer rounded-[9px] border-none bg-accent px-[22px] py-[9px] text-[13px] font-bold text-on-accent"
-              style={{ opacity: valid ? 1 : 0.5 }}
+              className={accentButton + " px-[22px] py-[9px] text-[13px] font-bold"}
             >
               {isEdit ? "Save" : cfg.addLabel.replace("+ ", "")}
             </button>

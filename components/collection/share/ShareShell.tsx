@@ -3,6 +3,8 @@
 // Shared layout for the two share dialogs: a controls panel beside a live
 // preview that is rasterized to PNG on copy / download.
 import { useRef, useState, type ReactNode, type RefObject } from "react";
+import { CloseIcon } from "@/components/icons";
+import { accentButton, closeButton, neutralButton, toggleChip } from "@/components/ui/Pills";
 import { useDialog } from "@/lib/hooks/useDialog";
 import { copyImage, downloadImage, renderPng } from "@/lib/image-export";
 
@@ -13,7 +15,6 @@ export function ShareShell({
   label,
   subtitle,
   width,
-  zIndex,
   onClose,
   controls,
   preview,
@@ -26,7 +27,6 @@ export function ShareShell({
   label: string;
   subtitle: string;
   width: number;
-  zIndex: number;
   onClose(): void;
   controls: ReactNode;
   preview: ReactNode;
@@ -58,7 +58,7 @@ export function ShareShell({
     <div
       onClick={onClose}
       className="g-scroll fixed inset-0 flex items-start justify-center overflow-auto overscroll-contain px-5 py-10 backdrop-blur-[4px]"
-      style={{ zIndex, background: "rgba(6,7,7,.8)" }}
+      style={{ zIndex: "var(--z-dialog)", background: "rgba(6,7,7,.8)" }}
     >
       <div
         ref={dialog}
@@ -73,8 +73,8 @@ export function ShareShell({
         <div className="min-w-[280px] flex-1 rounded-2xl border border-wg bg-card px-[22px] pt-[22px] pb-5">
           <div className="mb-[3px] flex items-center justify-between">
             <span className="text-base font-bold">{label}</span>
-            <button type="button" onClick={onClose} aria-label="Close dialog" className="cursor-pointer border-none bg-transparent px-1 text-xl leading-none text-muted">
-              ×
+            <button type="button" onClick={onClose} aria-label="Close dialog" className={closeButton + " -mr-2"}>
+              <CloseIcon size={15} />
             </button>
           </div>
           <div className="mb-[18px] text-[12.5px] text-muted">{subtitle}</div>
@@ -85,8 +85,7 @@ export function ShareShell({
               aria-busy={busy}
               disabled={busy || !canCopy}
               onClick={() => run(() => copyImage(render, fileName, shareTitle))}
-              className="flex-1 cursor-pointer rounded-[9px] border-none bg-accent p-[11px] text-[13px] font-bold text-on-accent disabled:cursor-not-allowed"
-              style={{ opacity: busy || !canCopy ? 0.5 : 1 }}
+              className={accentButton + " flex-1 p-[11px] text-[13px] font-bold"}
             >
               {busy ? "Rendering…" : "Copy image"}
             </button>
@@ -94,7 +93,7 @@ export function ShareShell({
               type="button"
               aria-busy={busy}
               onClick={() => run(() => downloadImage(render, fileName))}
-              className="cursor-pointer rounded-[9px] border border-wf bg-chip px-4 py-[11px] text-[13px] font-semibold text-text2"
+              className={neutralButton + " px-4 py-[11px] text-[13px]"}
             >
               Download
             </button>
@@ -116,8 +115,7 @@ export function TogglePill({ on, label, onClick }: { on: boolean; label: string;
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-[13px] py-[7px] text-[12.5px] font-medium"
-      style={on ? { color: "var(--onAccent)", background: "var(--accent)", borderColor: "var(--accent)" } : { color: "var(--text2)", background: "var(--chip)", borderColor: "var(--wf)" }}
+      className={toggleChip(on) + " flex items-center gap-1.5 rounded-[20px] px-[13px] py-[7px] text-[12.5px] font-medium"}
     >
       {label}{" "}
       <span aria-hidden className="font-mono text-[11px] opacity-75">

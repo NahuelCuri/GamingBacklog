@@ -108,3 +108,12 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }
+
+/** Dev preview only: a fixed signed-in user, no Supabase. */
+export function PreviewAuthProvider({ user, children }: { user: AuthUser; children: ReactNode }) {
+  const value = useMemo<AuthContextValue>(
+    () => ({ status: "signedIn", user, submit: async () => ({}), signOut: async () => {} }),
+    [user],
+  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}

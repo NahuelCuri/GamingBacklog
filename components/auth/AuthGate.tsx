@@ -90,7 +90,7 @@ function AuthCard() {
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && (
-            <div role="alert" className="mt-2.5 mb-[2px] text-xs leading-[1.5] text-[#d98f8f]">
+            <div role="alert" className="mt-2.5 mb-[2px] text-xs leading-[1.5] text-neg">
               {error}
             </div>
           )}

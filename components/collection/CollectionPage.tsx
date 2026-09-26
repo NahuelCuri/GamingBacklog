@@ -2,13 +2,15 @@
 
 // Collection route: loads the data, owns the URL-synced view and filters, and
 // hosts the header, the active tab, the add/edit form and the library switcher.
-import { useCallback, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { useCollectionTheme } from "@/components/shell/useCollectionTheme";
 import { COLLECTIONS } from "@/config/collections";
 import { blankDraft, draftFromItem } from "@/lib/collection";
 import type { CollectionKey, Item } from "@/lib/collection/types";
 import type { CollectionStore } from "@/lib/data/store";
+import { useAuth } from "@/lib/auth";
+import { collectionSummary, rememberSummary } from "@/lib/home";
 import { useCollection } from "@/lib/data/useCollection";
 import { useStore } from "@/lib/data/useStore";
 import { useCurrency } from "@/lib/hooks/useCurrency";
@@ -36,8 +38,7 @@ export function CollectionPage({ collection }: { collection: CollectionKey }) {
   );
 }
 
-const NEG = "#e6a09c";
-const alertStyle: CSSProperties = { color: NEG, borderColor: "rgba(230,160,156,.25)", background: "rgba(230,160,156,.08)" };
+const alertClass = "mt-6 rounded-xl border border-neg/25 bg-neg/8 px-4 py-3 text-sm text-neg";
 
 /** The collection UI. `store` overrides the signed-in user's Supabase store (dev preview). */
 export function CollectionBody({ collection, store }: { collection: CollectionKey; store?: CollectionStore | null }) {
@@ -51,6 +52,13 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
   const [modal, setModal] = useState<ModalState | null>(null);
   const [shareItem, setShareItem] = useState<Item | null>(null);
   const [statsImage, setStatsImage] = useState(false);
+  const { user } = useAuth();
+
+  // Numbers for this library's tile on the home page, kept on this device.
+  const own = store === undefined;
+  useEffect(() => {
+    if (own && data.status === "ready") rememberSummary(user?.id, collection, collectionSummary(collection, cfg, data.items, money));
+  }, [own, data.status, data.items, user?.id, collection, cfg, money]);
 
   const openAdd = useCallback(() => setModal({ mode: "add", draft: blankDraft(cfg) }), [cfg]);
   const openEdit = useCallback((g: Item) => setModal({ mode: "edit", draft: draftFromItem(cfg, g) }), [cfg]);
@@ -71,7 +79,7 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
         <CollectionHeader />
         <main className="mx-auto max-w-[1180px]" style={{ padding: isMobile ? "0 14px 60px" : "0 26px 80px" }}>
           {data.status === "error" && (
-            <div role="alert" className="mt-6 rounded-xl border px-4 py-3 text-sm" style={alertStyle}>
+            <div role="alert" className={alertClass}>
               Could not load your {cfg.nounPlural}: {data.loadError}{" "}
               <button type="button" className="cursor-pointer underline" onClick={() => actions?.refresh()}>
                 Retry
@@ -79,7 +87,7 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
             </div>
           )}
           {data.syncError && (
-            <div role="alert" className="mt-6 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm" style={alertStyle}>
+            <div role="alert" className={alertClass + " flex items-center gap-3"}>
               <span className="flex-1">Some changes were not saved: {data.syncError}. The list shows what is stored now.</span>
               <button type="button" className="cursor-pointer underline" onClick={() => actions?.dismissSyncError()}>
                 Dismiss

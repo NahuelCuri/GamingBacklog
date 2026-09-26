@@ -111,3 +111,111 @@ export function MoonIcon({ size = 16 }: IconProps) {
     </svg>
   );
 }
+
+// ---------------------------------------------------------------- UI glyphs
+// Small controls (search, sort, layout, menus). Same 24×24 grid and stroke as
+// the library icons, drawn after Phosphor's regular set.
+
+function Glyph({ size = 14, className, children }: IconProps & { children: React.ReactNode }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={{ display: "block", flexShrink: 0 }} aria-hidden>
+      {children}
+    </svg>
+  );
+}
+
+export const SearchIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <circle cx="10.8" cy="10.8" r="6.3" {...stroke} />
+    <path d="m15.4 15.4 4.6 4.6" {...stroke} />
+  </Glyph>
+);
+
+export const CloseIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" {...stroke} />
+  </Glyph>
+);
+
+/** Counter-clockwise arrow: reset sort order. */
+export const ResetIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M4.5 5.5v4.8h4.8" {...stroke} />
+    <path d="M5.1 10.3A7.5 7.5 0 1 1 6.3 17" {...stroke} />
+  </Glyph>
+);
+
+/** Table layout. */
+export const RowsIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <rect x="3.8" y="4.8" width="16.4" height="14.4" rx="2" {...stroke} />
+    <path d="M3.8 9.6h16.4M3.8 14.4h16.4" {...stroke} />
+  </Glyph>
+);
+
+/** Card layout. */
+export const GridIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <rect x="4" y="4" width="6.6" height="6.6" rx="1.6" {...stroke} />
+    <rect x="13.4" y="4" width="6.6" height="6.6" rx="1.6" {...stroke} />
+    <rect x="4" y="13.4" width="6.6" height="6.6" rx="1.6" {...stroke} />
+    <rect x="13.4" y="13.4" width="6.6" height="6.6" rx="1.6" {...stroke} />
+  </Glyph>
+);
+
+export const CaretRightIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="m9.5 5.5 6.5 6.5-6.5 6.5" {...stroke} />
+  </Glyph>
+);
+
+export const ArrowUpIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M12 19.5v-15M6 10.5l6-6 6 6" {...stroke} />
+  </Glyph>
+);
+
+export const ArrowDownIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M12 4.5v15M6 13.5l6 6 6-6" {...stroke} />
+  </Glyph>
+);
+
+export const GlobeIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <circle cx="12" cy="12" r="9" {...stroke} />
+    <path d="M3 12h18" {...stroke} />
+    <path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18" {...stroke} />
+  </Glyph>
+);
+
+/** Diagonal arrow: open. */
+export const ArrowUpRightIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M7 17 17 7M8.5 7H17v8.5" {...stroke} />
+  </Glyph>
+);
+
+/** Circled exclamation: an "important" marker. */
+export const WarningCircleIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <circle cx="12" cy="12" r="9" {...stroke} />
+    <path d="M12 7.5v5.5" {...stroke} />
+    <circle cx="12" cy="16.4" r="1.15" fill="currentColor" />
+  </Glyph>
+);
+
+export const PlusIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M12 5v14M5 12h14" {...stroke} />
+  </Glyph>
+);
+
+/** Horizontal dots: overflow menu. */
+export const DotsIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <circle cx="5.5" cy="12" r="1.5" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    <circle cx="18.5" cy="12" r="1.5" fill="currentColor" />
+  </Glyph>
+);
