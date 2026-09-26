@@ -36,8 +36,7 @@ export function CollectionPage({ collection }: { collection: CollectionKey }) {
   );
 }
 
-const NEG = "#e6a09c";
-const alertStyle: CSSProperties = { color: NEG, borderColor: "rgba(230,160,156,.25)", background: "rgba(230,160,156,.08)" };
+const alertClass = "mt-6 rounded-xl border border-neg/25 bg-neg/8 px-4 py-3 text-sm text-neg";
 
 /** The collection UI. `store` overrides the signed-in user's Supabase store (dev preview). */
 export function CollectionBody({ collection, store }: { collection: CollectionKey; store?: CollectionStore | null }) {
@@ -71,7 +70,7 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
         <CollectionHeader />
         <main className="mx-auto max-w-[1180px]" style={{ padding: isMobile ? "0 14px 60px" : "0 26px 80px" }}>
           {data.status === "error" && (
-            <div role="alert" className="mt-6 rounded-xl border px-4 py-3 text-sm" style={alertStyle}>
+            <div role="alert" className={alertClass}>
               Could not load your {cfg.nounPlural}: {data.loadError}{" "}
               <button type="button" className="cursor-pointer underline" onClick={() => actions?.refresh()}>
                 Retry
@@ -79,7 +78,7 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
             </div>
           )}
           {data.syncError && (
-            <div role="alert" className="mt-6 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm" style={alertStyle}>
+            <div role="alert" className={alertClass + " flex items-center gap-3"}>
               <span className="flex-1">Some changes were not saved: {data.syncError}. The list shows what is stored now.</span>
               <button type="button" className="cursor-pointer underline" onClick={() => actions?.dismissSyncError()}>
                 Dismiss

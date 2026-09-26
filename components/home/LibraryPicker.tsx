@@ -62,7 +62,7 @@ export function LibraryPicker() {
         <button
           type="button"
           onClick={signOut}
-          className="cursor-pointer rounded-[7px] border bg-topchip px-2.5 py-[7px] text-xs transition-[color,border-color] duration-300"
+          className="cursor-pointer rounded-[7px] border bg-topchip px-2.5 py-[7px] text-xs transition-[color,border-color,background-color,transform] duration-300 hover:bg-wc active:translate-y-px"
           style={{ color: pal || "var(--text)", borderColor: chipBorder }}
         >
           Sign out
@@ -93,7 +93,7 @@ export function LibraryPicker() {
                     }}
                     onBlur={() => setHover(null)}
                     onClick={() => navigate(l.key)}
-                    className="flex h-full w-full cursor-pointer flex-col gap-[14px] rounded-2xl border bg-card px-5 py-[22px] text-left transition-[border-color,transform] duration-200"
+                    className="flex h-full w-full cursor-pointer flex-col gap-[14px] rounded-2xl border bg-card px-5 py-[22px] text-left transition-[border-color,transform] duration-200 active:scale-[.99]"
                     style={{ borderColor: on ? l.color : "var(--wf)", transform: on ? "translateY(-2px)" : "none" }}
                   >
                     <div
@@ -110,7 +110,7 @@ export function LibraryPicker() {
                       <div className="text-[17px] font-bold tracking-[-.01em]">{l.label}</div>
                       <div className="mt-[3px] text-xs text-muted">{l.key === "games" ? "Your backlog, stats & roulette" : l.desc}</div>
                     </div>
-                    <div className="mt-auto font-mono text-[11px] transition-colors duration-250" style={{ color: on ? l.color : "#59605b" }}>
+                    <div className="mt-auto font-mono text-[11px] transition-colors duration-250" style={{ color: on ? l.color : "var(--dim)" }}>
                       Open →
                     </div>
                   </button>

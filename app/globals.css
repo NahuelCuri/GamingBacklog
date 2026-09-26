@@ -22,6 +22,26 @@
   --wg: rgba(255,255,255,.09);  --wh: rgba(255,255,255,.1);  --wi: rgba(255,255,255,.12);
   --wj: rgba(255,255,255,.13);  --wk: rgba(255,255,255,.15); --wl: rgba(255,255,255,.2);
 
+  /* Negative / destructive (delete, load and sync errors). */
+  --neg: #d98f8f;
+  /* Floating surfaces (library FAB). Tinted by each collection's --card. */
+  --fab-bg: var(--card);
+  /* Shadows take the page's hue instead of pure black. */
+  --shadow-tint: color-mix(in srgb, var(--bg) 40%, #000);
+  --shadow-float: 0 6px 20px color-mix(in srgb, var(--shadow-tint) 55%, transparent);
+  --shadow-pop: 0 18px 50px color-mix(in srgb, var(--shadow-tint) 60%, transparent);
+
+  /* Stacking scale. Local layers inside a component (map pins, reel) keep small literals. */
+  --z-sticky: 20;
+  --z-overlay: 50;   /* item add/edit sheet */
+  --z-popover: 60;   /* date picker, menus */
+  --z-dialog: 70;    /* share dialogs, opened over the item sheet */
+  --z-fab: 300;
+  --z-modal: 500;
+  --z-skip: 900;
+  --z-lang: 950;
+  --z-wipe: 1000;    /* library switch transition, above everything */
+
   color-scheme: dark;
 }
 
@@ -74,6 +94,11 @@
   --we: rgba(0,0,0,.1);  --wf: rgba(0,0,0,.11); --wg: rgba(0,0,0,.12); --wh: rgba(0,0,0,.14);
   --wi: rgba(0,0,0,.16); --wj: rgba(0,0,0,.18); --wk: rgba(0,0,0,.2);  --wl: rgba(0,0,0,.26);
 
+  --neg: #b4544f;
+  /* The FAB stays dark in light mode so the pastel library icons keep contrast. */
+  --fab-bg: #1b1f1b;
+  --shadow-tint: color-mix(in srgb, var(--dim) 70%, #000);
+
   color-scheme: light;
 }
 :root[data-theme="light"]:not([data-collection]) { --accent: #7c847e; }
@@ -97,6 +122,7 @@
   --color-accent: var(--accent);
   --color-accent2: var(--accent2);
   --color-on-accent: var(--onAccent);
+  --color-neg: var(--neg);
   --color-wa: var(--wa); --color-wb: var(--wb); --color-wc: var(--wc); --color-wd: var(--wd);
   --color-we: var(--we); --color-wf: var(--wf); --color-wg: var(--wg); --color-wh: var(--wh);
   --color-wi: var(--wi); --color-wj: var(--wj); --color-wk: var(--wk); --color-wl: var(--wl);
@@ -130,7 +156,7 @@ button, [role=button], [role=tab], a, label, summary, input, select, textarea { 
 input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert); }
 
 .g-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
-.g-scroll::-webkit-scrollbar-thumb { background: #2a302c; border-radius: 6px; border: 2px solid var(--bg); }
+.g-scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--dim2) 70%, var(--bg)); border-radius: 6px; border: 2px solid var(--bg); }
 
 @keyframes gfade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes gpop { from { opacity: 0; transform: translateY(8px) scale(.99) } to { opacity: 1; transform: none } }
@@ -141,7 +167,7 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert);
 @keyframes pulseGlow { 0%, 100% { box-shadow: inset 0 0 0 1px rgba(111,201,192,.22) } 50% { box-shadow: inset 0 0 0 1px rgba(111,201,192,.6) } }
 @keyframes drawerRise { from { transform: translateY(101%); opacity: .35 } to { transform: translateY(0); opacity: 1 } }
 @keyframes compBtnIn { from { transform: scale(.6) translateY(10px); opacity: 0 } to { transform: scale(1) translateY(0); opacity: 1 } }
-.tp-skip { position: absolute; left: -9999px; top: 8px; z-index: 999; background: #5fb8b0; color: #06201e; font-weight: 700; font-size: 13px; padding: 9px 14px; border-radius: 8px; }
+.tp-skip { position: absolute; left: -9999px; top: 8px; z-index: var(--z-skip); background: #5fb8b0; color: #06201e; font-weight: 700; font-size: 13px; padding: 9px 14px; border-radius: 8px; }
 .tp-skip:focus { left: 12px; }
 @keyframes dpop { from { opacity: 0; transform: translateY(-6px) scale(.98) } to { opacity: 1; transform: none } }
 @keyframes gpulsebtn {

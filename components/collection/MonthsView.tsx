@@ -6,7 +6,7 @@ import { useMemo, useState, type KeyboardEvent } from "react";
 import { monthCards, monthDetail, type MonthCard, type MonthDetail } from "@/lib/collection";
 import { useCollectionCtx } from "./CollectionContext";
 
-const NEGATIVE = "#d98f8f";
+const NEGATIVE = "var(--neg)";
 const panel = "rounded-[14px] border border-wd bg-surface";
 const heading = "text-[11px] font-semibold uppercase tracking-[.09em] text-dim";
 
@@ -48,7 +48,7 @@ function MonthGrid({ cards, onOpen }: { cards: MonthCard[]; onOpen(key: string):
             aria-label={"Open " + c.label}
             onClick={() => onOpen(c.key)}
             onKeyDown={onActivate(() => onOpen(c.key))}
-            className="cursor-pointer rounded-[14px] border border-wd bg-card px-[19px] py-[18px] transition-[border-color] duration-[180ms] hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)]"
+            className="cursor-pointer rounded-[14px] border border-wd bg-card px-[19px] py-[18px] transition-[border-color,transform] duration-200 hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] active:translate-y-0"
           >
             <div className="mb-[14px] flex items-baseline justify-between">
               <div className="text-[15.5px] font-bold tracking-[-.01em]">{c.label}</div>
@@ -97,7 +97,7 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
   return (
     <div>
       <div className="mb-5 flex items-center gap-[14px]">
-        <button type="button" onClick={onBack} className="cursor-pointer rounded-lg border border-we bg-topchip px-3 py-[7px] text-[12.5px] text-muted">
+        <button type="button" onClick={onBack} className="cursor-pointer rounded-lg border border-we bg-topchip px-3 py-[7px] text-[12.5px] text-muted transition-[color,border-color,transform] duration-200 hover:border-wi hover:text-text active:translate-y-px">
           ← All months
         </button>
         <div className="text-[22px] font-bold tracking-[-.02em]">{d.label}</div>
@@ -168,7 +168,7 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
                 aria-label={"Edit " + (t.title || cfg.noun)}
                 onClick={() => edit(t.id)}
                 onKeyDown={onActivate(() => edit(t.id))}
-                className="flex cursor-pointer items-center gap-3 rounded-md border-b border-wc px-1.5 py-[9px] hover:bg-wa"
+                className="flex cursor-pointer items-center gap-3 rounded-md border-b border-wc px-1.5 py-[9px] transition-colors duration-150 hover:bg-wa"
               >
                 <div className="w-12 flex-none font-mono text-[11px] text-dim">{t.date}</div>
                 <div className="min-w-0 flex-1">

@@ -2,8 +2,9 @@
 
 // Library table: sortable header, collapsible rows with a detail panel
 // (review, actions, metadata, search links), paging and the ledger cap.
+import { ArrowDownIcon, ArrowUpIcon, CaretRightIcon, GlobeIcon } from "@/components/icons";
 import { cellValue, cornerLink, detailRows, reviewOf, type LibraryFilters, type VisibleRows } from "@/lib/collection";
-import type { Item } from "@/lib/collection/types";
+import type { CollectionConfig, Item } from "@/lib/collection/types";
 import { useCollectionCtx } from "./CollectionContext";
 
 interface Props {
@@ -19,14 +20,21 @@ interface Props {
   onLoadAll(): void;
 }
 
-const NEG = "#d98f8f";
+/** Grid template for the header, rows and skeleton: visible columns plus the chevron. */
+function tableGrid(cfg: CollectionConfig, isMobile: boolean) {
+  const visible = cfg.table.columns.filter((c) => !(isMobile && c.hideMobile));
+  const chevron = isMobile && cfg.table.chevron.mobileWidth ? cfg.table.chevron.mobileWidth : cfg.table.chevron.width;
+  return { visible, gridCols: [...visible.map((c) => (isMobile && c.mobileWidth ? c.mobileWidth : c.width)), chevron].join(" ") };
+}
+
+const smallButton =
+  "cursor-pointer rounded-[7px] px-[14px] py-[7px] text-xs font-semibold transition-[color,background-color,border-color,filter,transform] duration-200 active:translate-y-px";
+const moreButton =
+  "w-full cursor-pointer rounded-[9px] border border-dashed border-wj bg-transparent font-mono text-[12.5px] text-muted transition-[color,border-color,background-color] duration-200 hover:border-wl hover:bg-wa hover:text-text";
 
 export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDelete, onDelete, onTag, onMore, onLoadAll }: Props) {
   const { cfg, isMobile, money, openEdit, openShare } = useCollectionCtx();
-  const cols = cfg.table.columns;
-  const visible = cols.filter((c) => !(isMobile && c.hideMobile));
-  const chevron = isMobile && cfg.table.chevron.mobileWidth ? cfg.table.chevron.mobileWidth : cfg.table.chevron.width;
-  const gridCols = [...visible.map((c) => (isMobile && c.mobileWidth ? c.mobileWidth : c.width)), chevron].join(" ");
+  const { visible, gridCols } = tableGrid(cfg, isMobile);
 
   return (
     <div>
@@ -36,7 +44,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
       >
         {visible.map((c) => {
           const active = sort.sortKey === c.key;
-          const arrow = active ? (sort.sortDir === "asc" ? "↑" : "↓") : "";
+          const Arrow = sort.sortDir === "asc" ? ArrowUpIcon : ArrowDownIcon;
           const style = { textAlign: c.right ? ("right" as const) : ("left" as const), paddingRight: c.right ? 20 : 0 };
           if (!c.sortable) return <div key={c.key} style={style}>{c.label}</div>;
           const label = !active ? "Sort by " + c.label : `Sorted by ${c.label}, ${sort.sortDir === "asc" ? "ascending" : "descending"} — reverse`;
@@ -46,10 +54,13 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                 type="button"
                 onClick={() => onSort(c.key)}
                 aria-label={label}
-                className="cursor-pointer border-none bg-transparent p-0 uppercase [font:inherit] [letter-spacing:inherit]"
-                style={{ color: active ? "var(--accent)" : "var(--dim)" }}
+                className={
+                  "inline-flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 uppercase transition-colors duration-200 [font:inherit] [letter-spacing:inherit] " +
+                  (active ? "text-accent" : "text-dim hover:text-text2")
+                }
               >
-                {c.label} {arrow}
+                {c.label}
+                {active && <Arrow size={10} />}
               </button>
             </div>
           );
@@ -64,7 +75,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
         const corner = cornerLink(cfg, g);
         const title = String(g[cfg.modal.titleField] || g.title || "Row");
         return (
-          <div key={g.id} className="mb-[2px] overflow-hidden rounded-[9px]" style={{ background: open ? "var(--wa)" : "transparent" }}>
+          <div key={g.id} className={"mb-[2px] overflow-hidden rounded-[9px] transition-colors duration-200 " + (open ? "bg-wa" : "")}>
             <div
               role="button"
               tabIndex={0}
@@ -77,7 +88,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                   onToggle(g.id);
                 }
               }}
-              className="grid cursor-pointer items-center border-b border-wc px-3"
+              className="group grid cursor-pointer items-center border-b border-wc px-3 transition-colors duration-150 hover:bg-wa"
               style={{ gridTemplateColumns: gridCols, paddingTop: "var(--rowpad)", paddingBottom: "var(--rowpad)" }}
             >
               {visible.map((c) => {
@@ -96,7 +107,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                               e.stopPropagation();
                               onTag(t);
                             }}
-                            className="cursor-pointer rounded-[5px] border-none bg-chip px-[7px] py-[2px] text-[11px] whitespace-nowrap text-muted2"
+                            className="cursor-pointer rounded-[5px] border-none bg-chip px-[7px] py-[2px] text-[11px] whitespace-nowrap text-muted2 transition-colors duration-150 hover:text-accent"
                           >
                             {t}
                           </button>
@@ -128,8 +139,12 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                   </div>
                 );
               })}
-              <div aria-hidden className="text-center text-[13px] text-dim transition-transform duration-250" style={{ transform: open ? "rotate(90deg)" : "none" }}>
-                ›
+              <div
+                aria-hidden
+                className="flex justify-center text-dim transition-[transform,color] duration-250 group-hover:text-text2"
+                style={{ transform: open ? "rotate(90deg)" : "none" }}
+              >
+                <CaretRightIcon size={12} />
               </div>
             </div>
 
@@ -138,25 +153,26 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                   <div className="relative grid gap-[26px] px-[14px] pt-4 pb-5" style={{ gridTemplateColumns: isMobile ? "1fr" : "1.7fr 1fr" }}>
                     <div>
                       <div className="mb-2 text-[10px] font-semibold tracking-[.09em] text-dim uppercase">{cfg.reviewLabel}</div>
-                      <div className="text-[13px] leading-[1.65]" style={{ color: review ? "var(--text3)" : "var(--dim)", fontStyle: review ? "italic" : "normal" }}>
+                      <div className="max-w-[68ch] text-[13px] leading-[1.65] text-pretty" style={{ color: review ? "var(--text3)" : "var(--dim)", fontStyle: review ? "italic" : "normal" }}>
                         {review ?? cfg.reviewEmpty}
                       </div>
                       <div className="mt-4 flex gap-2">
-                        <button type="button" onClick={() => openEdit(g)} className="cursor-pointer rounded-[7px] border-none bg-accent px-[14px] py-[7px] text-xs font-semibold text-on-accent">
+                        <button type="button" onClick={() => openEdit(g)} className={smallButton + " border-none bg-accent text-on-accent hover:brightness-110"}>
                           Edit
                         </button>
-                        <button type="button" onClick={() => openShare(g)} className="cursor-pointer rounded-[7px] border border-wf bg-chip px-[14px] py-[7px] text-xs font-semibold text-text2">
+                        <button type="button" onClick={() => openShare(g)} className={smallButton + " border border-wf bg-chip text-text2 hover:border-wi hover:text-text"}>
                           Share
                         </button>
                         <button
                           type="button"
                           onClick={() => onDelete(g)}
-                          className="cursor-pointer rounded-[7px] border px-[14px] py-[7px] text-xs font-semibold"
-                          style={{
-                            color: confirming ? "var(--onAccent)" : NEG,
-                            background: confirming ? NEG : "transparent",
-                            borderColor: confirming ? NEG : "rgba(217,143,143,.4)",
-                          }}
+                          className={
+                            smallButton +
+                            " border " +
+                            (confirming
+                              ? "border-neg bg-neg text-on-accent hover:brightness-110"
+                              : "border-neg/40 bg-transparent text-neg hover:border-neg hover:bg-neg/10")
+                          }
                         >
                           {confirming ? "Confirm?" : "Delete"}
                         </button>
@@ -178,7 +194,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                                 className="inline-flex items-center leading-none"
                                 style={{ color: f.link.pulse ? "var(--accent)" : "var(--dim)", animation: f.link.pulse ? "gpulse 1.6s ease-in-out infinite" : "none" }}
                               >
-                                <GlobeIcon />
+                                <GlobeIcon size={11} />
                               </a>
                             )}
                           </div>
@@ -192,7 +208,11 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute right-[14px] bottom-[14px] rounded-md border px-[9px] py-1 text-[10px] font-medium whitespace-nowrap"
+                        className={
+                          "rounded-md border px-[9px] py-1 text-[10px] font-medium whitespace-nowrap transition-colors duration-200 hover:text-text " +
+                          // In the single-column mobile layout it sits in the flow instead of over the metadata.
+                          (isMobile ? "justify-self-start" : "absolute right-[14px] bottom-[14px]")
+                        }
                         style={{
                           color: corner.pulse ? "var(--accent)" : "var(--muted)",
                           borderColor: corner.pulse ? "color-mix(in srgb, var(--accent) 40%, transparent)" : "var(--wh)",
@@ -213,7 +233,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
         <button
           type="button"
           onClick={onMore}
-          className="mt-2 w-full cursor-pointer rounded-[9px] border border-dashed border-wj bg-transparent p-3 font-mono text-[12.5px] text-muted tabular-nums"
+          className={moreButton + " mt-2 p-3 tabular-nums"}
         >
           Showing {view.more.shown} of {view.more.total} · load {view.more.remaining} more
         </button>
@@ -222,7 +242,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
         <button
           type="button"
           onClick={onLoadAll}
-          className="mt-1.5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[9px] border border-dashed border-wj bg-transparent p-[13px] font-mono text-[12.5px] text-muted"
+          className={moreButton + " mt-1.5 flex items-center justify-center gap-2 p-[13px]"}
         >
           Showing {view.ledger.label} · <span className="text-accent">Load all {view.ledger.total} {cfg.nounPlural}</span>{" "}
           <span className="text-dim">({view.ledger.hidden} more)</span> →
@@ -232,12 +252,39 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
   );
 }
 
-function GlobeIcon() {
+/** Placeholder rows in the table's own grid while the library loads. */
+export function ItemTableSkeleton({ rows = 9 }: { rows?: number }) {
+  const { cfg, isMobile } = useCollectionCtx();
+  const { visible, gridCols } = tableGrid(cfg, isMobile);
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18" />
-      <path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18" />
-    </svg>
+    <div aria-busy="true">
+      <span className="sr-only">loading…</span>
+      <div aria-hidden className="grid px-3 pb-[9px]" style={{ gridTemplateColumns: gridCols }}>
+        {visible.map((c) => (
+          <div key={c.key} className="flex h-[13px] items-center" style={{ justifyContent: c.right ? "flex-end" : "flex-start", paddingRight: c.right ? 20 : 0 }}>
+            <div className="h-2 w-10 rounded-sm bg-wb" />
+          </div>
+        ))}
+      </div>
+      {Array.from({ length: rows }, (_, r) => (
+        <div
+          key={r}
+          aria-hidden
+          className="mb-[2px] grid items-center border-b border-wc px-3 py-[11px] motion-safe:animate-pulse"
+          style={{ gridTemplateColumns: gridCols, animationDelay: r * 70 + "ms" }}
+        >
+          {visible.map((c, i) => (
+            <div key={c.key} className="flex pr-2.5" style={{ justifyContent: c.right ? "flex-end" : "flex-start" }}>
+              <div
+                className="h-2.5 rounded-[4px] bg-wd"
+                // Titles vary in length like real data; other cells stay short.
+                style={{ width: i === 0 ? 48 + ((r * 37) % 40) + "%" : c.right ? 28 : "55%" }}
+              />
+            </div>
+          ))}
+          <div />
+        </div>
+      ))}
+    </div>
   );
 }

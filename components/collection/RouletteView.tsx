@@ -2,7 +2,9 @@
 
 // Roulette tab: build a pool (filters or hand-picked), spin the reel, act on
 // the winner. The reel eases out over 4.8s; reduced motion skips straight to it.
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CloseIcon, PlusIcon } from "@/components/icons";
+import { accentButton, neutralButton, toggleChip } from "@/components/ui/Pills";
 import {
   defaultRouletteState, pickRandom, pickSuggestions, pool as buildPool, primaryKey, pushRecent, reelCard, reelStrip, reelTarget,
   tagCloud, winnerActive, type RouletteState,
@@ -14,10 +16,7 @@ const DURATION = 4800;
 const ease = (t: number) => 1 - Math.pow(1 - t, 3.4);
 const eyebrow = "text-[10px] font-semibold tracking-[.09em] text-dim uppercase";
 
-const chip = (on: boolean): CSSProperties =>
-  on
-    ? { color: "var(--onAccent)", background: "var(--accent)", borderColor: "var(--accent)" }
-    : { color: "var(--text2)", background: "var(--inset)", borderColor: "var(--wf)" };
+const chip = (on: boolean) => toggleChip(on, "border-wf bg-inset text-text2");
 
 export function RouletteView() {
   const { cfg, items, actions, isMobile, openEdit } = useCollectionCtx();
@@ -100,8 +99,10 @@ export function RouletteView() {
               type="button"
               aria-pressed={st.rmode === m}
               onClick={() => setSt((s) => ({ ...s, rmode: m }))}
-              className="flex-1 cursor-pointer rounded-md border-none p-[7px] text-center text-[12.5px] font-semibold"
-              style={{ color: st.rmode === m ? "var(--onAccent)" : "var(--muted)", background: st.rmode === m ? "var(--accent)" : "transparent" }}
+              className={
+                "flex-1 cursor-pointer rounded-md border-none p-[7px] text-center text-[12.5px] font-semibold transition-[color,background-color] duration-200 " +
+                (st.rmode === m ? "bg-accent text-on-accent" : "bg-transparent text-muted hover:bg-wc hover:text-text")
+              }
             >
               {m === "filters" ? "By filters" : "Hand-pick"}
             </button>
@@ -118,8 +119,7 @@ export function RouletteView() {
                   type="button"
                   aria-pressed={st.rStatus === c.value}
                   onClick={() => setSt((s) => ({ ...s, rStatus: c.value }))}
-                  className="flex-1 cursor-pointer rounded-lg border px-1 py-[7px] text-center text-xs font-medium"
-                  style={chip(st.rStatus === c.value)}
+                  className={chip(st.rStatus === c.value) + " flex-1 rounded-lg px-1 py-[7px] text-center text-xs font-medium"}
                 >
                   {c.label}
                 </button>
@@ -135,8 +135,7 @@ export function RouletteView() {
                       type="button"
                       aria-pressed={st.rLength === o.value}
                       onClick={() => setSt((s) => ({ ...s, rLength: o.value }))}
-                      className="cursor-pointer rounded-lg border px-[11px] py-[7px] text-xs font-medium"
-                      style={chip(st.rLength === o.value)}
+                      className={chip(st.rLength === o.value) + " rounded-lg px-[11px] py-[7px] text-xs font-medium"}
                     >
                       {o.label}
                     </button>
@@ -147,7 +146,7 @@ export function RouletteView() {
             <div className="mb-[9px] flex items-center justify-between">
               <span className={eyebrow}>Tags · any of</span>
               {st.rTags.length > 0 && (
-                <button type="button" onClick={() => setSt((s) => ({ ...s, rTags: [] }))} className="cursor-pointer border-none bg-transparent p-0 text-[11px] text-accent">
+                <button type="button" onClick={() => setSt((s) => ({ ...s, rTags: [] }))} className="cursor-pointer border-none bg-transparent p-0 text-[11px] text-accent underline-offset-2 hover:underline">
                   clear
                 </button>
               )}
@@ -161,12 +160,7 @@ export function RouletteView() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => setSt((s) => ({ ...s, rTags: on ? s.rTags.filter((x) => x !== tag) : [...s.rTags, tag] }))}
-                    className="cursor-pointer rounded-[20px] border px-2.5 py-[5px] text-[11.5px]"
-                    style={
-                      on
-                        ? { color: "var(--onAccent)", background: "var(--accent)", borderColor: "var(--accent)" }
-                        : { color: "var(--muted2)", background: "var(--chip2)", borderColor: "var(--we)" }
-                    }
+                    className={toggleChip(on, "border-we bg-chip2 text-muted2") + " rounded-[20px] px-2.5 py-[5px] text-[11.5px]"}
                   >
                     {tag} <span className="font-mono text-[10px] tabular-nums opacity-70">{count}</span>
                   </button>
@@ -197,12 +191,10 @@ export function RouletteView() {
                       setSt((s) => ({ ...s, rPicked: [...s.rPicked, g.id] }));
                       setSearch("");
                     }}
-                    className="flex cursor-pointer justify-between gap-2 rounded-[7px] border-none bg-chip2 px-2.5 py-2 text-[12.5px] text-text2"
+                    className="flex cursor-pointer items-center justify-between gap-2 rounded-[7px] border-none bg-chip2 px-2.5 py-2 text-[12.5px] text-text2 transition-colors duration-150 hover:bg-wd hover:text-text"
                   >
                     <span className="truncate">{String(g[primary])}</span>
-                    <span aria-hidden className="flex-none text-accent">
-                      +
-                    </span>
+                    <PlusIcon size={12} className="text-accent" />
                   </button>
                 ))}
               </div>
@@ -216,13 +208,11 @@ export function RouletteView() {
                     type="button"
                     aria-label={`Remove ${g[primary]} from the draw`}
                     onClick={() => setSt((s) => ({ ...s, rPicked: s.rPicked.filter((x) => x !== g.id) }))}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-2.5 py-[5px] text-xs text-accent"
+                    className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-2.5 py-[5px] text-xs text-accent transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[.97]"
                     style={{ background: "color-mix(in srgb, var(--accent) 13%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
                   >
-                    {String(g[primary])}{" "}
-                    <span aria-hidden className="text-[13px] leading-none">
-                      ×
-                    </span>
+                    {String(g[primary])}
+                    <CloseIcon size={10} />
                   </button>
                 ))}
               </div>
@@ -238,7 +228,7 @@ export function RouletteView() {
         <div className="mb-1.5 text-center">
           <div className="text-xl font-bold tracking-[-.02em]">Can&apos;t decide? Spin.</div>
           <div className="mt-[3px] text-[12.5px] text-muted">
-            <span className="font-mono" style={{ color: poolItems.length ? "var(--accent)" : "#d98f8f" }}>
+            <span className="font-mono" style={{ color: poolItems.length ? "var(--accent)" : "var(--neg)" }}>
               {poolItems.length}
             </span>
             {/* one text node, as in legacy, so i18n leaves the sentence whole */}
@@ -282,8 +272,7 @@ export function RouletteView() {
             type="button"
             onClick={spin}
             aria-disabled={blocked}
-            className="rounded-[11px] border-none bg-accent px-10 py-[13px] text-[15px] font-bold text-on-accent"
-            style={{ cursor: blocked ? "not-allowed" : "pointer", opacity: blocked ? 0.5 : 1 }}
+            className={accentButton + " rounded-[11px] px-10 py-[13px] text-[15px] font-bold"}
           >
             {spinning ? "Spinning…" : "Spin"}
           </button>
@@ -323,13 +312,13 @@ export function RouletteView() {
               <div className="mt-[14px] text-[13px] leading-[1.6] text-text3 italic">{String(winner[cfg.detail.reviewField])}</div>
             )}
             <div className="mt-[18px] flex flex-wrap gap-[9px]">
-              <button type="button" onClick={startAction} className="cursor-pointer rounded-[9px] border-none bg-accent px-[18px] py-[9px] text-[13px] font-bold text-on-accent">
+              <button type="button" onClick={startAction} className={accentButton + " px-[18px] py-[9px] text-[13px] font-bold"}>
                 {active ? r.startAction.activeLabel : r.startAction.label}
               </button>
-              <button type="button" onClick={spin} className="cursor-pointer rounded-[9px] border border-wf bg-chip px-[18px] py-[9px] text-[13px] font-semibold text-text2">
+              <button type="button" onClick={spin} className={neutralButton + " px-[18px] py-[9px] text-[13px]"}>
                 Spin again
               </button>
-              <button type="button" onClick={() => openEdit(winner)} className="cursor-pointer rounded-[9px] border border-wh bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-muted">
+              <button type="button" onClick={() => openEdit(winner)} className="cursor-pointer rounded-[9px] border border-wh bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-muted transition-[color,border-color] duration-200 hover:border-wk hover:text-text">
                 Details
               </button>
             </div>

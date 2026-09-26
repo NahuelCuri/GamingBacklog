@@ -268,7 +268,7 @@ export function StatWidget({ w, onYear }: { w: Widget; onYear?(year: string): vo
               value={w.year}
               onChange={(e) => onYear?.(e.target.value)}
               aria-label={w.title + " — year"}
-              className={mono + " cursor-pointer rounded-[7px] border border-wh bg-inset px-2 py-1 text-[11.5px] text-text2"}
+              className={mono + " cursor-pointer rounded-[7px] border border-wh bg-inset px-2 py-1 text-[11.5px] text-text2 transition-colors duration-200 hover:border-wk"}
             >
               {w.yearOptions.map((o) => (
                 <option key={o.value} value={o.value} className="bg-inset">

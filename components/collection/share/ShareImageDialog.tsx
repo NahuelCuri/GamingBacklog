@@ -4,6 +4,7 @@
 // copy or download as PNG.
 import { useMemo, useRef, useState } from "react";
 import { defaultModuleSelection, scopeItems, shareModules, shareYears, withYearMode, type ShareScope, type YearMode } from "@/lib/collection";
+import { toggleChip } from "@/components/ui/Pills";
 import { useCollectionCtx } from "../CollectionContext";
 import { ShareShell, TogglePill, eyebrow, textInput } from "./ShareShell";
 
@@ -29,12 +30,7 @@ export function ShareImageDialog({ onClose }: { onClose(): void }) {
       type="button"
       aria-pressed={scope.mode === m}
       onClick={() => setScope((s) => withYearMode(cfg, items, s, m))}
-      className="flex-1 cursor-pointer rounded-lg border px-1 py-2 text-center text-xs font-medium"
-      style={
-        scope.mode === m
-          ? { color: "var(--onAccent)", background: "var(--accent)", borderColor: "var(--accent)" }
-          : { color: "var(--text2)", background: "var(--chip)", borderColor: "var(--wf)" }
-      }
+      className={toggleChip(scope.mode === m) + " flex-1 rounded-lg px-1 py-2 text-center text-xs font-medium"}
     >
       {label}
     </button>
@@ -54,7 +50,6 @@ export function ShareImageDialog({ onClose }: { onClose(): void }) {
       label="Create shareable image"
       subtitle="Pick the stats to include, then copy or download."
       width={1000}
-      zIndex={60}
       onClose={onClose}
       previewRef={card}
       pixelRatio={2}

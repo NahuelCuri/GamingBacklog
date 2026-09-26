@@ -2,6 +2,7 @@
 
 // Stats tab: summary cards plus the two widget columns from cfg.stats.
 import { useMemo, useState } from "react";
+import { accentButton } from "@/components/ui/Pills";
 import { buildStats } from "@/lib/collection";
 import { useCollectionCtx } from "../CollectionContext";
 import { StatWidget } from "./StatWidget";
@@ -18,7 +19,7 @@ export function StatsView() {
     <div className="pt-[22px]" style={{ animation: "gfade .2s ease" }}>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="text-[12.5px] text-muted">Build a shareable image from any of your stats.</div>
-        <button type="button" onClick={openStatsImage} className="cursor-pointer rounded-[9px] border-none bg-accent px-4 py-[9px] text-[13px] font-bold text-on-accent">
+        <button type="button" onClick={openStatsImage} className={accentButton + " px-4 py-[9px] text-[13px] font-bold"}>
           Create image ↗
         </button>
       </div>
@@ -32,7 +33,7 @@ export function StatsView() {
             >
               {c.value}
             </div>
-            <div className="mt-1 text-[11.5px] text-muted">{c.label}</div>
+            <div className="mt-1 text-[11.5px] text-pretty text-muted">{c.label}</div>
           </div>
         ))}
       </div>

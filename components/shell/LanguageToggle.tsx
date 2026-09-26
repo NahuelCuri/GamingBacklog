@@ -34,12 +34,12 @@ export function LanguageToggle() {
       role="group"
       aria-label="Language / Idioma"
       title="Language / Idioma"
-      className="fixed z-[9998] flex select-none gap-[2px] rounded-[9px] bg-topchip p-[3px] font-mono text-[11px]"
+      className="fixed z-(--z-lang) flex select-none gap-[2px] rounded-[9px] bg-topchip p-[3px] font-mono text-[11px]"
       style={{
         left: "max(env(safe-area-inset-left, 0px), 16px)",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
-        border: "1px solid rgba(255,255,255,.1)",
-        boxShadow: "0 4px 14px rgba(0,0,0,.4)",
+        border: "1px solid var(--wh)",
+        boxShadow: "var(--shadow-float)",
       }}
     >
       {(["en", "es"] as const).map((l) => (

@@ -139,7 +139,7 @@ function WipeOverlay({ phase, target, light }: { phase: WipePhase; target: Libra
     <div
       aria-hidden
       style={{
-        position: "fixed", inset: 0, zIndex: 9999, pointerEvents: phase ? "auto" : "none", willChange: "transform",
+        position: "fixed", inset: 0, zIndex: "var(--z-wipe)", pointerEvents: phase ? "auto" : "none", willChange: "transform",
         transform: `translateX(${tx})`, transition: phase ? `transform ${WIPE_MS}ms cubic-bezier(.66,0,.34,1)` : "none",
       }}
     >

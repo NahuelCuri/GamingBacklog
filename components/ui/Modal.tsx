@@ -25,7 +25,7 @@ export function Modal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[500] flex items-center justify-center p-6 backdrop-blur-[3px]"
+      className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-6 backdrop-blur-[3px]"
       style={{ background: "rgba(5,6,5,.66)", animation: "gfade .18s ease" }}
     >
       <div
