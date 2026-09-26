@@ -135,6 +135,7 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert);
 @keyframes gfade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes gpop { from { opacity: 0; transform: translateY(8px) scale(.99) } to { opacity: 1; transform: none } }
 @keyframes gpulse { 0%, 100% { opacity: .4; transform: scale(1) } 50% { opacity: 1; transform: scale(1.12) } }
+@keyframes gslide { from { transform: translateX(14px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
 @keyframes dpop { from { opacity: 0; transform: translateY(-6px) scale(.98) } to { opacity: 1; transform: none } }
 @keyframes gpulsebtn {
   0%, 100% { opacity: .55; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent) }

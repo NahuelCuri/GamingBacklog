@@ -103,6 +103,12 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
      - A typed `t()` can replace the DOM approach after cutover if needed.
    - **Currency:** the US$/AR$ toggle and the live rate (`cfg.currency`, with `fallbackRate` if the API fails) are ported. As in legacy, no config defines `currency`, so the toggle stays hidden. Adding the block to `config/collections/expenses.ts` turns it on.
 7. **GeoMap + Trip Planner.**
+   - **7a. Map (Wines).** ✅
+     - The Argentina province map, drawn with d3 modules (`d3-geo`, `d3-zoom`, `d3-selection`, `d3-scale`, `d3-transition`) from npm instead of the CDN.
+     - Same behaviour as legacy: provinces glow by count, hover tooltip, click to zoom in and list the wines, drag and scroll to pan and zoom, "reset view", and the Malvinas overlay tagged to Tierra del Fuego.
+     - **Data:** legacy downloaded a 13 MB GeoJSON from jsDelivr on every visit and simplified it in the browser. `scripts/build-provinces.mjs` now applies the same simplification once and writes `public/geo/ar-provinces.json` (360 KB), which ships with the app.
+     - A selected province's list now follows live data changes (legacy kept a stale copy).
+   - **7b. Trip Planner.**
 8. **Cutover.**
    1. Add a GitHub Actions deploy workflow. `public/legacy/index.html` ships at `/legacy/`.
    2. Merge `next` into `main`.

@@ -17,6 +17,7 @@ import { hasView } from "@/lib/collection/url-state";
 import { useUrlState } from "@/lib/hooks/useUrlState";
 import { CollectionContext, type CollectionCtx } from "./CollectionContext";
 import { CollectionHeader } from "./CollectionHeader";
+import { GeoMapView } from "./GeoMapView";
 import { ItemModal, type ModalState } from "./ItemModal";
 import { LibraryFab } from "./LibraryFab";
 import { LibraryView } from "./LibraryView";
@@ -89,9 +90,7 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
           {data.status === "ready" && url.view === "stats" && <StatsView />}
           {data.status === "ready" && url.view === "months" && <MonthsView />}
           {data.status === "ready" && url.view === "roulette" && <RouletteView />}
-          {data.status !== "error" && url.view === "map" && (
-            <p className="py-16 text-center font-mono text-[13px] text-dim">The map is being ported — coming in phase 7.</p>
-          )}
+          {data.status === "ready" && url.view === "map" && <GeoMapView />}
         </main>
         {modal && <ItemModal modal={modal} setModal={setModal} onClose={closeModal} />}
         {statsImage && <ShareImageDialog onClose={() => setStatsImage(false)} />}

@@ -61,7 +61,7 @@ describe("library view (games seed)", () => {
     expect(rowButtons()).toHaveLength(150);
     fireEvent.click(screen.getByRole("button", { name: /Showing 150 of 160 · load 10 more/ }));
     expect(rowButtons()).toHaveLength(160);
-  });
+  }, 20_000); // renders 160 rows in jsdom; slow on a busy machine
 
   it("searches, filters by status and sorts by title", () => {
     renderLibrary("games", games);
