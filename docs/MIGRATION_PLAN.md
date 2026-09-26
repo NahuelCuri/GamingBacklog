@@ -129,7 +129,7 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
        - A failed write only went to the console. It is now reported, and the saved state is reloaded.
      - **Kept from legacy:** the planner keeps its own always-dark palette, and the Compare button (bottom-left) sits under the EN/ES toggle.
      - **Shared fix:** with stacked dialogs (a delete confirm over the trip editor), Escape now closes only the top one.
-8. **Cutover.**
+8. **Cutover.** ✅ Done: merge `04e38fd` on `main`, deployed by Actions. All routes answer 200, `/dev/` is 404, and the sign-in page talks to Supabase. What remains is the checks with real accounts (step 4).
    - **Prepared on `next`:**
      - `.github/workflows/deploy.yml` tests, lints and builds on every push to `main` and `next`, and deploys only from `main`.
      - `/dev` and `/dev/preview` are `page.dev.tsx` files, which exist only under `next dev`, so they are not in the export.
