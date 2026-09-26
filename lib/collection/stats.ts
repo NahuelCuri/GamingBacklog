@@ -261,17 +261,31 @@ function statusDonut(cfg: CollectionConfig, items: Item[], spec: StatusDonutSpec
 }
 
 /** Slices from the distinct values of a field; past `top` folds into "Other". */
+const OTHER = "Other";
+
 function dynamicGroups(items: Item[], field: string, pf: string, top: number): MoneyDonutGroup[] {
+  // Bucket by trimmed value (blank → "Other"), remembering the raw values so
+  // each slice's selector matches exactly the rows that were counted.
   const sums: Record<string, number> = {};
+  const raw: Record<string, Set<unknown>> = {};
   items.forEach((x) => {
-    const k = (x[field] == null ? "" : String(x[field]).trim()) || "Other";
+    const v = x[field];
+    const k = (v == null ? "" : String(v).trim()) || OTHER;
     sums[k] = (sums[k] || 0) + num(x[pf]);
+    (raw[k] ||= new Set()).add(v);
   });
   const keys = Object.keys(sums).filter((k) => sums[k] > 0).sort((a, b) => sums[b] - sums[a]);
   const shown = keys.slice(0, top);
+  const rest = keys.slice(top);
+  const values = (ks: string[]) => ks.flatMap((k) => [...raw[k]]);
   const palette = dynColors(shown.length);
-  const groups: MoneyDonutGroup[] = shown.map((k, i) => ({ label: k, match: { field, eq: k }, color: palette[i] }));
-  if (keys.length > top) groups.push({ label: "Other", match: { field, in: keys.slice(top) }, color: "oklch(0.62 0.03 200)" });
+  const groups: MoneyDonutGroup[] = shown.map((k, i) => ({ label: k, match: { field, in: values([k]) }, color: palette[i] }));
+  if (rest.length) {
+    // Fold the tail into an existing "Other" slice rather than adding a second one.
+    const other = groups.find((g) => g.label === OTHER);
+    if (other) other.match = { field, in: values([OTHER, ...rest]) };
+    else groups.push({ label: OTHER, match: { field, in: values(rest) }, color: "oklch(0.62 0.03 200)" });
+  }
   return groups;
 }
 

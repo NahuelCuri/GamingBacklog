@@ -127,8 +127,8 @@ export function ShareImageDialog({ onClose }: { onClose(): void }) {
               )}
               {m.kind === "bar" && (
                 <div className="flex flex-col" style={{ gap: m.style.rowGap }}>
-                  {m.rows.map((t) => (
-                    <div key={t.label + (t.rank ?? "")} className="flex items-center gap-[11px]">
+                  {m.rows.map((t, i) => (
+                    <div key={i} className="flex items-center gap-[11px]">
                       {m.style.showRank && <div className={mono + " w-4 flex-none text-[11px] text-dim"}>{t.rank}</div>}
                       <div className="flex-none truncate" style={{ width: m.style.labelWidth, fontSize: m.style.labelSize, color: m.style.labelColor }}>
                         {t.label}
@@ -148,8 +148,8 @@ export function ShareImageDialog({ onClose }: { onClose(): void }) {
               )}
               {(m.kind === "histogram" || m.kind === "byYear") && (
                 <div className="flex items-end" style={{ height: m.kind === "histogram" ? 104 : 92, gap: m.kind === "histogram" ? 7 : 9 }}>
-                  {m.bars.map((b) => (
-                    <div key={b.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
+                  {m.bars.map((b, i) => (
+                    <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
                       <div className={mono + " text-[10px] text-muted"}>{b.count}</div>
                       <div
                         className="min-h-[3px] w-full rounded-[4px_4px_2px_2px]"
@@ -172,8 +172,8 @@ export function ShareImageDialog({ onClose }: { onClose(): void }) {
                       </div>
                     </div>
                     <div className="flex flex-1 flex-col gap-2.5">
-                      {m.legend.map((l) => (
-                        <div key={l.label} className="flex items-center gap-[9px]">
+                      {m.legend.map((l, i) => (
+                        <div key={i} className="flex items-center gap-[9px]">
                           <span className="h-[9px] w-[9px] flex-none rounded-[2px]" style={{ background: l.color }} />
                           <span className="flex-1 text-[12.5px] text-text2">{l.label}</span>
                           <span className={mono + " text-[12.5px] font-semibold text-text2"}>{l.amount}</span>

@@ -67,8 +67,8 @@ function barStyle(spec: WidgetSpec): BarStyle {
 export function BarRows({ rows, showRank, s }: { rows: BarRow[]; showRank: boolean; s: BarStyle }) {
   return (
     <div className="flex flex-col" style={{ gap: s.rowGap }}>
-      {rows.map((t) => (
-        <div key={t.label + (t.rank ?? "")} className="flex items-center" style={{ gap: s.cellGap }}>
+      {rows.map((t, i) => (
+        <div key={i} className="flex items-center" style={{ gap: s.cellGap }}>
           {showRank && <div className={mono + " w-5 flex-none text-[11px] text-dim"}>{t.rank}</div>}
           <div className="flex-none truncate" style={{ width: s.labelWidth, fontSize: s.labelSize }}>
             {t.label}
@@ -138,8 +138,8 @@ function VBars({
 }) {
   return (
     <div className={"flex items-end" + (scroll ? " g-scroll overflow-x-auto" : "")} style={{ height, gap }}>
-      {bars.map((b) => (
-        <div key={b.label} className="flex h-full flex-1 flex-col items-center justify-end gap-[7px]" style={{ minWidth }}>
+      {bars.map((b, i) => (
+        <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-[7px]" style={{ minWidth }}>
           <div className={mono + " text-muted whitespace-nowrap"} style={{ fontSize: labelSize }}>
             {b.top}
           </div>
@@ -164,8 +164,8 @@ function Donut({ bg, children }: { bg: string; children: ReactNode }) {
 function Legend({ items }: { items: { color: string; label: string; value: ReactNode }[] }) {
   return (
     <div className="flex flex-1 flex-col gap-2.5">
-      {items.map((l) => (
-        <div key={l.label} className="flex items-center gap-[9px]">
+      {items.map((l, i) => (
+        <div key={i} className="flex items-center gap-[9px]">
           <span className="h-[9px] w-[9px] flex-none rounded-[2px]" style={{ background: l.color }} />
           <span className="flex-1 text-[12.5px] text-text2">{l.label}</span>
           <span className={mono + " text-[12.5px] font-semibold"}>{l.value}</span>
