@@ -27,6 +27,11 @@ function Opener() {
   return <button onClick={openSettings}>open-settings</button>;
 }
 
+function HomeLink() {
+  const { navigate } = useShell();
+  return <button onClick={() => navigate(null)}>home</button>;
+}
+
 const renderPicker = () =>
   render(
     <ShellProvider>
@@ -86,6 +91,40 @@ describe("library picker", () => {
     expect(router.push).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(430));
     expect(router.push).toHaveBeenCalledWith("/books/");
+  });
+
+  it("keeps the cover up until the new page is actually there", () => {
+    const { rerender } = renderPicker();
+    const overlay = () => document.querySelector<HTMLElement>('[style*="z-wipe"]')!;
+    fireEvent.click(screen.getByRole("button", { name: "Open Books" }));
+    act(() => vi.advanceTimersByTime(430));
+    expect(router.push).toHaveBeenCalledWith("/books/");
+    // The route hasn't changed yet (slow page): the old one must stay hidden.
+    act(() => vi.advanceTimersByTime(1000));
+    expect(overlay().style.pointerEvents).toBe("auto");
+    pathname = "/books/";
+    rerender(
+      <ShellProvider>
+        <LibraryPicker />
+        <Opener />
+      </ShellProvider>,
+    );
+    act(() => vi.advanceTimersByTime(430));
+    expect(overlay().style.pointerEvents).toBe("none");
+  });
+
+  it("goes home from a library after its colour covers the page, and remembers it for the big tile", () => {
+    pathname = "/games/";
+    render(
+      <ShellProvider>
+        <HomeLink />
+      </ShellProvider>,
+    );
+    fireEvent.click(screen.getByText("home"));
+    expect(router.push).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(180));
+    expect(router.push).toHaveBeenCalledWith("/");
+    expect(JSON.parse(localStorage.getItem("bl_home:someone")!).last).toBe("games");
   });
 
   it("opens the only visible library right after sign-in", () => {
