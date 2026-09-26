@@ -3,6 +3,8 @@
 // Fixed EN/ES switch (bottom-left, every page), as in legacy. The choice is per
 // device (localStorage `bl_lang`) and translates the page in place.
 import { useEffect, useRef, useState } from "react";
+import { ES } from "@/lib/i18n/es";
+import { ES_ADDED } from "@/lib/i18n/es-added";
 import { createTranslator, readLang, saveLang, type Lang, type Translator } from "@/lib/i18n/translator";
 
 export function LanguageToggle() {
@@ -11,7 +13,7 @@ export function LanguageToggle() {
 
   useEffect(() => {
     // Starts after hydration so React never sees translated markup.
-    const t = createTranslator(document.body);
+    const t = createTranslator(document.body, { ...ES, ...ES_ADDED });
     translator.current = t;
     const saved = readLang();
     t.setLang(saved);

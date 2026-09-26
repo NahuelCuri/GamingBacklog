@@ -2,13 +2,15 @@
 
 // Collection route: loads the data, owns the URL-synced view and filters, and
 // hosts the header, the active tab, the add/edit form and the library switcher.
-import { useCallback, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { useCollectionTheme } from "@/components/shell/useCollectionTheme";
 import { COLLECTIONS } from "@/config/collections";
 import { blankDraft, draftFromItem } from "@/lib/collection";
 import type { CollectionKey, Item } from "@/lib/collection/types";
 import type { CollectionStore } from "@/lib/data/store";
+import { useAuth } from "@/lib/auth";
+import { collectionSummary, rememberSummary } from "@/lib/home";
 import { useCollection } from "@/lib/data/useCollection";
 import { useStore } from "@/lib/data/useStore";
 import { useCurrency } from "@/lib/hooks/useCurrency";
@@ -50,6 +52,13 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
   const [modal, setModal] = useState<ModalState | null>(null);
   const [shareItem, setShareItem] = useState<Item | null>(null);
   const [statsImage, setStatsImage] = useState(false);
+  const { user } = useAuth();
+
+  // Numbers for this library's tile on the home page, kept on this device.
+  const own = store === undefined;
+  useEffect(() => {
+    if (own && data.status === "ready") rememberSummary(user?.id, collection, collectionSummary(collection, cfg, data.items, money));
+  }, [own, data.status, data.items, user?.id, collection, cfg, money]);
 
   const openAdd = useCallback(() => setModal({ mode: "add", draft: blankDraft(cfg) }), [cfg]);
   const openEdit = useCallback((g: Item) => setModal({ mode: "edit", draft: draftFromItem(cfg, g) }), [cfg]);

@@ -6,6 +6,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { LibraryFab } from "@/components/collection/LibraryFab";
 import { TRIPS_MOBILE_QUERY, useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useAuth } from "@/lib/auth";
+import { rememberSummary, tripsSummary } from "@/lib/home";
 import {
   blankCard, blankTrip, cleanCard, cleanTrip, moveCardDay, moveCardOrder, tripCards,
   type CardDraft, type Trip, type TripCard, type TripData,
@@ -122,6 +124,11 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const userStore = useTripStore();
   const store = override === undefined ? userStore : override;
   const { state: data, persist, retry, dismissSyncError } = useTrips(store);
+  const { user } = useAuth();
+  // Numbers for the Trips tile on the home page, kept on this device.
+  useEffect(() => {
+    if (override === undefined && data.status === "ready") rememberSummary(user?.id, "trips", tripsSummary(data.trips));
+  }, [override, data.status, data.trips, user?.id]);
   const isMobile = useIsMobile(TRIPS_MOBILE_QUERY);
   const [nav, setNav] = useNav();
   const [modal, setModal] = useState<CardModal | null>(null);

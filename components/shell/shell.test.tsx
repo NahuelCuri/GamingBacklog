@@ -48,7 +48,8 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const cardNames = () => screen.getAllByRole("button", { name: /Open →/ }).map((b) => b.textContent!.replace(/Open →.*/, "").trim());
+/** Library tiles in grid order (the library opened last comes first). */
+const cardNames = () => screen.getAllByRole("button", { name: /^Open / }).map((b) => b.getAttribute("aria-label")!.replace(/^Open /, ""));
 
 describe("library picker", () => {
   it("shows every library except trips for a non-member", () => {
@@ -65,9 +66,23 @@ describe("library picker", () => {
     expect(cardNames().at(-1)).toMatch(/^Trips/);
   });
 
+  it("puts the library opened last first, with the numbers it saved on this device", () => {
+    localStorage.setItem(
+      "bl_home:someone",
+      JSON.stringify({ last: "movies", libs: { movies: { metrics: [{ value: "87", label: "titles" }], at: 1 } } }),
+    );
+    renderPicker();
+    expect(cardNames()[0]).toBe("Movies");
+    const movies = screen.getByRole("button", { name: "Open Movies" });
+    expect(within(movies).getByText("Continue")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(1000)); // numbers count up
+    expect(movies.textContent).toContain("87");
+    expect(movies.textContent).toContain("titles");
+  });
+
   it("navigates behind the wipe: cover, push, reveal", () => {
     renderPicker();
-    fireEvent.click(screen.getByRole("button", { name: /^Books/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Books" }));
     expect(router.push).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(430));
     expect(router.push).toHaveBeenCalledWith("/books/");

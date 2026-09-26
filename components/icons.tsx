@@ -189,6 +189,13 @@ export const GlobeIcon = (p: IconProps) => (
   </Glyph>
 );
 
+/** Diagonal arrow: open. */
+export const ArrowUpRightIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M7 17 17 7M8.5 7H17v8.5" {...stroke} />
+  </Glyph>
+);
+
 /** Circled exclamation: an "important" marker. */
 export const WarningCircleIcon = (p: IconProps) => (
   <Glyph {...p}>
