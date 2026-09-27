@@ -4,7 +4,8 @@
 // side. On desktop they can be dragged by the header, resized from the corner,
 // and the canvas zoomed (buttons or Shift+scroll). The drawer height is dragged
 // from its top edge; dragging it very low minimizes it.
-import { useEffect, useRef, type CSSProperties, type PointerEvent as RPointerEvent } from "react";
+import { useEffect, useRef, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from "react";
+import { ArrowUpRightIcon, CaretUpIcon, CloseIcon, MinusIcon, PinIcon, PlusIcon, SwapIcon } from "@/components/icons";
 import { prioMeta, statusMeta, statusDotColor, typeMeta, type TripCard } from "@/lib/trips/model";
 import { T, btnGhost, frame, typeTag, tagChip } from "./styles";
 import { useTripCtx } from "./TripPlanner";
@@ -66,10 +67,11 @@ export function CompareButton({ onClick }: { onClick(): void }) {
       onClick={onClick}
       title="Compare cards side by side"
       style={{
-        font: "inherit", position: "fixed", left: "max(env(safe-area-inset-left, 0px), 22px)", bottom: "calc(env(safe-area-inset-bottom, 0px) + 22px)",
-        zIndex: 55, display: "flex", alignItems: "center", gap: 9, cursor: "pointer", background: "#141210", color: T.accent,
+        // Stacked above the EN/ES toggle (bottom-left, 16px), left edges aligned.
+        font: "inherit", position: "fixed", left: "max(env(safe-area-inset-left, 0px), 16px)", bottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)",
+        zIndex: "var(--z-float)", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", background: T.card, color: T.accent,
         border: `1.5px solid color-mix(in srgb, ${T.accent} 45%, transparent)`, borderRadius: 999, padding: "12px 18px", fontSize: 13.5, fontWeight: 700,
-        boxShadow: "0 6px 20px rgba(0,0,0,.5)", transformOrigin: "bottom left", animation: "compBtnIn .28s cubic-bezier(.22,1,.36,1)",
+        boxShadow: "0 6px 20px rgba(3,6,7,.55)", transformOrigin: "bottom left", animation: "compBtnIn .28s cubic-bezier(.22,1,.36,1)",
       }}
     >
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style={{ display: "block" }}>
@@ -143,7 +145,7 @@ export function CompareDrawer() {
   const grid: CSSProperties = { backgroundImage: "radial-gradient(circle at 1px 1px,#161c1e 1px,transparent 0)", backgroundSize: "26px 26px" };
 
   return (
-    <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "flex", flexDirection: "column", justifyContent: "flex-end", pointerEvents: "none" }}>
+    <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: "calc(var(--z-float) + 1)", display: "flex", flexDirection: "column", justifyContent: "flex-end", pointerEvents: "none" }}>
       <div
         ref={drawer}
         role="region"
@@ -168,7 +170,7 @@ export function CompareDrawer() {
               style={{ font: "inherit", background: "none", border: "none", color: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}
             >
               <span aria-hidden="true" style={{ color: T.dim, fontSize: 13, lineHeight: 1, transform: `rotate(${c.min ? "180deg" : "0deg"})`, transition: "transform .15s" }}>
-                ⌃
+                <CaretUpIcon size={13} />
               </span>
               <span style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#7f8c89" }}>Compare</span>
               <span style={{ fontSize: 13, color: T.text2, fontWeight: 600 }}>{countLabel}</span>
@@ -204,16 +206,16 @@ export function CompareDrawer() {
           >
             {!isMobile && c.open.length > 0 && (
               <div style={{ position: "sticky", top: 12, float: "right", marginRight: 14, zIndex: 30, display: "inline-flex", alignItems: "center", gap: 2, background: "rgba(14,17,18,.92)", border: "1px solid #232a2b", borderRadius: 10, padding: 4, backdropFilter: "blur(6px)" }}>
-                <ZoomBtn label="Zoom out" onClick={() => setCompare((s) => ({ ...s, zoom: clampZoom(s.zoom - 0.1) }))}>−</ZoomBtn>
+                <ZoomBtn label="Zoom out" onClick={() => setCompare((s) => ({ ...s, zoom: clampZoom(s.zoom - 0.1) }))}><MinusIcon size={15} /></ZoomBtn>
                 <button type="button" title="Reset zoom" aria-label="Reset zoom" onClick={() => setCompare((s) => ({ ...s, zoom: 1 }))} style={{ cursor: "pointer", background: "none", border: "none", fontFamily: T.mono, fontSize: 11, color: T.muted, padding: "0 6px", minWidth: 44, textAlign: "center" }}>
                   {Math.round(c.zoom * 100)}%
                 </button>
-                <ZoomBtn label="Zoom in" onClick={() => setCompare((s) => ({ ...s, zoom: clampZoom(s.zoom + 0.1) }))}>+</ZoomBtn>
+                <ZoomBtn label="Zoom in" onClick={() => setCompare((s) => ({ ...s, zoom: clampZoom(s.zoom + 0.1) }))}><PlusIcon size={15} /></ZoomBtn>
               </div>
             )}
             {cols.length === 0 && (
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: T.dim3, textAlign: "center", padding: 20 }}>
-                <div style={{ fontSize: 24, color: T.accent }}>⇄</div>
+                <div style={{ color: T.accent }}><SwapIcon size={26} /></div>
                 <div style={{ fontSize: 13.5, color: T.text2, fontWeight: 700 }}>Compare mode is on</div>
                 <div style={{ fontSize: 12.5, color: T.dim3, maxWidth: 300 }}>
                   Tap any card above to add it here, then drag by the header to arrange and pull the corner to resize. Shift + scroll to zoom. Press Done to exit.
@@ -233,8 +235,8 @@ export function CompareDrawer() {
                 <button type="button" onClick={() => setCompare((s) => ({ ...s, min: false }))} style={{ font: "inherit", background: "none", border: "none", cursor: "pointer", minWidth: 0, fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {card.title || "Untitled"}
                 </button>
-                <button type="button" onClick={() => close(o.id)} aria-label={"Remove " + (card.title || "card") + " from compare"} style={{ cursor: "pointer", background: "none", border: "none", color: T.dim, fontSize: 14, lineHeight: 1, flex: "0 0 auto" }}>
-                  ✕
+                <button type="button" onClick={() => close(o.id)} aria-label={"Remove " + (card.title || "card") + " from compare"} style={{ cursor: "pointer", background: "none", border: "none", color: T.dim, lineHeight: 1, flex: "0 0 auto", display: "flex", padding: 2 }}>
+                  <CloseIcon size={12} />
                 </button>
               </div>
             ))}
@@ -245,7 +247,7 @@ export function CompareDrawer() {
   );
 }
 
-function ZoomBtn({ label, onClick, children }: { label: string; onClick(): void; children: string }) {
+function ZoomBtn({ label, onClick, children }: { label: string; onClick(): void; children: ReactNode }) {
   return (
     <button type="button" title={label} aria-label={label} onClick={onClick} style={{ cursor: "pointer", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", borderRadius: 7, color: T.text2, fontSize: 18 }}>
       {children}
@@ -290,8 +292,8 @@ function CompareCard({ o, card: d, mobile, onDown, onResize, onClose, onEdit }: 
     >
       <div data-cmp-handle="" style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "11px 14px", borderBottom: `1px solid ${T.line2}`, cursor: "move", touchAction: "none" }}>
         <span style={typeTag(tm.color)}>{tm.label}</span>
-        <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onClose} aria-label={"Remove " + (d.title || "card") + " from compare"} style={{ cursor: "pointer", background: "none", border: "none", color: T.dim, fontSize: 16, lineHeight: 1 }}>
-          ✕
+        <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onClose} aria-label={"Remove " + (d.title || "card") + " from compare"} style={{ cursor: "pointer", background: "none", border: "none", color: T.dim, lineHeight: 1, display: "flex", padding: 2 }}>
+          <CloseIcon size={14} />
         </button>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", padding: "15px 15px 0" }}>
@@ -306,7 +308,7 @@ function CompareCard({ o, card: d, mobile, onDown, onResize, onClose, onEdit }: 
         </div>
         {d.region && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: T.muted, marginBottom: 11 }}>
-            <span style={{ color: T.accent }}>◉</span>
+            <PinIcon size={13} className="text-[#5fb8b0]" />
             {d.region}
           </div>
         )}
@@ -327,7 +329,7 @@ function CompareCard({ o, card: d, mobile, onDown, onResize, onClose, onEdit }: 
           )}
           {d.source && (
             <a href={d.source} target="_blank" rel="noopener noreferrer" title={d.source} style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: T.accent, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              <span style={{ flex: "0 0 auto" }}>↗</span>
+              <ArrowUpRightIcon size={12} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{sourceShort(d.source)}</span>
             </a>
           )}

@@ -42,6 +42,9 @@ function renderMap(items: Item[]) {
 
 const provincePaths = () => [...screen.getByTestId("geo-map").querySelectorAll<SVGPathElement>("path.prov")];
 
+/** The panel count reads "2 wines" across two nodes (the number counts up on its own). */
+const panelCount = (text: string) => (_: string, el: Element | null) => el?.tagName === "DIV" && el.textContent === text && el.children.length === 1;
+
 describe("GeoMapView", () => {
   const wines: Item[] = [
     ...seed("wines"),
@@ -65,11 +68,11 @@ describe("GeoMapView", () => {
     await waitFor(() => expect(provincePaths().length).toBeGreaterThan(0));
     const mendoza = provincePaths().find((p) => (p as unknown as { __data__: { properties: { provincia: string } } }).__data__.properties.provincia === "Mendoza")!;
     act(() => void mendoza.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(screen.getByText("2 wines")).toBeTruthy();
+    expect(await screen.findByText(panelCount("2 wines"))).toBeTruthy(); // after the count-up
     const names = seed("wines").filter((w) => String(w.region).startsWith("Mendoza")).map((w) => String(w.title));
     names.forEach((n) => expect(screen.getByText(n)).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Clear region selection" }));
-    expect(screen.queryByText("2 wines")).toBeNull();
+    expect(screen.queryByText(panelCount("2 wines"))).toBeNull();
     expect(errors).toEqual([]);
   });
 

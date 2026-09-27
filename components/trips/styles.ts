@@ -44,7 +44,7 @@ export const btnGhost: CSSProperties = {
 };
 
 export const overlay: CSSProperties = {
-  position: "fixed", inset: 0, zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+  position: "fixed", inset: 0, zIndex: "var(--z-overlay)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
   background: "rgba(6,8,9,.62)", backdropFilter: "blur(3px)", overscrollBehavior: "contain",
 };
 
@@ -63,7 +63,9 @@ export const dialogFoot: CSSProperties = {
 
 export const kicker: CSSProperties = { fontFamily: T.mono, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#7f8c89" };
 
-export const closeX: CSSProperties = { cursor: "pointer", background: "none", border: "none", color: T.dim, fontSize: 18, lineHeight: 1 };
+export const closeX: CSSProperties = {
+  cursor: "pointer", background: "none", border: "none", color: T.dim, lineHeight: 1, display: "flex", padding: 4, margin: -4, borderRadius: 7,
+};
 
 export const typeTag = (color: string, size = 10): CSSProperties => ({
   fontFamily: T.mono, fontSize: size, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color,

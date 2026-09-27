@@ -31,15 +31,19 @@
   --shadow-float: 0 6px 20px color-mix(in srgb, var(--shadow-tint) 55%, transparent);
   --shadow-pop: 0 18px 50px color-mix(in srgb, var(--shadow-tint) 60%, transparent);
 
-  /* Stacking scale. Local layers inside a component (map pins, reel) keep small literals. */
+  /* Stacking scale. Local layers inside a component (map pins, reel, zoom
+     controls) keep small literals. Floating chrome sits below every dialog. */
   --z-sticky: 20;
-  --z-overlay: 50;   /* item add/edit sheet */
-  --z-popover: 60;   /* date picker, menus */
-  --z-dialog: 70;    /* share dialogs, opened over the item sheet */
-  --z-fab: 300;
-  --z-modal: 500;
+  --z-popover: 60;   /* date picker, menus (inside their own parent) */
+  --z-float: 250;    /* trip compare button and drawer, drag ghost */
+  --z-fab: 300;      /* library switcher */
+  --z-lang: 310;     /* EN/ES toggle */
+  --z-panel: 320;    /* trip currency converter */
+  --z-overlay: 500;  /* item sheet, trip dialogs */
+  --z-dialog: 520;   /* dialogs opened over an overlay (share, delete trip) */
+  --z-modal: 540;    /* settings, import confirmation */
+  --z-toast: 600;    /* undo and sync-error notices, readable over dialogs */
   --z-skip: 900;
-  --z-lang: 950;
   --z-wipe: 1000;    /* library switch transition, above everything */
 
   /* Motion. One curve and two durations for entrances; springy only where it lands something. */
@@ -168,6 +172,20 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert);
 @keyframes gpop { from { opacity: 0; transform: translateY(8px) scale(.99) } to { opacity: 1; transform: none } }
 @keyframes gpulse { 0%, 100% { opacity: .4; transform: scale(1) } 50% { opacity: 1; transform: scale(1.12) } }
 @keyframes gslide { from { transform: translateX(14px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+/* Trip Planner: its look is inline styles (always dark), so hover and press
+   feedback live here, using only properties those styles never set. Cards
+   (role=button) brighten less than buttons. */
+.tp-root :is(button, [role=button], a[href]) {
+  transition-property: filter, transform, color, background-color, border-color, box-shadow;
+  transition-duration: .18s;
+  transition-timing-function: var(--ease-out);
+}
+@media (hover: hover) {
+  .tp-root button:not(:disabled, [aria-disabled=true]):hover,
+  .tp-root a[href]:hover { filter: brightness(1.22); }
+  .tp-root [role=button]:not([aria-disabled=true]):hover { filter: brightness(1.08); }
+}
+.tp-root button:not(:disabled, [aria-disabled=true]):active { transform: translateY(1px); }
 /* Trip Planner */
 @keyframes slotIn { from { opacity: 0; transform: scaleY(.6) } to { opacity: 1; transform: scaleY(1) } }
 /* "Important" trip cards: warm edge glow, run a few times when the card appears. */
@@ -233,3 +251,21 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert);
 }
 .home-tile:hover .tile-glow, .home-tile:hover .tile-ring,
 .home-tile:focus-visible .tile-glow, .home-tile:focus-visible .tile-ring { opacity: 1; }
+
+/* Trip map pins (MapLibre markers; the marker element's transform is MapLibre's, so animate the inner dot). */
+.trip-pin { cursor: pointer; }
+.trip-pin > span {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 50%;
+  transition: scale .2s var(--ease-out);
+  animation: gpinpop 360ms var(--ease-spring) both;
+}
+.trip-pin-n {
+  width: 28px; height: 28px; background: var(--pin); border: 2.5px solid #0a0c0d;
+  font: 700 12.5px var(--font-jetbrains), monospace; color: #0a0c0d;
+}
+.trip-pin-ghost { width: 14px; height: 14px; background: #0a0c0d; border: 2.4px solid var(--pin); }
+.trip-pin[data-hot] > span { scale: 1.3; }
+/* MapLibre's attribution, toned down to the Trip Planner palette. */
+.maplibregl-ctrl-attrib { background: rgba(14,17,18,.8) !important; color: #5f6b68; font-size: 10px; }
+.maplibregl-ctrl-attrib a { color: #7a8683; }
+.maplibregl-ctrl-attrib-button { filter: invert(.75); }

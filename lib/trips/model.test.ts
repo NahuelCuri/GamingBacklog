@@ -14,10 +14,15 @@ const seeded = () => {
 };
 
 describe("trip model vs legacy", () => {
-  it("seeds the same example trip", () => {
+  it("seeds the legacy example trip, priced in dollars and with coordinates", () => {
     const L = legacyPlanner();
     const s = plain(L.seed());
-    expect(seedTrips()).toEqual({ trips: s.trips, cards: s.cards });
+    const ours = seedTrips();
+    expect(ours.trips).toEqual(s.trips);
+    // legacy's yen amounts, converted at roughly ¥150 = $1
+    const usd: Record<string, number> = { c1: 25, c2: 8, c3: 3, c5: 89 };
+    expect(ours.cards.map(({ loc, ...c }) => c)).toEqual(s.cards.map((c: { id: string; price: number | null }) => ({ ...c, price: usd[c.id] ?? c.price })));
+    expect(ours.cards.filter((c) => c.loc).map((c) => c.id)).toEqual(["c1", "c2", "c3", "c6", "c7", "c8", "c9"]);
   });
 
   it.each([

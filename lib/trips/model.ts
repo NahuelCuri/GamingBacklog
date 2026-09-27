@@ -119,18 +119,26 @@ export const tripCards = (cards: TripCard[], tripId: string | null) => cards.fil
 export function budget(t: Trip, cards: TripCard[]) {
   const spent = cards.reduce((a, c) => a + (Number(c.price) || 0), 0);
   const raw = t.budget ? (spent / Number(t.budget)) * 100 : 0;
+  const over = raw > 100 ? spent - Number(t.budget) : 0;
   return {
     spent,
     pct: Math.min(100, raw) + "%",
     color: raw > 100 ? "#d98a8a" : TRIP_ACCENT,
     spentDisp: money(spent, t.currency),
     budgetDisp: money(t.budget, t.currency),
+    /** How far past the budget, formatted; "" while within it. */
+    overDisp: over > 0 ? money(over, t.currency) : "",
   };
 }
 
 // ---------------------------------------------------------------- seed
 
-/** The example trip legacy writes to an empty shared space (fixed ids, so two first loads dedupe). */
+/**
+ * The example trip written to an empty shared space (fixed ids, so two first
+ * loads dedupe). Same as legacy except that card prices are in US dollars
+ * (legacy used yen amounts under the trip's "$", so the example looked 4x over
+ * budget) and the places carry coordinates so the Map tab has something to show.
+ */
 export function seedTrips(): TripData {
   const trips: Trip[] = [
     {
@@ -147,15 +155,15 @@ export function seedTrips(): TripData {
       o,
     ) as TripCard;
   const cards = [
-    c({ id: "c1", title: "teamLab Planets", type: "activity", status: "confirmed", price: 3800, region: "Toyosu, Tokyo", startTime: "09:30", duration: "2h", priority: "must", day: 1, tags: ["book ahead"], source: "https://example.com" }),
-    c({ id: "c2", title: "Ichiran Ramen — Shibuya", type: "food", status: "researched", price: 1200, region: "Shibuya, Tokyo", startTime: "12:30", duration: "1h", priority: "nice", day: 1, tags: ["solo booths"] }),
-    c({ id: "c3", title: "Shinjuku Gyoen — sakura", type: "place", status: "confirmed", price: 500, region: "Shinjuku, Tokyo", startTime: "09:00", duration: "half day", priority: "must", day: 2, tags: ["picnic"] }),
+    c({ id: "c1", title: "teamLab Planets", type: "activity", status: "confirmed", price: 25, region: "Toyosu, Tokyo", startTime: "09:30", duration: "2h", priority: "must", day: 1, tags: ["book ahead"], source: "https://example.com", loc: { lat: 35.649, lng: 139.789 } }),
+    c({ id: "c2", title: "Ichiran Ramen — Shibuya", type: "food", status: "researched", price: 8, region: "Shibuya, Tokyo", startTime: "12:30", duration: "1h", priority: "nice", day: 1, tags: ["solo booths"], loc: { lat: 35.66, lng: 139.7 } }),
+    c({ id: "c3", title: "Shinjuku Gyoen — sakura", type: "place", status: "confirmed", price: 3, region: "Shinjuku, Tokyo", startTime: "09:00", duration: "half day", priority: "must", day: 2, tags: ["picnic"], loc: { lat: 35.685, lng: 139.71 } }),
     c({ id: "c4", title: "Golden Gai bar crawl", type: "activity", status: "idea", region: "Shinjuku, Tokyo", duration: "evening", priority: "nice", day: 2 }),
-    c({ id: "c5", title: "Shinkansen to Kyoto", type: "transport", status: "booked", price: 13320, region: "Tokyo → Kyoto", duration: "2h15", priority: "must", day: 3, tags: ["reserved seat"] }),
-    c({ id: "c6", title: "Fushimi Inari at dawn", type: "place", status: "confirmed", region: "Fushimi, Kyoto", duration: "3h", priority: "must", day: 3, tags: ["go early"] }),
-    c({ id: "c7", title: "Nishiki Market crawl", type: "food", status: "idea", region: "Nakagyo, Kyoto", duration: "2h", priority: "nice" }),
-    c({ id: "c8", title: "Arashiyama bamboo grove", type: "place", status: "researched", region: "Arashiyama, Kyoto", duration: "half day", priority: "nice" }),
-    c({ id: "c9", title: "Osaka Dotonbori street food", type: "food", status: "idea", region: "Namba, Osaka", priority: "must", tags: ["takoyaki"] }),
+    c({ id: "c5", title: "Shinkansen to Kyoto", type: "transport", status: "booked", price: 89, region: "Tokyo → Kyoto", duration: "2h15", priority: "must", day: 3, tags: ["reserved seat"] }),
+    c({ id: "c6", title: "Fushimi Inari at dawn", type: "place", status: "confirmed", region: "Fushimi, Kyoto", duration: "3h", priority: "must", day: 3, tags: ["go early"], loc: { lat: 34.967, lng: 135.772 } }),
+    c({ id: "c7", title: "Nishiki Market crawl", type: "food", status: "idea", region: "Nakagyo, Kyoto", duration: "2h", priority: "nice", loc: { lat: 35.005, lng: 135.765 } }),
+    c({ id: "c8", title: "Arashiyama bamboo grove", type: "place", status: "researched", region: "Arashiyama, Kyoto", duration: "half day", priority: "nice", loc: { lat: 35.017, lng: 135.671 } }),
+    c({ id: "c9", title: "Osaka Dotonbori street food", type: "food", status: "idea", region: "Namba, Osaka", priority: "must", tags: ["takoyaki"], loc: { lat: 34.669, lng: 135.501 } }),
     c({ id: "c10", title: "Watch: Kyoto in 4 min", type: "watch", status: "idea", source: "https://youtube.com", priority: "backup", notes: "Sent by Lu — scout temples" }),
     c({ id: "c11", title: "Pocket wifi vs eSIM?", type: "research", status: "idea", priority: "nice", notes: "Compare Ubigi eSIM vs airport wifi rental" }),
     c({ id: "c12", title: "Buy JR Pass before flying", type: "todo", status: "idea", priority: "must" }),
@@ -414,14 +422,4 @@ export function mapBBox(list: { loc: LatLng }[]): BBox {
   const cy = (n + s) / 2, cx = (e + w) / 2;
   const dy = Math.max(n - s, 0.014) * 1.35, dx = Math.max(e - w, 0.014) * 1.35;
   return { s: cy - dy / 2, n: cy + dy / 2, w: cx - dx / 2, e: cx + dx / 2 };
-}
-
-export const mercY = (lat: number) => (180 / Math.PI) * Math.log(Math.tan(Math.PI / 4 + (Math.max(-85, Math.min(85, lat)) * Math.PI) / 360));
-
-/** lon/lat → px for a W×H view that fits `b`. */
-export function projector(b: BBox, W: number, H: number) {
-  const y0 = mercY(b.n), y1 = mercY(b.s);
-  const sc = Math.min(W / (b.e - b.w), H / (y0 - y1));
-  const ox = W / 2 - ((b.w + b.e) / 2) * sc, oy = H / 2 + ((y0 + y1) / 2) * sc;
-  return { x: (lon: number) => lon * sc + ox, y: (lat: number) => oy - mercY(lat) * sc };
 }

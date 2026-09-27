@@ -4,6 +4,7 @@
 // Cards / Itinerary / Map tabs, card and trip editors, compare mode and a
 // currency converter. Ported from legacy-src/Trip Planner.dc.html.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { CloseIcon } from "@/components/icons";
 import { LibraryFab } from "@/components/collection/LibraryFab";
 import { TRIPS_MOBILE_QUERY, useIsMobile } from "@/lib/hooks/useIsMobile";
 import { useAuth } from "@/lib/auth";
@@ -254,12 +255,12 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
 
   return (
     <Ctx.Provider value={ctx}>
-      <div style={{ minHeight: "100dvh", background: T.bg, color: T.text }}>
+      <div className="tp-root" style={{ minHeight: "100dvh", background: T.bg, color: T.text }}>
         <a href="#tp-main" className="tp-skip">
           Skip to content
         </a>
         {data.syncError && (
-          <div role="alert" style={{ position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 450, display: "flex", gap: 12, alignItems: "center", background: "#2a1c1c", border: "1px solid #3a2828", color: "#f0c4c4", borderRadius: 10, padding: "9px 14px", fontSize: 13 }}>
+          <div role="alert" style={{ position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: "var(--z-toast)", display: "flex", gap: 12, alignItems: "center", background: "#2a1c1c", border: "1px solid #3a2828", color: "#f0c4c4", borderRadius: 10, padding: "9px 14px", fontSize: 13 }}>
             <span>Some changes were not saved: {data.syncError}. Showing what is stored now.</span>
             <button type="button" onClick={dismissSyncError} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", textDecoration: "underline", font: "inherit" }}>
               Dismiss
@@ -298,7 +299,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
         </div>
 
         {undo && (
-          <div key={undo.id} role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", overflow: "hidden", animation: "gtoast 260ms var(--ease-out) both", bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)", zIndex: 400, display: "flex", alignItems: "center", gap: 14, background: "#171b1d", border: `1px solid ${T.border2}`, borderRadius: 12, padding: "11px 14px", boxShadow: "0 14px 40px rgba(0,0,0,.55)" }}>
+          <div key={undo.id} role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", overflow: "hidden", animation: "gtoast 260ms var(--ease-out) both", bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)", zIndex: "var(--z-toast)", display: "flex", alignItems: "center", gap: 14, background: "#171b1d", border: `1px solid ${T.border2}`, borderRadius: 12, padding: "11px 14px", boxShadow: "0 14px 40px rgba(0,0,0,.55)" }}>
             <span aria-hidden style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 2, background: T.accent, opacity: 0.55, transformOrigin: "left", animation: "gdrain 8s linear both" }} />
             <span style={{ fontSize: 13, color: T.text2 }}>{undo.label}</span>
             <button
@@ -319,9 +320,9 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
                 clearTimeout(undoTimer.current);
                 setUndo(null);
               }}
-              style={{ font: "inherit", background: "none", border: "none", color: T.dim, fontSize: 15, lineHeight: 1, cursor: "pointer" }}
+              style={{ font: "inherit", background: "none", border: "none", color: T.dim, lineHeight: 1, cursor: "pointer", display: "flex", padding: 2 }}
             >
-              ✕
+              <CloseIcon size={13} />
             </button>
           </div>
         )}

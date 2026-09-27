@@ -28,7 +28,8 @@ describe("argentina provinces", () => {
     const features = [prov("Tierra del Fuego"), MALVINAS, prov("Mendoza"), prov("Salta")];
     expect(placedTotals(features, [stat("Tierra del Fuego", 3), stat("Mendoza", 2), stat("Chile", 9)])).toEqual({ provinces: 2, items: 5 });
     expect(provinceLabel(MALVINAS)).toBe("Islas Malvinas");
-    expect(provinceLabel(prov("Rio Negro, Argentina"))).toBe("Rio Negro");
+    expect(provinceLabel(prov("Rio Negro, Argentina"))).toBe("Río Negro");
+    expect(provinceLabel(prov("Tucuman"))).toBe("Tucumán");
   });
 
   it("zooms to frame a province at 70% of the view, between 1x and 10x", () => {

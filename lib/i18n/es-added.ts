@@ -7,4 +7,19 @@ export const ES_ADDED: Readonly<Record<string, string>> = {
   "Pick up where you left off.": "Retoma donde lo dejaste.",
   Continue: "Continuar",
   "Open to load your numbers": "Ábrela para ver tus números",
+  // collection header menu and import confirmation
+  "More actions": "Más acciones",
+  Settings: "Ajustes",
+  "Cards view": "Vista de tarjetas",
+  "A backup of the current data downloads first.": "Antes se descarga una copia de los datos actuales.",
+  "This library is shared: everyone's copy is replaced.": "Esta biblioteca es compartida: se reemplaza la copia de todos.",
+  Replace: "Reemplazar",
+  // 404
+  "This page doesn't exist.": "Esta página no existe.",
+  "The link may be old, or the library was renamed. Your data is safe.": "El enlace puede ser viejo o la biblioteca cambió de nombre. Tus datos están a salvo.",
+  "Back to your libraries": "Volver a tus bibliotecas",
+  // wines map
+  "Reset view": "Restablecer vista",
+  province: "provincia",
+  provinces: "provincias",
 };

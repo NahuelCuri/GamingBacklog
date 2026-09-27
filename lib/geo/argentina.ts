@@ -44,7 +44,17 @@ export const norm = (s: unknown) =>
     .trim();
 
 export const provinceName = (f: Province) => f.properties?.provincia || "";
-export const provinceLabel = (f: Province) => (f.malvinas ? "Islas Malvinas" : provinceName(f).split(",")[0]);
+
+/** The dataset spells names without accents; these are the ones shown on screen. */
+const DISPLAY: Record<string, string> = {
+  Cordoba: "Córdoba", "Entre Rios": "Entre Ríos", Neuquen: "Neuquén", "Rio Negro": "Río Negro", Tucuman: "Tucumán",
+};
+
+export const provinceLabel = (f: Province) => {
+  if (f.malvinas) return "Islas Malvinas";
+  const name = provinceName(f).split(",")[0];
+  return DISPLAY[name] ?? name;
+};
 
 /** Returns the stat a province matches, if any. */
 export function provinceMatcher(stats: GeoStat[]) {
