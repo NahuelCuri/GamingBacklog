@@ -423,13 +423,3 @@ export function mapBBox(list: { loc: LatLng }[]): BBox {
   const dy = Math.max(n - s, 0.014) * 1.35, dx = Math.max(e - w, 0.014) * 1.35;
   return { s: cy - dy / 2, n: cy + dy / 2, w: cx - dx / 2, e: cx + dx / 2 };
 }
-
-export const mercY = (lat: number) => (180 / Math.PI) * Math.log(Math.tan(Math.PI / 4 + (Math.max(-85, Math.min(85, lat)) * Math.PI) / 360));
-
-/** lon/lat → px for a W×H view that fits `b`. */
-export function projector(b: BBox, W: number, H: number) {
-  const y0 = mercY(b.n), y1 = mercY(b.s);
-  const sc = Math.min(W / (b.e - b.w), H / (y0 - y1));
-  const ox = W / 2 - ((b.w + b.e) / 2) * sc, oy = H / 2 + ((y0 + y1) / 2) * sc;
-  return { x: (lon: number) => lon * sc + ox, y: (lat: number) => oy - mercY(lat) * sc };
-}

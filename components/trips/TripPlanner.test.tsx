@@ -6,6 +6,16 @@ import { memoryTripStore } from "@/lib/trips/store";
 import { TripPlanner } from "./TripPlanner";
 
 vi.mock("@/components/shell/ShellProvider", () => ({ useShell: () => ({ libs: ["games"], navigate: vi.fn(), openSettings: vi.fn() }) }));
+// jsdom has no WebGL: stand in for the MapLibre canvas with one element per pin.
+vi.mock("./TripMapCanvas", () => ({
+  default: ({ scene, frameKey }: { scene: { pins: { id: string; n: number }[] }; frameKey: string }) => (
+    <div data-testid="trip-map" data-frame={frameKey}>
+      {scene.pins.map((p) => (
+        <span key={p.id} className="pin" data-n={p.n} />
+      ))}
+    </div>
+  ),
+}));
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: { id: "u1", email: "me@example.com" }, signOut: vi.fn() }) }));
 
 let errors: string[] = [];
@@ -153,7 +163,8 @@ describe("TripPlanner", () => {
     expect(errors).toEqual([]);
   });
 
-  it("map tab draws located stops and falls back when streets fail", async () => {
+  it("map tab draws located stops, frames a day, and drops the old street cache", async () => {
+    localStorage.setItem("trip-map-osm:1,2,3,4", "{}");
     const data = seedTrips();
     // Start from no coordinates (the seed has some) and place exactly four.
     data.cards.forEach((c) => (c.loc = null));
@@ -162,12 +173,15 @@ describe("TripPlanner", () => {
     await setup(data);
     openJapan();
     fireEvent.click(screen.getByRole("tab", { name: "Map · 4" }));
-    const pins = () => screen.getByTestId("trip-map").querySelectorAll("g.pin");
+    const map = await screen.findByTestId("trip-map"); // the canvas loads lazily
+    const pins = () => screen.getByTestId("trip-map").querySelectorAll(".pin");
     expect(pins()).toHaveLength(4);
     expect(screen.getByText("3 numbered · 4 of 12 cards located")).toBeTruthy();
-    await screen.findByText(/Street data unavailable/);
+    expect(localStorage.getItem("trip-map-osm:1,2,3,4")).toBeNull();
+    const allFrame = map.dataset.frame;
     fireEvent.click(screen.getByRole("button", { name: "Day 2" }));
     expect(pins()).toHaveLength(1);
+    expect(screen.getByTestId("trip-map").dataset.frame).not.toBe(allFrame);
     fireEvent.click(screen.getByRole("button", { name: "Open Shinjuku Gyoen — sakura" }));
     expect(screen.getByRole("dialog", { name: "Shinjuku Gyoen — sakura" })).toBeTruthy();
     expect(location.search).toContain("card=c3");
