@@ -8,15 +8,21 @@ import { scaleSqrt } from "d3-scale";
 import { select, type Selection } from "d3-selection";
 import "d3-transition";
 import { zoom as d3zoom, zoomIdentity, type ZoomBehavior } from "d3-zoom";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CloseIcon } from "@/components/icons";
+import { CountUp } from "@/components/ui/CountUp";
 import { closeButton } from "@/components/ui/Pills";
 import { buildGeo } from "@/lib/collection";
 import { AR_BOX, loadProvinces, placedTotals, provinceLabel, provinceMatcher, zoomToBounds, type Province } from "@/lib/geo/argentina";
+import { reducedMotion } from "@/lib/motion";
 import { useCollectionCtx } from "./CollectionContext";
 
 interface MapHandle {
   svg: Selection<SVGSVGElement, unknown, null, undefined>;
+  paths: Selection<SVGPathElement, Province, SVGGElement, unknown>;
+  /** Resting fill opacity and stroke width, given the current selection. */
+  rest(f: Province): number;
+  restStroke(f: Province): number;
   zoom: ZoomBehavior<SVGSVGElement, unknown>;
   path: GeoPath;
   W: number;
@@ -39,6 +45,8 @@ export function GeoMapView() {
   const hintRef = useRef<HTMLDivElement>(null);
   const resetRef = useRef<HTMLButtonElement>(null);
   const handle = useRef<MapHandle | null>(null);
+  /** The provinces fill in once per visit, not on every redraw. */
+  const entered = useRef(false);
   const selRef = useRef(selRegion);
   useEffect(() => {
     selRef.current = selRegion;
@@ -71,19 +79,33 @@ export function GeoMapView() {
 
   const hit = useMemo(() => provinceMatcher(geo.stats), [geo.stats]);
   const selected = selRegion ? (geo.stats.find((s) => s.region === selRegion) ?? null) : null;
+
+  // Selecting or clearing a province: ease the others back or forward.
+  useEffect(() => {
+    const h = handle.current;
+    if (!h) return;
+    h.paths.interrupt("sel");
+    if (reducedMotion()) h.paths.attr("fill-opacity", h.rest).attr("stroke-width", h.restStroke);
+    else h.paths.transition("sel").duration(320).attr("fill-opacity", h.rest).attr("stroke-width", h.restStroke);
+  }, [selRegion]);
   const totals = useMemo(() => (features ? placedTotals(features, geo.stats) : { provinces: 0, items: 0 }), [features, geo.stats]);
 
   const zoomTo = useCallback((f: Province) => {
     const h = handle.current;
     if (!h) return;
     const t = zoomToBounds(h.path.bounds(f), h.W, h.H);
-    h.svg.transition().duration(750).call(h.zoom.transform, zoomIdentity.translate(t.x, t.y).scale(t.k));
+    const to = zoomIdentity.translate(t.x, t.y).scale(t.k);
+    // d3 transitions ignore the CSS reduced-motion rule: jump straight there instead.
+    if (reducedMotion()) h.svg.call(h.zoom.transform, to);
+    else h.svg.transition().duration(750).call(h.zoom.transform, to);
   }, []);
 
   const reset = useCallback(() => {
     setSelRegion(null);
     const h = handle.current;
-    if (h) h.svg.transition().duration(600).call(h.zoom.transform, zoomIdentity);
+    if (!h) return;
+    if (reducedMotion()) h.svg.call(h.zoom.transform, zoomIdentity);
+    else h.svg.transition().duration(600).call(h.zoom.transform, zoomIdentity);
   }, []);
 
   useEffect(() => {
@@ -99,6 +121,15 @@ export function GeoMapView() {
     const pOpa = (f: Province) => {
       const s = hit(f);
       return s ? opa(s.count) : 1;
+    };
+    // With a province open, the others step back and it gets a stronger edge.
+    const rest = (f: Province) => {
+      const sel = selRef.current;
+      return sel && hit(f)?.region !== sel ? pOpa(f) * 0.35 : pOpa(f);
+    };
+    const restStroke = (f: Province) => {
+      const s = hit(f);
+      return s ? (s.region === selRef.current ? 2.2 : 1.1) : 0.55;
     };
 
     const tip = tipRef.current!;
@@ -122,15 +153,16 @@ export function GeoMapView() {
       .style("display", "block");
     const g = svg.append("g").style("will-change", "transform");
 
-    g.selectAll<SVGPathElement, Province>("path.prov")
+    const paths = g
+      .selectAll<SVGPathElement, Province>("path.prov")
       .data(features)
       .join("path")
       .attr("class", "prov")
       .attr("d", (f) => path(f))
       .attr("fill", (f) => (hit(f) ? accent : "var(--wa)"))
-      .attr("fill-opacity", pOpa)
+      .attr("fill-opacity", rest)
       .attr("stroke", (f) => (hit(f) ? accent : "var(--wj)"))
-      .attr("stroke-width", (f) => (hit(f) ? 1.1 : 0.55))
+      .attr("stroke-width", restStroke)
       .attr("stroke-linejoin", "round")
       .attr("vector-effect", "non-scaling-stroke")
       .style("cursor", (f) => (hit(f) ? "pointer" : "default"))
@@ -143,7 +175,7 @@ export function GeoMapView() {
       })
       .on("mouseleave", function (_e, f) {
         hideTip();
-        select(this).attr("fill-opacity", pOpa(f));
+        select(this).attr("fill-opacity", rest(f));
       })
       .on("click", (_e, f) => {
         const s = hit(f);
@@ -160,7 +192,7 @@ export function GeoMapView() {
       const cur = largest.get(provinceLabel(f));
       if (!cur || path.area(f) > path.area(cur)) largest.set(provinceLabel(f), f);
     }
-    const labels = g.append("g").style("opacity", 0).style("pointer-events", "none");
+    const labels = g.append("g").style("opacity", 0).style("pointer-events", "none").style("transition", "opacity .22s ease");
     labels
       .selectAll<SVGTextElement, Province>("text")
       .data([...largest.values()])
@@ -205,7 +237,30 @@ export function GeoMapView() {
     svg.call(zoom).on("dblclick.zoom", null);
     svg.on("dblclick", reset);
 
-    handle.current = { svg, zoom, path, W, H };
+    handle.current = { svg, paths, rest, restStroke, zoom, path, W, H };
+
+    // First draw: the outline fades in, then the provinces with items fill in,
+    // most items first, so the eye lands where the collection is.
+    if (!entered.current && !reducedMotion()) {
+      const order = features
+        .map((f) => hit(f)?.count ?? 0)
+        .filter(Boolean)
+        .sort((a, b) => b - a);
+      paths
+        .style("transition", null)
+        .attr("fill-opacity", 0)
+        .transition()
+        .delay((f) => {
+          const c = hit(f)?.count;
+          return c ? 180 + Math.min(order.indexOf(c), 14) * 55 : 0;
+        })
+        .duration((f) => (hit(f) ? 520 : 320))
+        .attr("fill-opacity", rest)
+        .on("end", function () {
+          select(this).style("transition", "fill-opacity .15s ease");
+        });
+    }
+    entered.current = true;
 
     // Keep a selected province framed after a redraw.
     const sel = selRef.current;
@@ -282,10 +337,10 @@ export function GeoMapView() {
             style={{ width: "min(300px, 80%)", background: "color-mix(in srgb, var(--card) 95%, transparent)", animation: "gslide .22s ease" }}
           >
             <div className="mb-[15px] flex items-start justify-between gap-2.5">
-              <div>
+              <div key={selected.region} className="g-rise">
                 <div className="text-[16.5px] font-semibold tracking-[-.01em] text-text">{selected.region}</div>
                 <div className="mt-1 font-mono text-xs text-accent">
-                  {selected.count} {geo.noun}
+                  <CountUp value={selected.count} duration={500} /> {geo.noun}
                 </div>
               </div>
               <button type="button" onClick={reset} aria-label="Clear region selection" className={closeButton + " -mt-1 -mr-2"}>
@@ -293,11 +348,18 @@ export function GeoMapView() {
               </button>
             </div>
             <div className="mb-1.5 h-px bg-we" />
-            {selected.items.map((it, i) => (
-              <div key={i} className="border-b border-wc py-[9px] text-[13px] text-text2 [text-wrap:pretty]">
-                {it}
-              </div>
-            ))}
+            {/* Keyed on the region so switching provinces staggers the new list in. */}
+            <div key={selected.region}>
+              {selected.items.map((it, i) => (
+                <div
+                  key={i}
+                  className={"border-b border-wc py-[9px] text-[13px] text-text2 [text-wrap:pretty]" + (i < 14 ? " g-rise" : "")}
+                  style={{ "--i": 1 + i / 2 } as CSSProperties}
+                >
+                  {it}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
