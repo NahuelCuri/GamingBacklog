@@ -2,6 +2,7 @@
 
 // Currency quick-convert, a floating panel above the library switcher.
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { CloseIcon, RefreshIcon, SwapVerticalIcon } from "@/components/icons";
 import { ccy, fetchFx, nfx, rateLine, readFxPref, saveFxPref, searchCcy } from "@/lib/trips/fx";
 import { T } from "./styles";
 
@@ -112,11 +113,11 @@ export function FxPanel({ onClose }: { onClose(): void }) {
   const big: CSSProperties = { flex: 1, minWidth: 0, borderRadius: 9, padding: "9px 11px", fontSize: 16, fontWeight: 700, fontFamily: T.mono };
 
   return (
-    <div role="region" aria-label="Currency converter" style={{ position: "fixed", right: "max(env(safe-area-inset-right, 0px), 18px)", bottom: "calc(env(safe-area-inset-bottom, 0px) + 86px)", zIndex: 320, width: "min(calc(100vw - 36px), 320px)", background: T.card, border: `1px solid ${T.border2}`, borderRadius: 16, boxShadow: "0 18px 50px rgba(0,0,0,.55)", animation: "compBtnIn .22s cubic-bezier(.22,1,.36,1)", transformOrigin: "bottom right" }}>
+    <div role="region" aria-label="Currency converter" style={{ position: "fixed", right: "max(env(safe-area-inset-right, 0px), 18px)", bottom: "calc(env(safe-area-inset-bottom, 0px) + 86px)", zIndex: "var(--z-panel)", width: "min(calc(100vw - 36px), 320px)", background: T.card, border: `1px solid ${T.border2}`, borderRadius: 16, boxShadow: "0 18px 50px rgba(0,0,0,.55)", animation: "compBtnIn .22s cubic-bezier(.22,1,.36,1)", transformOrigin: "bottom right" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: `1px solid ${T.line}` }}>
         <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: ".09em", textTransform: "uppercase", color: "#7f8c89" }}>Convert</div>
-        <button type="button" onClick={onClose} title="Close" aria-label="Close converter" className="hover:!text-[#e9edee]" style={{ cursor: "pointer", width: 24, height: 24, border: "none", background: "none", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", color: T.muted2, fontSize: 15 }}>
-          ✕
+        <button type="button" onClick={onClose} title="Close" aria-label="Close converter" className="hover:!text-[#e9edee]" style={{ cursor: "pointer", width: 24, height: 24, border: "none", background: "none", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", color: T.muted2 }}>
+          <CloseIcon size={14} />
         </button>
       </div>
       <div style={{ padding: 14 }}>
@@ -137,7 +138,7 @@ export function FxPanel({ onClose }: { onClose(): void }) {
             className="hover:!border-[#5fb8b0]"
             style={{ transform: `rotate(${turn}deg)`, cursor: "pointer", flex: "0 0 auto", width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg, border: `1px solid ${T.border2}`, color: T.accent, fontSize: 15, transition: "border-color .15s, transform 260ms var(--ease-out)" }}
           >
-            ⇅
+            <SwapVerticalIcon size={15} />
           </button>
           <div style={{ flex: 1, height: 1, background: "#222829" }} />
         </div>
@@ -158,7 +159,7 @@ export function FxPanel({ onClose }: { onClose(): void }) {
             )}
           </div>
           <button type="button" onClick={() => load(pair.from, pair.to)} title="Refresh rate" aria-label="Refresh exchange rate" className="hover:!border-[#5fb8b0] hover:!text-[#e9edee]" style={{ cursor: "pointer", flex: "0 0 auto", color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 9px", fontSize: 13 }}>
-            ↻
+            <RefreshIcon size={14} />
           </button>
         </div>
       </div>

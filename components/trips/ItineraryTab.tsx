@@ -6,9 +6,9 @@
 // the lanes sit on a canvas that pans (drag or scroll) and zooms (Ctrl+scroll
 // or the buttons).
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
+import { MinusIcon, PlusIcon, StarIcon, WarningCircleIcon } from "@/components/icons";
 import { cardAriaLabel, dayHint, money, quickAddCard, setCardDay, statusMeta, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
 import { IMPORTANT_EDGE, T, filterPill, frame, importantCard, input, statusDot } from "./styles";
-import { WarningCircleIcon } from "@/components/icons";
 import { useTripCtx } from "./TripPlanner";
 import { Tick } from "@/components/ui/Tick";
 import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
@@ -296,15 +296,15 @@ export function ItineraryTab() {
         }
       >
         {!mob && (
-          <div onPointerDown={(e) => e.stopPropagation()} style={{ position: "absolute", top: 12, right: 14, zIndex: 30, display: "flex", alignItems: "center", gap: 2, background: "rgba(14,17,18,.92)", border: "1px solid #232a2b", borderRadius: 10, padding: 4, backdropFilter: "blur(6px)" }}>
+          <div onPointerDown={(e) => e.stopPropagation()} style={{ position: "absolute", bottom: 14, left: 14, zIndex: 30, display: "flex", alignItems: "center", gap: 2, background: "rgba(14,17,18,.92)", border: "1px solid #232a2b", borderRadius: 10, padding: 4, backdropFilter: "blur(6px)" }}>
             <button type="button" aria-label="Zoom out" onClick={() => setView((v) => ({ ...v, zoom: clampZoom(v.zoom - 0.15) }))} style={zoomBtn}>
-              −
+              <MinusIcon size={15} />
             </button>
             <button type="button" aria-label="Reset zoom" onClick={() => setView({ zoom: 1, x: 0, y: 0 })} style={{ cursor: "pointer", background: "none", border: "none", fontFamily: T.mono, fontSize: 11, color: T.muted, padding: "0 6px", minWidth: 44, textAlign: "center" }}>
               {Math.round(view.zoom * 100) + "%"}
             </button>
-            <button type="button" aria-label="Zoom in" onClick={() => setView((v) => ({ ...v, zoom: clampZoom(v.zoom + 0.15) }))} style={{ ...zoomBtn, fontSize: 17 }}>
-              +
+            <button type="button" aria-label="Zoom in" onClick={() => setView((v) => ({ ...v, zoom: clampZoom(v.zoom + 0.15) }))} style={zoomBtn}>
+              <PlusIcon size={15} />
             </button>
           </div>
         )}
@@ -362,7 +362,7 @@ export function ItineraryTab() {
       </div>
 
       {drag && dragCard && (
-        <div style={{ position: "fixed", left: drag.x - 18, top: drag.y - 16, pointerEvents: "none", zIndex: 200, animation: "gliftin 140ms var(--ease-out)", background: "#1b2123", ...frame("#3a6b66", "left", typeMeta(dragCard.type).color), borderRadius: 9, padding: "9px 12px", boxShadow: "0 14px 34px rgba(0,0,0,.55)", transform: "rotate(-2deg)", maxWidth: 240 }}>
+        <div style={{ position: "fixed", left: drag.x - 18, top: drag.y - 16, pointerEvents: "none", zIndex: "calc(var(--z-float) + 2)", animation: "gliftin 140ms var(--ease-out)", background: "#1b2123", ...frame("#3a6b66", "left", typeMeta(dragCard.type).color), borderRadius: 9, padding: "9px 12px", boxShadow: "0 14px 34px rgba(0,0,0,.55)", transform: "rotate(-2deg)", maxWidth: 240 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dragCard.title}</div>
         </div>
       )}
@@ -419,7 +419,7 @@ function BoardCard({ card: c, lane, mob, currency, onDown, onKey }: { card: Trip
         <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: tm.color }}>{label}</span>
         {price && <span style={{ fontFamily: T.mono, fontSize: 11, color: T.price }}>{price}</span>}
         {tags.length > 0 && <span style={{ fontSize: 11, color: T.dim2 }}>{tags.slice(0, 2).join(" · ")}</span>}
-        {c.priority === "must" && <span style={{ fontSize: 10, fontWeight: 700, color: T.must }}>★ must</span>}
+        {c.priority === "must" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: T.must }}><StarIcon size={10} />must</span>}
       </div>
     </div>
   );

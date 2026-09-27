@@ -3,14 +3,14 @@
 // Trips home: every trip as a card with its cover, dates, counts, companions
 // and budget bar.
 import type { KeyboardEvent } from "react";
-import { GearIcon } from "@/components/icons";
+import { GearIcon, PencilIcon, PinIcon } from "@/components/icons";
 import { useShell } from "@/components/shell/ShellProvider";
 import { useAuth } from "@/lib/auth";
 import { budget, tripCards, tripRange } from "@/lib/trips/model";
 import { T } from "./styles";
 import { useTripCtx } from "./TripPlanner";
 
-const topChip = { cursor: "pointer", borderRadius: 7, background: "#151816", color: "#8b938d", font: "inherit" } as const;
+const topChip = { cursor: "pointer", borderRadius: 7, background: T.card, color: T.muted, font: "inherit" } as const;
 
 export function TripsHome() {
   const { data, openTrip, newTrip, editTrip } = useTripCtx();
@@ -20,13 +20,13 @@ export function TripsHome() {
 
   return (
     <div>
-      <header style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(12,14,15,.86)", backdropFilter: "blur(10px)", borderBottom: `1px solid ${T.line}` }}>
+      <header style={{ position: "sticky", top: 0, zIndex: "var(--z-sticky)", background: "rgba(12,14,15,.86)", backdropFilter: "blur(10px)", borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1080, margin: "0 auto", display: "flex", alignItems: "center", gap: 18, padding: "14px 28px", flexWrap: "wrap" }}>
           <button type="button" onClick={() => navigate(null)} title="All libraries" aria-label="All libraries" style={{ display: "flex", alignItems: "baseline", gap: 10, cursor: "pointer", background: "none", border: "none", padding: 0, font: "inherit", color: "inherit" }}>
             <span translate="no" style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em", color: T.text }}>
               Backlog
             </span>
-            <span style={{ fontFamily: T.mono, fontSize: 11, color: "#59605b" }}>{"// trips"}</span>
+            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.dim3 }}>{"// trips"}</span>
           </button>
           <div style={{ flex: 1 }} />
           <button
@@ -56,6 +56,21 @@ export function TripsHome() {
             + New trip
           </button>
         </div>
+
+        {n === 0 && (
+          <div style={{ border: `1px dashed ${T.border2}`, borderRadius: 16, padding: "44px 24px", textAlign: "center", animation: "grise 320ms var(--ease-out) both" }}>
+            <div style={{ display: "inline-flex", width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", background: "rgba(95,184,176,.12)", color: T.accent, marginBottom: 14 }}>
+              <PinIcon size={22} />
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 6 }}>No trips yet</div>
+            <div style={{ fontSize: 13, color: T.muted2, maxWidth: 380, margin: "0 auto 18px", textWrap: "pretty" }}>
+              Start one to collect places, food and plans as cards, then drag them into days.
+            </div>
+            <button type="button" onClick={newTrip} style={{ font: "inherit", cursor: "pointer", background: "none", color: T.accent, fontWeight: 600, fontSize: 13, padding: "9px 16px", border: "1px solid #3a6b66", borderRadius: 9 }}>
+              Plan your first trip
+            </button>
+          </div>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 260px), 1fr))", gap: 18 }}>
           {data.trips.map((t, i) => {
@@ -91,9 +106,9 @@ export function TripsHome() {
                       e.stopPropagation();
                       editTrip(t.id);
                     }}
-                    style={{ cursor: "pointer", position: "absolute", top: 10, right: 10, width: 28, height: 28, border: "none", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.34)", color: "#fff", fontSize: 13, backdropFilter: "blur(3px)" }}
+                    style={{ cursor: "pointer", position: "absolute", top: 10, right: 10, width: 28, height: 28, border: "none", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.34)", color: "#fff", backdropFilter: "blur(3px)" }}
                   >
-                    ✎
+                    <PencilIcon size={13} />
                   </button>
                   <div style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.9)", background: "rgba(0,0,0,.28)", padding: "4px 9px", borderRadius: 6, backdropFilter: "blur(3px)" }}>{tripRange(t)}</div>
                 </div>
@@ -120,7 +135,10 @@ export function TripsHome() {
                   <div style={{ marginTop: 12, height: 6, borderRadius: 4, background: T.bg, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: b.pct, background: b.color, transformOrigin: "left", animation: `ggrowx 560ms var(--ease-out) ${delay + 200}ms both` }} />
                   </div>
-                  <div style={{ marginTop: 5, fontFamily: T.mono, fontSize: 11, color: T.dim2, fontVariantNumeric: "tabular-nums" }}>{`${b.spentDisp} of ${b.budgetDisp}`}</div>
+                  <div style={{ marginTop: 5, display: "flex", justifyContent: "space-between", gap: 8, fontFamily: T.mono, fontSize: 11, color: T.dim2, fontVariantNumeric: "tabular-nums" }}>
+                    <span>{`${b.spentDisp} of ${b.budgetDisp}`}</span>
+                    {b.overDisp && <span style={{ color: T.danger }}>{`${b.overDisp} over`}</span>}
+                  </div>
                 </div>
               </div>
             );

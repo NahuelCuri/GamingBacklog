@@ -37,7 +37,7 @@ describe("TripPlanner", () => {
   it("lists trips and opens one; the URL follows", async () => {
     await setup();
     expect(screen.getByText("1 trip")).toBeTruthy();
-    expect(screen.getByText("$18,820 of $4,200")).toBeTruthy();
+    expect(screen.getByText("$125 of $4,200")).toBeTruthy();
     openJapan();
     expect(screen.getByRole("heading", { name: "Japan · Cherry Season" })).toBeTruthy();
     expect(location.search).toBe("?trip=t1&tab=cards");
@@ -123,7 +123,7 @@ describe("TripPlanner", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fushimi Inari at dawn — open" }));
     const drawer = screen.getByRole("region", { name: "Compare cards" });
     expect(within(drawer).getByText("2 cards")).toBeTruthy();
-    expect(within(drawer).getByText("$3800")).toBeTruthy();
+    expect(within(drawer).getByText("$25")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "teamLab Planets — open" })); // toggles off
     expect(within(drawer).getByText("1 card")).toBeTruthy();
     fireEvent.click(within(drawer).getByRole("button", { name: "Done" }));
@@ -155,6 +155,8 @@ describe("TripPlanner", () => {
 
   it("map tab draws located stops and falls back when streets fail", async () => {
     const data = seedTrips();
+    // Start from no coordinates (the seed has some) and place exactly four.
+    data.cards.forEach((c) => (c.loc = null));
     const at = (id: string, lat: number, lng: number) => (data.cards.find((c) => c.id === id)!.loc = { lat, lng });
     at("c1", 35.649, 139.789); at("c2", 35.66, 139.7); at("c3", 35.685, 139.71); at("c7", 35.005, 135.764);
     await setup(data);
@@ -176,7 +178,7 @@ describe("TripPlanner", () => {
     vi.stubGlobal("fetch", async (url: string) => ({ ok: true, json: async () => (expect(url).toContain("/USD"), { rates: { JPY: 150 }, time_last_update_utc: "Fri, 25 Sep 2026 00:00:01 +0000" }) }));
     await setup();
     openJapan();
-    fireEvent.click(screen.getByRole("button", { name: "⇄ Convert" }));
+    fireEvent.click(screen.getByRole("button", { name: "Convert" }));
     const panel = screen.getByRole("region", { name: "Currency converter" });
     await within(panel).findByText("1 USD = 150.0000 JPY");
     expect(within(panel).getByText("15,000.00")).toBeTruthy();

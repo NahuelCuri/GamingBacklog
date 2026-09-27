@@ -9,6 +9,8 @@ import { select, type Selection } from "d3-selection";
 import "d3-transition";
 import { zoom as d3zoom, zoomIdentity, type ZoomBehavior } from "d3-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CloseIcon } from "@/components/icons";
+import { closeButton } from "@/components/ui/Pills";
 import { buildGeo } from "@/lib/collection";
 import { AR_BOX, loadProvinces, placedTotals, provinceLabel, provinceMatcher, zoomToBounds, type Province } from "@/lib/geo/argentina";
 import { useCollectionCtx } from "./CollectionContext";
@@ -151,10 +153,17 @@ export function GeoMapView() {
         zoomTo(f);
       });
 
+    // One label per province: Entre Ríos comes as two features (mainland and
+    // islands), so only the larger one is labelled.
+    const largest = new Map<string, Province>();
+    for (const f of features) {
+      const cur = largest.get(provinceLabel(f));
+      if (!cur || path.area(f) > path.area(cur)) largest.set(provinceLabel(f), f);
+    }
     const labels = g.append("g").style("opacity", 0).style("pointer-events", "none");
     labels
       .selectAll<SVGTextElement, Province>("text")
-      .data(features)
+      .data([...largest.values()])
       .join("text")
       .attr("transform", (f) => {
         const [x, y] = path.centroid(f);
@@ -219,7 +228,7 @@ export function GeoMapView() {
         </div>
         <div className="flex gap-4 font-mono text-xs text-dim">
           <div>
-            <span className="font-semibold text-accent">{totals.provinces}</span> provinces
+            <span className="font-semibold text-accent">{totals.provinces}</span> {totals.provinces === 1 ? "province" : "provinces"}
           </div>
           <div>
             <span className="font-semibold text-text3">{totals.items}</span> {geo.noun}
@@ -251,17 +260,17 @@ export function GeoMapView() {
           ref={resetRef}
           type="button"
           onClick={reset}
-          className="absolute right-3 top-3 z-[7] hidden cursor-pointer rounded-lg border border-wg px-[11px] py-1.5 font-mono text-[11px] text-muted backdrop-blur-[6px]"
+          className="absolute right-3 top-3 z-[7] hidden cursor-pointer rounded-lg border border-wg px-[11px] py-1.5 font-mono text-[11px] text-muted backdrop-blur-[6px] transition-[color,border-color] duration-200 hover:border-wk hover:text-text"
           style={{ background: overlay }}
         >
-          reset view
+          Reset view
         </button>
 
         <div
           ref={tipRef}
           aria-hidden="true"
           className="pointer-events-none absolute left-0 top-0 z-[8] hidden whitespace-nowrap rounded-[9px] border border-wh px-[11px] py-[7px] backdrop-blur-[8px]"
-          style={{ transform: "translate(-50%,-135%)", background: "color-mix(in srgb, var(--surface) 92%, transparent)", boxShadow: "0 8px 24px rgba(0,0,0,.45)" }}
+          style={{ transform: "translate(-50%,-135%)", background: "color-mix(in srgb, var(--surface) 92%, transparent)", boxShadow: "var(--shadow-float)" }}
         >
           <div className="text-[13px] font-semibold text-text" />
           <div className="mt-[2px] font-mono text-[11px]" style={{ color: accent }} />
@@ -279,8 +288,8 @@ export function GeoMapView() {
                   {selected.count} {geo.noun}
                 </div>
               </div>
-              <button type="button" onClick={reset} aria-label="Clear region selection" className="cursor-pointer border-none bg-transparent px-1.5 py-0.5 text-[19px] leading-none text-muted">
-                ×
+              <button type="button" onClick={reset} aria-label="Clear region selection" className={closeButton + " -mt-1 -mr-2"}>
+                <CloseIcon size={14} />
               </button>
             </div>
             <div className="mb-1.5 h-px bg-we" />

@@ -3,7 +3,7 @@
 // Cards tab: search, type filters and a grid of every card in the trip. In
 // compare mode a tap adds or removes the card from the compare drawer.
 import { useRef, useState, type KeyboardEvent } from "react";
-import { WarningCircleIcon } from "@/components/icons";
+import { ClockIcon, PencilIcon, StarIcon, SwapIcon, WarningCircleIcon } from "@/components/icons";
 import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
 import { matchesSearch, matchesType, money, statusMeta, typeFilterOptions, typeMeta } from "@/lib/trips/model";
 import { toggleInCompare } from "./CompareDrawer";
@@ -47,7 +47,8 @@ export function CardsTab() {
               ...(fxOpen ? { background: "rgba(95,184,176,.14)", color: "#7fe3d8", border: "1px solid #3a6b66" } : { background: T.panel, color: T.muted, border: `1px solid ${T.border}` }),
             }}
           >
-            ⇄ Convert
+            <SwapIcon size={15} />
+            Convert
           </button>
           <button type="button" onClick={newCard} style={{ cursor: "pointer", flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, background: T.accent, color: T.onAccent, fontWeight: 700, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 10, boxShadow: "0 4px 16px rgba(95,184,176,.22)" }}>
             + New card
@@ -103,7 +104,7 @@ export function CardsTab() {
                       className="hover:!border-[#5fb8b0] hover:!text-[#e9edee]"
                       style={{ cursor: "pointer", width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", color: T.muted2, background: "#0e1214", border: "1px solid #23292b", fontSize: 12 }}
                     >
-                      ✎
+                      <PencilIcon size={12} />
                     </button>
                     <div style={statusDot(sm.dot, sm.glow)} />
                   </div>
@@ -118,13 +119,18 @@ export function CardsTab() {
                 </div>
                 {c.region && <div style={{ fontSize: 12, color: T.muted2 }}>{c.region}</div>}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  {c.duration && <span style={{ fontSize: 11, color: T.dim }}>{"◷ " + c.duration}</span>}
+                  {c.duration && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: T.dim }}>
+                      <ClockIcon size={11} />
+                      {c.duration}
+                    </span>
+                  )}
                   {tags.length > 0 && <span style={{ fontSize: 11, color: T.dim2 }}>{tags.slice(0, 3).join(" · ")}</span>}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
                   <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, color: c.day != null ? T.accent : T.dim2 }}>{c.day != null ? "Day " + c.day : "Pool"}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {c.priority === "must" && <span style={{ fontSize: 10, fontWeight: 700, color: T.must }}>★ must</span>}
+                    {c.priority === "must" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: T.must }}><StarIcon size={10} />must</span>}
                     {isOpen && <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: T.onAccent, background: T.accent, padding: "2px 6px", borderRadius: 5 }}>Open</span>}
                   </div>
                 </div>

@@ -3,6 +3,7 @@
 // Trip Planner dialogs: read-only card view, card editor, trip editor and the
 // type-the-name delete confirmation.
 import { useRef, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
@@ -12,7 +13,7 @@ import { Fact, StatusPrio, sourceShort } from "./CompareDrawer";
 import { T, btnGhost, btnPrimary, chip, frame, closeX, dialogFoot, dialogHead, dialogPanel, fieldLabel, input, kicker, overlay, tagChip, typeTag } from "./styles";
 import { useTripCtx, type CardModal, type TripModal } from "./TripPlanner";
 
-function Dialog({ label, onClose, children, panel, z }: { label: string; onClose(): void; children: ReactNode; panel?: CSSProperties; z?: number }) {
+function Dialog({ label, onClose, children, panel, z }: { label: string; onClose(): void; children: ReactNode; panel?: CSSProperties; z?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useDialog(ref, onClose);
   return (
@@ -36,7 +37,7 @@ export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; o
       <div style={{ ...dialogHead, padding: "14px 18px" }}>
         <span style={typeTag(tm.color)}>{tm.label}</span>
         <button type="button" onClick={onClose} aria-label="Close" style={closeX}>
-          ✕
+          <CloseIcon size={15} />
         </button>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18 }}>
@@ -54,7 +55,7 @@ export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; o
         </div>
         {d.region && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.muted, marginBottom: 15 }}>
-            <span style={{ color: T.accent }}>◉</span>
+            <PinIcon size={13} className="text-[#5fb8b0]" />
             {d.region}
           </div>
         )}
@@ -71,7 +72,7 @@ export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; o
         <div style={{ fontSize: 13.5, color: T.text2, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{d.notes || "No notes yet."}</div>
         {d.source && (
           <a href={d.source} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, color: T.accent, marginTop: 14 }}>
-            <span>↗</span>
+            <ArrowUpRightIcon size={12} />
             {sourceShort(d.source)}
           </a>
         )}
@@ -132,7 +133,7 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
       <div style={dialogHead}>
         <div style={kicker}>{header}</div>
         <button type="button" onClick={onClose} aria-label="Close" style={closeX}>
-          ✕
+          <CloseIcon size={15} />
         </button>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18 }}>
@@ -214,7 +215,7 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 7 }}>
             {(m.tags || []).map((t, i) => (
               <button key={i} type="button" onClick={() => set({ tags: (m.tags || []).filter((x) => x !== t) })} aria-label={"Remove tag " + t} style={{ ...tagChip, font: "inherit", fontSize: 11.5, cursor: "pointer" }}>
-                {t} <span aria-hidden="true" style={{ color: "#6b8f8a" }}>✕</span>
+                {t} <CloseIcon size={9} className="inline text-[#6b8f8a]" />
               </button>
             ))}
           </div>
@@ -315,7 +316,7 @@ export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete
       <div style={dialogHead}>
         <div style={kicker}>{header}</div>
         <button type="button" onClick={onClose} aria-label="Close" style={closeX}>
-          ✕
+          <CloseIcon size={15} />
         </button>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18 }}>
@@ -366,7 +367,7 @@ export function DeleteTripDialog({ name, onCancel, onConfirm }: { name: string; 
   const [typed, setTyped] = useState("");
   const match = !!name.trim() && typed.trim() === name.trim();
   return (
-    <Dialog label="Delete this trip?" onClose={onCancel} z={90} panel={{ maxWidth: 400, ...frame("#3a2828", "top", "#3a2828", 1), maxHeight: undefined }}>
+    <Dialog label="Delete this trip?" onClose={onCancel} z="var(--z-dialog)" panel={{ maxWidth: 400, ...frame("#3a2828", "top", "#3a2828", 1), maxHeight: undefined }}>
       <div style={{ padding: "20px 20px 16px" }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 8 }}>Delete this trip?</div>
         <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.55, marginBottom: 16 }}>

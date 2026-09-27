@@ -211,6 +211,75 @@ export const PlusIcon = (p: IconProps) => (
   </Glyph>
 );
 
+export const MinusIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M5 12h14" {...stroke} />
+  </Glyph>
+);
+
+export const CaretLeftIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="m14.5 5.5-6.5 6.5 6.5 6.5" {...stroke} />
+  </Glyph>
+);
+
+export const CaretUpIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="m5.5 14.5 6.5-6.5 6.5 6.5" {...stroke} />
+  </Glyph>
+);
+
+export const PencilIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M15.2 5.2a2.1 2.1 0 0 1 3 3L8.6 17.8 4.5 19.5l1.7-4.1z" {...stroke} />
+    <path d="m13.5 7 3.5 3.5" {...stroke} />
+  </Glyph>
+);
+
+/** Two opposed arrows: convert / compare. */
+export const SwapIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M4.5 8.5h14M15 5l3.5 3.5L15 12" {...stroke} />
+    <path d="M19.5 15.5h-14M9 12l-3.5 3.5L9 19" {...stroke} />
+  </Glyph>
+);
+
+export const SwapVerticalIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M8.5 19.5v-14M5 9l3.5-3.5L12 9" {...stroke} />
+    <path d="M15.5 4.5v14M12 15l3.5 3.5L19 15" {...stroke} />
+  </Glyph>
+);
+
+/** Clockwise arrow: refresh. */
+export const RefreshIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M19.5 5.5v4.8h-4.8" {...stroke} />
+    <path d="M18.9 10.3A7.5 7.5 0 1 0 17.7 17" {...stroke} />
+  </Glyph>
+);
+
+export const ClockIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <circle cx="12" cy="12" r="8.5" {...stroke} />
+    <path d="M12 7.5V12l3 2" {...stroke} />
+  </Glyph>
+);
+
+/** Place marker used next to a card's region. */
+export const PinIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M12 21c4.2-4.2 6.3-7.6 6.3-10.5a6.3 6.3 0 0 0-12.6 0C5.7 13.4 7.8 16.8 12 21z" {...stroke} />
+    <circle cx="12" cy="10.4" r="2.3" fill="currentColor" />
+  </Glyph>
+);
+
+export const StarIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="m12 3.8 2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z" fill="currentColor" />
+  </Glyph>
+);
+
 /** Horizontal dots: overflow menu. */
 export const DotsIcon = (p: IconProps) => (
   <Glyph {...p}>

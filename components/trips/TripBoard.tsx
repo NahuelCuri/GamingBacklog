@@ -2,6 +2,7 @@
 
 // One trip: header with dates and budget, then the Cards / Itinerary / Map tabs.
 import { useLayoutEffect, useRef, useState } from "react";
+import { CaretLeftIcon } from "@/components/icons";
 import { CountUp } from "@/components/ui/CountUp";
 import { Tick } from "@/components/ui/Tick";
 import { budget, tripRange } from "@/lib/trips/model";
@@ -39,8 +40,8 @@ export function TripBoard() {
   return (
     <div style={{ height: "100dvh", display: "flex", flexDirection: "column" }}>
       <header style={{ flex: "0 0 auto", padding: mob ? "12px 16px" : "16px 24px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: mob ? 12 : 18, background: T.panel, flexWrap: mob ? "nowrap" : "wrap" }}>
-        <button type="button" onClick={goHome} aria-label="Back to all trips" style={{ cursor: "pointer", flex: "0 0 auto", width: 34, height: 34, borderRadius: 9, background: "#191d1f", border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: T.muted, fontSize: 17 }}>
-          ‹
+        <button type="button" onClick={goHome} aria-label="Back to all trips" style={{ cursor: "pointer", flex: "0 0 auto", width: 34, height: 34, borderRadius: 9, background: "#191d1f", border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: T.muted }}>
+          <CaretLeftIcon size={16} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11, flexWrap: "wrap" }}>
@@ -51,8 +52,8 @@ export function TripBoard() {
         </div>
         {mob ? (
           <div style={{ textAlign: "right", flex: "0 0 auto" }}>
-            <div style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: T.price, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}><CountUp value={b.spentDisp} /></div>
-            <div style={{ fontSize: 10, color: T.dim2, marginTop: 3 }}>of {b.budgetDisp}</div>
+            <div style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: b.overDisp ? T.danger : T.price, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}><CountUp value={b.spentDisp} /></div>
+            <div style={{ fontSize: 10, color: b.overDisp ? T.danger : T.dim2, marginTop: 3 }}>{b.overDisp ? `${b.overDisp} over ${b.budgetDisp}` : `of ${b.budgetDisp}`}</div>
           </div>
         ) : (
           <div style={{ textAlign: "right", flex: "0 0 auto" }}>
@@ -65,6 +66,7 @@ export function TripBoard() {
             <div style={{ marginTop: 5, height: 6, width: 180, borderRadius: 4, background: "#1a1f20", overflow: "hidden", marginLeft: "auto" }}>
               <div style={{ height: "100%", width: b.pct, background: b.color, transformOrigin: "left", animation: "ggrowx 560ms var(--ease-out) 120ms both" }} />
             </div>
+            {b.overDisp && <div style={{ marginTop: 4, fontFamily: T.mono, fontSize: 11, color: T.danger, fontVariantNumeric: "tabular-nums" }}>{`${b.overDisp} over budget`}</div>}
           </div>
         )}
       </header>

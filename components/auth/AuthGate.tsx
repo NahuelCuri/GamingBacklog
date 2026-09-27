@@ -2,14 +2,24 @@
 
 // Renders children only for a signed-in user; otherwise the loading line, the
 // "connect Supabase" notice, or the sign-in card (legacy auth gate).
+import { usePathname } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { libraryFromPath } from "@/components/shell/ShellProvider";
+import { accentButton } from "@/components/ui/Pills";
 import { useAuth, type AuthMode } from "@/lib/auth";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { status } = useAuth();
   if (status === "signedIn") return <>{children}</>;
   if (status === "loading") {
-    return <div className="flex min-h-dvh items-center justify-center font-mono text-[13px] text-dim">loading…</div>;
+    return (
+      <div aria-busy="true" className="flex min-h-dvh flex-col items-center justify-center gap-2">
+        <span translate="no" className="text-lg font-bold tracking-[-.02em] text-text2 motion-safe:animate-pulse">
+          Backlog
+        </span>
+        <span className="font-mono text-xs text-dim">loading…</span>
+      </div>
+    );
   }
   if (status === "unconfigured") return <ConfigMissing />;
   return <AuthCard />;
@@ -35,10 +45,13 @@ const field =
 
 function AuthCard() {
   const { submit } = useAuth();
+  // The kicker names the page being opened: "// books" on /books/, and so on.
+  const lib = libraryFromPath(usePathname());
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const signup = mode === "signup";
 
@@ -47,12 +60,13 @@ function AuthCard() {
     if (busy) return;
     setBusy(true);
     setError("");
+    setNotice("");
     const res = await submit(mode, email, password);
     setBusy(false);
     if (res.error) setError(res.error);
     else if (res.notice) {
       setMode("signin");
-      setError(res.notice);
+      setNotice(res.notice);
     }
   };
 
@@ -61,7 +75,7 @@ function AuthCard() {
       <div className="w-[380px] max-w-full rounded-2xl border border-wf bg-surface px-7 pt-[30px] pb-[26px]">
         <div className="mb-1 flex items-baseline gap-[9px]">
           <span translate="no" className="text-xl font-bold tracking-[-.02em]">Backlog</span>
-          <span className="font-mono text-[11px] text-dim">{"// games"}</span>
+          <span className="font-mono text-[11px] text-dim">{"// " + (lib ?? "libraries")}</span>
         </div>
         <div className="mb-[22px] text-[13px] text-muted">{signup ? "Create an account to start syncing." : "Sign in to your backlog."}</div>
         <form onSubmit={onSubmit} noValidate>
@@ -94,11 +108,16 @@ function AuthCard() {
               {error}
             </div>
           )}
+          {notice && (
+            <div role="status" className="mt-2.5 mb-[2px] text-xs leading-[1.5] text-pretty text-accent">
+              {notice}
+            </div>
+          )}
           <button
             type="submit"
             aria-busy={busy}
-            className="mt-4 w-full cursor-pointer rounded-[10px] bg-accent p-3 text-sm font-bold text-on-accent"
-            style={{ opacity: busy ? 0.6 : 1 }}
+            aria-disabled={busy}
+            className={accentButton + " mt-4 w-full rounded-[10px] p-3 text-sm font-bold"}
           >
             {busy ? "Please wait…" : signup ? "Create account" : "Sign in"}
           </button>
@@ -107,10 +126,11 @@ function AuthCard() {
           {signup ? "Already have an account?" : "New here?"}{" "}
           <button
             type="button"
-            className="cursor-pointer font-semibold text-accent"
+            className="cursor-pointer font-semibold text-accent underline-offset-2 hover:underline"
             onClick={() => {
               setMode(signup ? "signin" : "signup");
               setError("");
+              setNotice("");
             }}
           >
             {signup ? "Sign in" : "Create one"}
