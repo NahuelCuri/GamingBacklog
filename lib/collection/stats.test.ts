@@ -27,6 +27,37 @@ describe("category split (dynamic money donut)", () => {
   });
 });
 
+describe("games spending donut", () => {
+  const cfg = COLLECTIONS.games;
+  const spec = cfg.stats.right.find((w): w is MoneyDonutSpec => w.kind === "moneyDonut")!;
+  const items: Item[] = [
+    // bought in 2025, finished in 2026: counts in 2025
+    { id: "a", platform: "Steam", price: 20, purchaseDate: "2025-11-03", yearCompleted: "2026" },
+    // no purchase date: falls back to the year completed
+    { id: "b", platform: "Steam", price: 10, yearCompleted: "2024" },
+    { id: "c", platform: "Pirated", price: 60, purchaseDate: "2025-02-10" },
+    { id: "d", platform: "GamePass", price: 70, purchaseDate: "2025-06-01" },
+    // neither: only in "All"
+    { id: "e", platform: "Steam", price: 5 },
+  ];
+  const donut = (spendYear: string) => {
+    const w = buildWidget(cfg, items, spec, { accent: "#9ce6b0", spendYear });
+    if (w?.kind !== "moneyDonut") throw new Error("expected a money donut");
+    return w;
+  };
+
+  it("files spending under the purchase year, else the year completed", () => {
+    expect(donut("all").yearOptions.map((o) => o.value)).toEqual(["all", "2025", "2024"]);
+    expect(donut("2025").legend.map((l) => l.amount)).toEqual(["$20", "$60", "$70"]);
+    expect(donut("2024").legend.map((l) => l.amount)).toEqual(["$10", "$0", "$0"]);
+  });
+
+  it("centers on what was paid, not on piracy or Game Pass", () => {
+    expect(donut("all").centerValue).toBe("$35");
+    expect(donut("2025").centerValue).toBe("$20");
+  });
+});
+
 describe("metrics with numbers stored as text", () => {
   it("sums and averages numeric strings instead of concatenating", () => {
     const cfg = COLLECTIONS.games;

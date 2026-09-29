@@ -300,9 +300,11 @@ function dynamicGroups(items: Item[], field: string, pf: string, top: number): M
 
 function moneyDonut(cfg: CollectionConfig, items: Item[], spec: MoneyDonutSpec, ctx: StatsContext): Widget {
   const m = ctx.money ?? usd;
-  const yf = spec.yearFilter, year = ctx.spendYear || "all";
-  const yearsAvail = [...new Set(items.map((g) => g[yf]).filter(Boolean).map(String))].sort().reverse();
-  const scoped = year === "all" ? items : items.filter((g) => String(g[yf]) === year);
+  const yf = spec.yearFilter, fb = spec.yearFallback, year = ctx.spendYear || "all";
+  // With a fallback, the year is the first four characters of whichever field is set (dates or years).
+  const yearOf = (g: Item) => (fb ? String(g[yf] || g[fb] || "").slice(0, 4) : g[yf]);
+  const yearsAvail = [...new Set(items.map(yearOf).filter(Boolean).map(String))].sort().reverse();
+  const scoped = year === "all" ? items : items.filter((g) => String(yearOf(g)) === year);
   const pf = priceOf(cfg);
   let groups = spec.groups || [];
   if (spec.dynamicGroup) {

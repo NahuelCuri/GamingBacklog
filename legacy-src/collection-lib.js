@@ -619,10 +619,11 @@
   }
 
   function moneyDonutWidget(cfg, items, spec, ctx) {
-    const S = SS(), yf = spec.yearFilter, yearVal = ctx.spendYear || 'all';
-    const yearsAvail = [...new Set(items.map(g => g[yf]).filter(Boolean).map(String))].sort().reverse();
+    const S = SS(), yf = spec.yearFilter, fb = spec.yearFallback, yearVal = ctx.spendYear || 'all';
+    const yearOf = g => fb ? String(g[yf] || g[fb] || '').slice(0, 4) : g[yf];
+    const yearsAvail = [...new Set(items.map(yearOf).filter(Boolean).map(String))].sort().reverse();
     const yearOptions = [{ value: 'all', label: 'All' }, ...yearsAvail.map(y => ({ value: y, label: y }))];
-    const scoped = yearVal === 'all' ? items : items.filter(g => String(g[yf]) === yearVal);
+    const scoped = yearVal === 'all' ? items : items.filter(g => String(yearOf(g)) === yearVal);
     const pf = (cfg.fields && cfg.fields.price) || 'price';
     let groups = spec.groups;
     // dynamicGroup: derive the donut slices from whatever distinct values of a

@@ -209,6 +209,8 @@ export interface MoneyDonutSpec extends WidgetBase {
   field?: string;
   groups?: MoneyDonutGroup[];
   yearFilter: string;
+  /** Field to take the year from when `yearFilter` is empty. */
+  yearFallback?: string;
   /** Derive slices from the distinct values of this field instead of `groups`. */
   dynamicGroup?: string;
   type?: string;
