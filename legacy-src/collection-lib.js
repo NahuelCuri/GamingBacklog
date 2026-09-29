@@ -642,7 +642,7 @@
       if (keys.length > top) groups.push({ label: 'Other', match: { field, in: keys.slice(top) }, color: 'oklch(0.62 0.03 200)' });
     }
     const parts = groups.map(gr => ({ value: S.spend(scoped, gr.match || gr.bool || 'all', pf), color: gr.color, label: gr.label }));
-    const total = parts.reduce((a, p) => a + p.value, 0);
+    const total = spec.centerMatch ? S.spend(scoped, spec.centerMatch, pf) : parts.reduce((a, p) => a + p.value, 0);
     return {
       kind: 'moneyDonut', isMoneyDonut: true, title: spec.title,
       donutStyle: S.donutFromParts(parts.map(p => ({ value: p.value, color: p.color }))),

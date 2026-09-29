@@ -52,7 +52,7 @@
     var pf = priceField || 'price';
     return items
       .filter(function (x) { return x[pf] != null && matchSel(x, sel); })
-      .reduce(function (a, b) { return a + Number(b[pf]); }, 0);
+      .reduce(function (a, b) { return a + (Number(b[pf]) || 0); }, 0);
   }
 
   // conic-gradient string for the bought/pirated/gamepass split.

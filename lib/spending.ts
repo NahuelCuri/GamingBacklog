@@ -54,7 +54,7 @@ export function matchSel(item: Item, sel: Selector): boolean {
 export function spend(items: Item[], sel: Selector, priceField = "price"): number {
   return items
     .filter((x) => x[priceField] != null && matchSel(x, sel))
-    .reduce((a, b) => a + Number(b[priceField]), 0);
+    .reduce((a, b) => a + (Number(b[priceField]) || 0), 0);
 }
 
 /** conic-gradient for an ordered list of parts; a neutral fill when all are zero. */

@@ -310,7 +310,7 @@ function moneyDonut(cfg: CollectionConfig, items: Item[], spec: MoneyDonutSpec, 
     groups = dynamicGroups(base, spec.dynamicGroup, pf, spec.top || 8);
   }
   const parts = groups.map((gr) => ({ value: spend(scoped, gr.match || gr.bool || "all", pf), color: gr.color, label: gr.label }));
-  const total = parts.reduce((a, p) => a + p.value, 0);
+  const total = spec.centerMatch ? spend(scoped, spec.centerMatch, pf) : parts.reduce((a, p) => a + p.value, 0);
   const centerValue = m.money(total);
   return {
     kind: "moneyDonut", spec, title: spec.title,

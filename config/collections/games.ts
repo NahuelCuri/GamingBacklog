@@ -260,34 +260,36 @@ export const games: CollectionConfig = {
       { kind: "sum", field: "hours", label: "hrs" },
       { kind: "avg", field: "score", label: "avg score" },
       { kind: "completion", status: "played", label: "done" },
+      // What was actually paid, what it would have been without piracy, and
+      // what piracy and Game Pass saved.
       {
         kind: "moneySum",
         field: "price",
         match: { field: "platform", notIn: ["GamePass", "Pirated"] },
-        label: "owned cost",
+        label: "spent",
+        color: "var(--accent,#9ce6b0)",
+        accent: true,
+      },
+      {
+        kind: "moneySum",
+        field: "price",
+        match: { field: "platform", notIn: ["GamePass"] },
+        label: "without piracy",
         color: "oklch(0.74 0.1 85)",
       },
       {
         kind: "moneySum",
         field: "price",
         match: { field: "platform", eq: "Pirated" },
-        label: "pirated cost",
+        label: "saved pirating",
         color: "oklch(0.66 0.13 25)",
       },
       {
         kind: "moneySum",
         field: "price",
         match: { field: "platform", eq: "GamePass" },
-        label: "game pass value",
+        label: "saved with Game Pass",
         color: "oklch(0.68 0.14 155)",
-      },
-      {
-        kind: "moneySum",
-        field: "price",
-        match: { field: "platform", notIn: ["GamePass"] },
-        label: "total spent",
-        color: "var(--accent,#9ce6b0)",
-        accent: true,
       },
     ],
     left: [
@@ -357,6 +359,8 @@ export const games: CollectionConfig = {
             color: "oklch(0.68 0.14 155)",
           },
         ],
+        // The ring shows every game's price; the center only what was paid.
+        centerMatch: { field: "platform", notIn: ["GamePass", "Pirated"] },
         yearFilter: "yearCompleted",
       },
       {

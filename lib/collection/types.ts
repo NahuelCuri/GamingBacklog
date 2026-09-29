@@ -213,6 +213,8 @@ export interface MoneyDonutSpec extends WidgetBase {
   dynamicGroup?: string;
   type?: string;
   centerLabel?: string;
+  /** Center total from these items instead of the sum of all slices. */
+  centerMatch?: Selector;
 }
 
 export interface SumBarsSpec extends WidgetBase {
