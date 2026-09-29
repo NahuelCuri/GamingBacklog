@@ -53,12 +53,19 @@ export function LibraryView() {
 
   return (
     <div>
+      {/* One scrollable line on mobile instead of a ragged 4-line wrap. */}
       <div
-        className="flex flex-wrap px-1 pt-[22px] pb-5 font-mono text-[12.5px] tabular-nums"
-        style={{ gap: isMobile ? "12px 18px" : 26 }}
+        className={
+          "flex pt-[22px] pb-5 font-mono text-[12.5px] tabular-nums " +
+          (isMobile ? "g-noscroll -mx-[14px] overflow-x-auto px-[14px] whitespace-nowrap" : "flex-wrap px-1")
+        }
+        style={{
+          gap: isMobile ? 18 : 26,
+          maskImage: isMobile ? "linear-gradient(90deg, #000 calc(100% - 32px), transparent)" : undefined,
+        }}
       >
         {strip.map((m) => (
-          <div key={m.label}>
+          <div key={m.label} className="flex-none">
             <span className="font-semibold" style={{ color: m.color }}>
               {m.value}
             </span>{" "}
@@ -69,7 +76,7 @@ export function LibraryView() {
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div
-          className="flex flex-1 items-center gap-[9px] rounded-[9px] border border-wf bg-topchip px-[13px] py-[9px] text-dim transition-colors duration-200 focus-within:border-wi focus-within:text-text2 hover:border-wh"
+          className="flex flex-1 items-center gap-[9px] rounded-[9px] border border-wf bg-topchip px-[13px] py-[9px] text-dim max-[720px]:py-[11px] transition-colors duration-200 focus-within:border-wi focus-within:text-text2 hover:border-wh"
           style={{ minWidth: isMobile ? "100%" : 220 }}
         >
           <SearchIcon size={14} />
@@ -94,9 +101,14 @@ export function LibraryView() {
             </button>
           )}
         </div>
-        <PillGroup label="Status" className="flex-wrap">
+        <PillGroup label="Status" className={isMobile ? "w-full" : "flex-wrap"}>
           {cfg.statusFilters.map((c) => (
-            <Pill key={c.value} active={url.status === c.value} onClick={() => setUrl({ status: c.value })} className="px-3 py-1.5 text-[12.5px] font-medium">
+            <Pill
+              key={c.value}
+              active={url.status === c.value}
+              onClick={() => setUrl({ status: c.value })}
+              className={"px-3 text-[12.5px] font-medium " + (isMobile ? "flex-1 px-1 py-2.5" : "py-1.5")}
+            >
               {c.label}
             </Pill>
           ))}
@@ -112,10 +124,10 @@ export function LibraryView() {
           <ResetIcon size={15} />
         </button>
         <PillGroup label="Layout">
-          <Pill active={layout === "table"} onClick={() => setLayout("table")} title="Table view" aria-label="Table view" className="px-2.5 py-[7px]">
+          <Pill active={layout === "table"} onClick={() => setLayout("table")} title="Table view" aria-label="Table view" className={"px-2.5 " + (isMobile ? "py-2.5" : "py-[7px]")}>
             <RowsIcon size={15} />
           </Pill>
-          <Pill active={layout === "cards"} onClick={() => setLayout("cards")} title="Cards view" aria-label="Card view" className="px-2.5 py-[7px]">
+          <Pill active={layout === "cards"} onClick={() => setLayout("cards")} title="Cards view" aria-label="Card view" className={"px-2.5 " + (isMobile ? "py-2.5" : "py-[7px]")}>
             <GridIcon size={15} />
           </Pill>
         </PillGroup>

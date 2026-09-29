@@ -114,7 +114,8 @@ function Podium({ entries }: { entries: PodiumEntry[] }) {
               <div className={mono + " font-semibold text-accent"} style={{ fontSize: first ? 30 : 21 }}>
                 <CountUp value={p.score} />
               </div>
-              <div className="mt-2 leading-[1.3] font-medium" style={{ fontSize: first ? 13 : 11.5 }}>
+              {/* Two lines at most, so a long title doesn't make one step taller than the winner's. */}
+              <div className="mt-2 line-clamp-2 leading-[1.3] font-medium break-words" title={p.title} style={{ fontSize: first ? 13 : 11.5 }}>
                 {p.title}
               </div>
             </div>

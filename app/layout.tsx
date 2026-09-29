@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { themeInitScript } from "@/lib/theme";
 import { Providers } from "./providers";
@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   title: "Backlog",
   description: "Games, books, movies, wines, expenses and trips.",
 };
+
+// viewport-fit=cover makes env(safe-area-inset-*) non-zero on notched phones,
+// which the floating controls rely on.
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({
   children,
