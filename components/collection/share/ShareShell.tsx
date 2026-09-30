@@ -44,6 +44,15 @@ export function ShareShell({
   const render = () => {
     const node = previewRef.current;
     if (!node) return Promise.reject(new Error("render failed"));
+    // The PNG is taken from the live preview: jump running animations to their
+    // end so a quick copy never catches a half-grown bar (finish() doesn't replay them).
+    node.getAnimations?.({ subtree: true }).forEach((a) => {
+      try {
+        a.finish();
+      } catch {
+        // infinite animations can't finish; none are expected here
+      }
+    });
     return renderPng(node, pixelRatio);
   };
   const run = async (op: () => Promise<string>) => {
@@ -98,8 +107,12 @@ export function ShareShell({
               Download
             </button>
           </div>
-          <div aria-live="polite" className="mt-[11px] text-center text-xs text-muted">
-            {msg}
+          <div aria-live="polite" className="mt-[11px] min-h-[1lh] text-center text-xs text-muted">
+            {msg && (
+              <span key={msg} className="g-rise inline-block">
+                {msg}
+              </span>
+            )}
           </div>
         </div>
         <FitPreview target={previewRef}>{preview}</FitPreview>
