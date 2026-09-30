@@ -890,7 +890,8 @@
     const spendBase = g.filter(x => x[cfg.statusField] === 'played');
     const spendParts = spendGroups.map(gr => ({ value: S.spend(spendBase, gr.match || gr.bool || 'all', F.price), color: gr.color, label: gr.label }));
     const spentTotal = spendParts.reduce((a, p) => a + p.value, 0);
-    const spending = { has: spentTotal > 0, hasNot: !(spentTotal > 0), total: S.money(spentTotal),
+    const paidTotal = mdSpec && mdSpec.centerMatch ? S.spend(spendBase, mdSpec.centerMatch, F.price) : spentTotal;
+    const spending = { has: spentTotal > 0, hasNot: !(spentTotal > 0), total: S.money(paidTotal),
       donut: S.donutFromParts(spendParts.map(p => ({ value: p.value, color: p.color }))),
       emptyMsg: 'No prices recorded for played ' + (cfg.nounPlural || 'items') + ' in this range yet — add prices to see this.',
       legend: spendParts.map(p => ({ label: p.label, amount: S.money(p.value), color: p.color })) };

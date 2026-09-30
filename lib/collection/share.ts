@@ -144,8 +144,10 @@ export function shareModules(
       const base = g.filter((x) => x[sf] === "played");
       const parts = (md?.groups ?? []).map((gr) => ({ value: spend(base, gr.match || gr.bool || "all", F.price), color: gr.color, label: gr.label }));
       const sum = parts.reduce((a, p) => a + p.value, 0);
+      // The center says "spent", so it follows the donut's centerMatch (what was paid) when set.
+      const paid = md?.centerMatch ? spend(base, md.centerMatch, F.price) : sum;
       return {
-        kind: "spending", key: "spending", title: "Spending", has: sum > 0, total: m.money(sum), donut: donutFromParts(parts),
+        kind: "spending", key: "spending", title: "Spending", has: sum > 0, total: m.money(paid), donut: donutFromParts(parts),
         emptyMsg: `No prices recorded for played ${cfg.nounPlural || "items"} in this range yet — add prices to see this.`,
         legend: parts.map((p) => ({ label: p.label, amount: m.money(p.value), color: p.color })),
       };
