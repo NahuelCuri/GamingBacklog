@@ -2,6 +2,14 @@
 // (see i18n.test.ts), so new strings live here and are merged at runtime.
 export const ES_ADDED: Readonly<Record<string, string>> = {
   "Good morning": "Buenos días",
+  "+ Add": "+ Añadir",
+  "Search games…": "Buscar juegos…",
+  "Search books…": "Buscar libros…",
+  "Search wines…": "Buscar vinos…",
+  "Search titles…": "Buscar títulos…",
+  "Search transactions…": "Buscar transacciones…",
+  "drag to pan · scroll to zoom · click a province": "arrastra para mover · rueda para zoom · clic en una provincia",
+  "drag to pan · pinch to zoom · tap a province": "arrastra para mover · pellizca para zoom · toca una provincia",
   "Good afternoon": "Buenas tardes",
   "Good evening": "Buenas noches",
   "Pick up where you left off.": "Retoma donde lo dejaste.",

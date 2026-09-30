@@ -27,13 +27,18 @@ export interface MoneyFormat {
 
 export function moneyFormat(cur: Currency = USD): MoneyFormat {
   const rate = cur.rate || 1;
+  // The sign goes before the symbol, as in the ledger: −$142, not $-142.
+  const signed = (v: number, s: string) => (v < 0 ? "−" : "") + cur.symbol + s;
   return {
-    money: (n) => cur.symbol + Math.round((Number(n) || 0) * rate).toLocaleString("en-US"),
-    money2: (n) =>
-      n == null || n === ""
-        ? "—"
-        : cur.symbol +
-          ((Number(n) || 0) * rate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    money: (n) => {
+      const v = Math.round((Number(n) || 0) * rate);
+      return signed(v, Math.abs(v).toLocaleString("en-US"));
+    },
+    money2: (n) => {
+      if (n == null || n === "") return "—";
+      const v = Math.round((Number(n) || 0) * rate * 100) / 100;
+      return signed(v, Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    },
   };
 }
 
@@ -54,7 +59,7 @@ export function matchSel(item: Item, sel: Selector): boolean {
 export function spend(items: Item[], sel: Selector, priceField = "price"): number {
   return items
     .filter((x) => x[priceField] != null && matchSel(x, sel))
-    .reduce((a, b) => a + Number(b[priceField]), 0);
+    .reduce((a, b) => a + (Number(b[priceField]) || 0), 0);
 }
 
 /** conic-gradient for an ordered list of parts; a neutral fill when all are zero. */

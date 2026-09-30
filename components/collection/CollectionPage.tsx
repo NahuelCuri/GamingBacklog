@@ -75,9 +75,9 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
 
   return (
     <CollectionContext.Provider value={ctx}>
-      <div className="min-h-dvh" style={{ "--rowpad": "7px" } as CSSProperties}>
+      <div className="min-h-dvh" style={{ "--rowpad": isMobile ? "11px" : "7px" } as CSSProperties}>
         <CollectionHeader />
-        <main className="mx-auto max-w-[1180px]" style={{ padding: isMobile ? "0 14px 60px" : "0 26px 80px" }}>
+        <main className="mx-auto max-w-[1180px]" style={{ padding: isMobile ? "0 14px calc(env(safe-area-inset-bottom, 0px) + 104px)" : "0 26px 80px" }}>
           {data.status === "error" && (
             <div role="alert" className={alertClass}>
               Could not load your {cfg.nounPlural}: {data.loadError}{" "}

@@ -149,6 +149,7 @@ export function ItemModal({
               <input
                 className={input + (mono ? " font-mono" : "")}
                 type={mono ? "number" : "text"}
+                inputMode={mono ? "decimal" : undefined}
                 value={String(v ?? "")}
                 onChange={(e) => set(f.key, e.target.value)}
                 aria-label={f.label}
@@ -316,13 +317,15 @@ export function ItemModal({
   };
 
   const title = (isEdit ? "Edit " : "Add ") + cfg.noun;
-  const cols = (n: number) => (isMobile ? "1fr" : n === 3 ? "1fr 1fr 1fr" : n === 2 ? "1fr 1fr" : "1fr");
+  // On mobile only all-number rows stay side by side; anything else stacks.
+  const cols = (n: number, fields: ModalField[]) =>
+    isMobile && !fields.every((f) => f.kind === "number") ? "1fr" : n === 3 ? "1fr 1fr 1fr" : n === 2 ? "1fr 1fr" : "1fr";
 
   return (
     <div
       onClick={onClose}
-      className="g-scroll fixed inset-0 z-(--z-overlay) flex items-start justify-center overflow-auto overscroll-contain px-5 py-12 backdrop-blur-[3px]"
-      style={{ background: "rgba(6,7,7,.72)" }}
+      className="g-scroll fixed inset-0 z-(--z-overlay) flex items-start justify-center overflow-auto overscroll-contain px-5 py-12 backdrop-blur-[3px] max-[720px]:px-3 max-[720px]:pt-4"
+      style={{ background: "rgba(6,7,7,.72)", paddingBottom: isMobile ? "calc(env(safe-area-inset-bottom, 0px) + 12px)" : undefined }}
     >
       <div
         ref={dialog}
@@ -355,7 +358,7 @@ export function ItemModal({
                 }}
               >
                 <div className="min-h-0" style={{ overflow: gr.showWhen ? "hidden" : "visible" }} inert={!shown}>
-                  <div className="grid gap-[14px]" style={{ gridTemplateColumns: cols(gr.cols) }}>
+                  <div className="grid gap-[14px]" style={{ gridTemplateColumns: cols(gr.cols, gr.fields) }}>
                     {gr.fields.map((f) => (
                       <div key={f.key}>{renderField(f)}</div>
                     ))}
@@ -365,12 +368,13 @@ export function ItemModal({
             );
           })}
         </div>
-        <div className="flex items-center justify-between border-t border-wd px-6 py-4">
+        {/* Sticks to the bottom of the screen so saving never needs a scroll to the end. */}
+        <div className="sticky bottom-0 flex items-center justify-between gap-2 rounded-b-2xl border-t border-wd bg-card px-6 py-4 max-[720px]:px-4">
           {isEdit ? (
             <button
               type="button"
               onClick={del}
-              className={dangerButton(!!modal.confirmDel) + " rounded-[9px] px-4 py-[9px] text-[13px]"}
+              className={dangerButton(!!modal.confirmDel) + " rounded-[9px] px-4 py-[9px] text-[13px] max-[720px]:px-3"}
             >
               {modal.confirmDel ? "Confirm delete" : "Delete"}
             </button>
@@ -382,19 +386,19 @@ export function ItemModal({
               <button
                 type="button"
                 onClick={() => openShare(itemFromDraft(cfg, draft) as Item)}
-                className={neutralButton + " px-4 py-[9px] text-[13px]"}
+                className={neutralButton + " px-4 py-[9px] text-[13px] max-[720px]:px-3"}
               >
                 Share
               </button>
             )}
-            <button type="button" onClick={onClose} className={neutralButton + " px-[18px] py-[9px] text-[13px]"}>
+            <button type="button" onClick={onClose} className={neutralButton + " px-[18px] py-[9px] text-[13px] max-[720px]:px-3"}>
               Cancel
             </button>
             <button
               type="button"
               onClick={save}
               aria-disabled={!valid}
-              className={accentButton + " px-[22px] py-[9px] text-[13px] font-bold"}
+              className={accentButton + " px-[22px] py-[9px] text-[13px] font-bold max-[720px]:px-4"}
             >
               {isEdit ? "Save" : cfg.addLabel.replace("+ ", "")}
             </button>

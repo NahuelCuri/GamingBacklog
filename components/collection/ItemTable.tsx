@@ -135,7 +135,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                 onClick={() => onSort(c.key)}
                 aria-label={label}
                 className={
-                  "inline-flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 uppercase transition-colors duration-200 [font:inherit] [letter-spacing:inherit] " +
+                  "-my-2.5 inline-flex cursor-pointer items-center gap-1 border-none bg-transparent px-0 py-2.5 uppercase transition-colors duration-200 [font:inherit] [letter-spacing:inherit] " +
                   (active ? "text-accent" : "text-dim hover:text-text2")
                 }
               >
@@ -281,7 +281,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                                   title={f.link.title}
                                   aria-label={f.link.title}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center leading-none"
+                                  className="-m-2 inline-flex items-center p-2 leading-none"
                                   style={{ color: f.link.pulse ? "var(--accent)" : "var(--dim)", animation: f.link.pulse ? "gpulse 1.6s ease-in-out infinite" : "none" }}
                                 >
                                   <GlobeIcon size={11} />

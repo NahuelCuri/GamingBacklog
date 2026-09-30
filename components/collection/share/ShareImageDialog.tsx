@@ -2,7 +2,7 @@
 
 // Stats image: choose modules and a completion-year scope, add a caption,
 // copy or download as PNG.
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { defaultModuleSelection, scopeItems, shareModules, shareYears, withYearMode, type ShareScope, type YearMode } from "@/lib/collection";
 import { toggleChip } from "@/components/ui/Pills";
 import { useCollectionCtx } from "../CollectionContext";
@@ -103,8 +103,9 @@ export function ShareImageDialog({ onClose }: { onClose(): void }) {
           {title.trim() && <div className="mt-2 text-[15px] font-semibold tracking-[-.01em] text-text2">{title.trim()}</div>}
           <div className="mt-4 mb-1 h-px bg-wf" />
           {!anySel && <div className="px-2.5 py-[38px] text-center text-[13px] text-dim">Select at least one stat to build your image.</div>}
-          {modules.map((m) => (
-            <div key={m.key} className="mt-[18px]">
+          {/* Keyed by module: turning one on rises it in; a range change only moves the bars. */}
+          {modules.map((m, mi) => (
+            <div key={m.key} className="g-rise mt-[18px]" style={{ "--i": mi } as CSSProperties}>
               <div className={eyebrow} style={{ marginBottom: m.kind === "cards" || m.kind === "bar" || (m.kind === "spending" && !m.has) ? 11 : 13 }}>
                 {m.title}
               </div>
@@ -129,7 +130,10 @@ export function ShareImageDialog({ onClose }: { onClose(): void }) {
                         {t.label}
                       </div>
                       <div className="h-[7px] flex-1 overflow-hidden rounded bg-wd">
-                        <div className="h-full rounded" style={{ width: t.pct, background: t.barColor, opacity: m.style.barOpacity }} />
+                        <div
+                          className="g-grow-x h-full rounded transition-[width] duration-300 ease-(--ease-out)"
+                          style={{ width: t.pct, background: t.barColor, opacity: m.style.barOpacity, "--i": i } as CSSProperties}
+                        />
                       </div>
                       <div
                         className={mono + " text-right"}
@@ -147,8 +151,8 @@ export function ShareImageDialog({ onClose }: { onClose(): void }) {
                     <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
                       <div className={mono + " text-[10px] text-muted"}>{b.count}</div>
                       <div
-                        className="min-h-[3px] w-full rounded-[4px_4px_2px_2px]"
-                        style={{ height: b.pct, background: "color" in b ? b.color : "var(--accent)", opacity: "color" in b ? 1 : 0.8 }}
+                        className="g-grow-y min-h-[3px] w-full rounded-[4px_4px_2px_2px] transition-[height] duration-300 ease-(--ease-out)"
+                        style={{ height: b.pct, background: "color" in b ? b.color : "var(--accent)", opacity: "color" in b ? 1 : 0.8, "--i": i } as CSSProperties}
                       />
                       <div className={mono + " text-[10px] text-dim"}>{b.label}</div>
                     </div>

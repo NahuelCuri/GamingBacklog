@@ -66,7 +66,7 @@ export function CollectionHeader() {
         className="sticky top-0 z-(--z-sticky) border-b border-we backdrop-blur-[10px]"
         style={{ background: "color-mix(in srgb, var(--bg) 86%, transparent)" }}
       >
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-[18px]" style={{ padding: isMobile ? "12px 14px" : "14px 26px" }}>
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center" style={{ padding: isMobile ? "12px 14px" : "14px 26px", gap: isMobile ? "12px 10px" : 18 }}>
           <h1 className="m-0 text-lg font-bold tracking-[-.02em]">
             <button
               type="button"
@@ -115,11 +115,12 @@ export function CollectionHeader() {
             </PillGroup>
           )}
   
+          {/* Short on phones so the row never wraps ("+ Add transaction" pushed the menu to a second line). */}
           <button type="button" onClick={openAdd} className={accentButton + " px-4 py-[9px] text-[13px]"}>
-            {cfg.addLabel}
+            {isMobile ? "+ Add" : cfg.addLabel}
           </button>
   
-          <div className="ml-[2px] flex items-center gap-2 border-l border-wf pl-3">
+          <div className={"flex items-center gap-2" + (isMobile ? "" : " ml-[2px] border-l border-wf pl-3")}>
             {!isMobile && (
               <button
                 type="button"

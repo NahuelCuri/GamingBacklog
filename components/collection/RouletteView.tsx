@@ -104,9 +104,9 @@ export function RouletteView() {
   const subV = winner?.[r.winnerSubField];
 
   return (
-    <div className="grid items-start gap-6 pt-[26px]" style={{ gridTemplateColumns: isMobile ? "1fr" : "360px 1fr", animation: "gfade .2s ease" }}>
-      {/* pool builder */}
-      <div className="min-w-0 rounded-[14px] border border-wd bg-surface px-5 pt-5 pb-[22px]">
+    <div className="grid items-start gap-6 pt-[26px]" style={{ gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "360px 1fr", animation: "gfade .2s ease" }}>
+      {/* pool builder (below the reel on mobile, so Spin is on the first screen) */}
+      <div className="min-w-0 rounded-[14px] border border-wd bg-surface px-5 pt-5 pb-[22px]" style={{ order: isMobile ? 2 : undefined }}>
         <div className="mb-[3px] text-[15px] font-bold">Build your pool</div>
         <div className="mb-[18px] text-[12.5px] text-muted">Narrow it down, then let fate pick.</div>
 
@@ -143,7 +143,7 @@ export function RouletteView() {
                   type="button"
                   aria-pressed={st.rStatus === c.value}
                   onClick={() => setSt((s) => ({ ...s, rStatus: c.value }))}
-                  className={chip(st.rStatus === c.value) + " flex-1 rounded-lg px-1 py-[7px] text-center text-xs font-medium"}
+                  className={chip(st.rStatus === c.value) + " flex-1 rounded-lg px-1 text-center text-xs font-medium " + (isMobile ? "py-2.5" : "py-[7px]")}
                 >
                   {c.label}
                 </button>
@@ -159,7 +159,7 @@ export function RouletteView() {
                       type="button"
                       aria-pressed={st.rLength === o.value}
                       onClick={() => setSt((s) => ({ ...s, rLength: o.value }))}
-                      className={chip(st.rLength === o.value) + " rounded-lg px-[11px] py-[7px] text-xs font-medium"}
+                      className={chip(st.rLength === o.value) + " rounded-lg px-[11px] text-xs font-medium " + (isMobile ? "flex-1 py-2.5" : "py-[7px]")}
                     >
                       {o.label}
                     </button>
@@ -175,7 +175,8 @@ export function RouletteView() {
                 </button>
               )}
             </div>
-            <div className="g-scroll flex max-h-[168px] flex-wrap gap-1.5 overflow-auto">
+            {/* No inner scroll on mobile: a scroller inside the page traps the thumb. */}
+            <div className={"flex flex-wrap gap-1.5 " + (isMobile ? "" : "g-scroll max-h-[168px] overflow-auto")}>
               {cloud.map(({ tag, count }) => {
                 const on = st.rTags.includes(tag);
                 return (
@@ -184,7 +185,7 @@ export function RouletteView() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => setSt((s) => ({ ...s, rTags: on ? s.rTags.filter((x) => x !== tag) : [...s.rTags, tag] }))}
-                    className={toggleChip(on, "border-we bg-chip2 text-muted2") + " rounded-[20px] px-2.5 py-[5px] text-[11.5px]"}
+                    className={toggleChip(on, "border-we bg-chip2 text-muted2") + " rounded-[20px] px-2.5 text-[11.5px] " + (isMobile ? "py-2" : "py-[5px]")}
                   >
                     {tag} <span className="font-mono text-[10px] tabular-nums opacity-70">{count}</span>
                   </button>
@@ -248,7 +249,7 @@ export function RouletteView() {
       </div>
 
       {/* reel + result */}
-      <div className="min-w-0">
+      <div className="min-w-0" style={{ order: isMobile ? 1 : undefined }}>
         <div className="mb-1.5 text-center">
           <div className="text-xl font-bold tracking-[-.02em]">Can&apos;t decide? Spin.</div>
           <div className="mt-[3px] text-[12.5px] text-muted">
@@ -295,8 +296,11 @@ export function RouletteView() {
               })}
             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-[13px] text-dim">
-              {poolItems.length ? "Hit spin to roll the reel." : "Pool is empty — widen your filters."}
+            <div className="absolute inset-0 z-[4] flex items-center justify-center text-[13px] text-dim">
+              {/* backed so the center line doesn't strike through the text */}
+              <span className="rounded-md bg-inset px-2.5 py-1">
+                {poolItems.length ? "Hit spin to roll the reel." : "Pool is empty — widen your filters."}
+              </span>
             </div>
           )}
         </div>

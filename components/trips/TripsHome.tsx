@@ -47,12 +47,12 @@ export function TripsHome() {
       </header>
 
       <main id="tp-main" style={{ maxWidth: 1080, margin: "0 auto", padding: "36px 28px 80px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 28 }}>
           <div>
             <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-.02em", margin: 0, textWrap: "balance" }}>Where to next?</h1>
             <div style={{ fontFamily: T.mono, fontSize: 12, color: "#4b5558", marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{n + (n === 1 ? " trip" : " trips")}</div>
           </div>
-          <button type="button" onClick={newTrip} style={{ font: "inherit", cursor: "pointer", background: T.accent, color: T.onAccent, fontWeight: 700, fontSize: 14, padding: "11px 18px", border: "none", borderRadius: 10, boxShadow: "0 4px 16px rgba(95,184,176,.25)" }}>
+          <button type="button" onClick={newTrip} style={{ font: "inherit", cursor: "pointer", background: T.accent, color: T.onAccent, fontWeight: 700, fontSize: 14, padding: "11px 18px", whiteSpace: "nowrap", flexShrink: 0, border: "none", borderRadius: 10, boxShadow: "0 4px 16px rgba(95,184,176,.25)" }}>
             + New trip
           </button>
         </div>

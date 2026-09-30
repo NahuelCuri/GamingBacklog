@@ -619,10 +619,11 @@
   }
 
   function moneyDonutWidget(cfg, items, spec, ctx) {
-    const S = SS(), yf = spec.yearFilter, yearVal = ctx.spendYear || 'all';
-    const yearsAvail = [...new Set(items.map(g => g[yf]).filter(Boolean).map(String))].sort().reverse();
+    const S = SS(), yf = spec.yearFilter, fb = spec.yearFallback, yearVal = ctx.spendYear || 'all';
+    const yearOf = g => fb ? String(g[yf] || g[fb] || '').slice(0, 4) : g[yf];
+    const yearsAvail = [...new Set(items.map(yearOf).filter(Boolean).map(String))].sort().reverse();
     const yearOptions = [{ value: 'all', label: 'All' }, ...yearsAvail.map(y => ({ value: y, label: y }))];
-    const scoped = yearVal === 'all' ? items : items.filter(g => String(g[yf]) === yearVal);
+    const scoped = yearVal === 'all' ? items : items.filter(g => String(yearOf(g)) === yearVal);
     const pf = (cfg.fields && cfg.fields.price) || 'price';
     let groups = spec.groups;
     // dynamicGroup: derive the donut slices from whatever distinct values of a
@@ -642,7 +643,7 @@
       if (keys.length > top) groups.push({ label: 'Other', match: { field, in: keys.slice(top) }, color: 'oklch(0.62 0.03 200)' });
     }
     const parts = groups.map(gr => ({ value: S.spend(scoped, gr.match || gr.bool || 'all', pf), color: gr.color, label: gr.label }));
-    const total = parts.reduce((a, p) => a + p.value, 0);
+    const total = spec.centerMatch ? S.spend(scoped, spec.centerMatch, pf) : parts.reduce((a, p) => a + p.value, 0);
     return {
       kind: 'moneyDonut', isMoneyDonut: true, title: spec.title,
       donutStyle: S.donutFromParts(parts.map(p => ({ value: p.value, color: p.color }))),
@@ -889,7 +890,8 @@
     const spendBase = g.filter(x => x[cfg.statusField] === 'played');
     const spendParts = spendGroups.map(gr => ({ value: S.spend(spendBase, gr.match || gr.bool || 'all', F.price), color: gr.color, label: gr.label }));
     const spentTotal = spendParts.reduce((a, p) => a + p.value, 0);
-    const spending = { has: spentTotal > 0, hasNot: !(spentTotal > 0), total: S.money(spentTotal),
+    const paidTotal = mdSpec && mdSpec.centerMatch ? S.spend(spendBase, mdSpec.centerMatch, F.price) : spentTotal;
+    const spending = { has: spentTotal > 0, hasNot: !(spentTotal > 0), total: S.money(paidTotal),
       donut: S.donutFromParts(spendParts.map(p => ({ value: p.value, color: p.color }))),
       emptyMsg: 'No prices recorded for played ' + (cfg.nounPlural || 'items') + ' in this range yet — add prices to see this.',
       legend: spendParts.map(p => ({ label: p.label, amount: S.money(p.value), color: p.color })) };

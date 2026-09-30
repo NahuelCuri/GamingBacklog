@@ -146,7 +146,7 @@ function MonthDrill({ d, onBack }: { d: MonthDetail; onBack(): void }) {
         <SummaryCard i={3} label="Transactions" value={d.txnCount} size="24px" color="var(--text)" />
       </div>
 
-      <div className="grid items-start gap-5" style={{ gridTemplateColumns: isMobile ? "1fr" : "1.05fr .95fr" }}>
+      <div className="grid items-start gap-5" style={{ gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "1.05fr .95fr" }}>
         <div className="flex flex-col gap-5">
           <div className={panel + " px-[22px] py-5"}>
             <div className={heading + " mb-4"}>Daily spending</div>

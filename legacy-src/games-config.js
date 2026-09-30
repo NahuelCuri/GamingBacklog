@@ -84,6 +84,7 @@ window.GAMES_CONFIG = {
       { key: 'platform',      label: 'Platform',  kind: 'text',  empty: '—' },
       { key: 'price',         label: 'Price',     kind: 'money2', empty: '—',
         searchLink: { url: 'https://store.steampowered.com/search?term={title}', title: 'Search Steam price', pulseWhenEmpty: true } },
+      { key: 'purchaseDate',  label: 'Purchased', kind: 'text',  empty: '—' },
     ],
     // bottom-right corner button
     cornerLink: { field: 'hltb', url: 'https://howlongtobeat.com/?q={title}', label: 'HLTB ↗', pulseWhenEmpty: true },
@@ -104,10 +105,13 @@ window.GAMES_CONFIG = {
         { key: 'hours', label: 'Hours', kind: 'number', min: 0, step: 0.5 },
         { key: 'hltb', label: 'HLTB', kind: 'number', min: 0, step: 0.5 },
       ] },
-      { cols: 3, fields: [
+      { cols: 2, fields: [
         { key: 'releaseDate', label: 'Release date', kind: 'date' },
         { key: 'yearCompleted', label: 'Year completed', kind: 'number', min: 1980, max: 2030 },
+      ] },
+      { cols: 2, fields: [
         { key: 'price', label: 'Price', kind: 'number', min: 0, step: 0.01 },
+        { key: 'purchaseDate', label: 'Purchase date', kind: 'date' },
       ] },
       { cols: 1, fields: [{ key: 'platform', label: 'Platform', kind: 'enum', options: ['Steam', 'GamePass', 'EA', 'Epic', 'Pirated'] }] },
       { cols: 1, fields: [
@@ -119,7 +123,7 @@ window.GAMES_CONFIG = {
     numberFields: ['score', 'hours', 'hltb', 'price'],
     yearFields: ['yearCompleted'],
     boolFields: ['owned'],
-    textFields: ['platform', 'releaseDate', 'review'],
+    textFields: ['platform', 'releaseDate', 'purchaseDate', 'review'],
   },
 
   // ========================================================================
@@ -168,10 +172,10 @@ window.GAMES_CONFIG = {
       { kind: 'sum', field: 'hours', label: 'hrs' },
       { kind: 'avg', field: 'score', label: 'avg score' },
       { kind: 'completion', status: 'played', label: 'done' },
-      { kind: 'moneySum', field: 'price', match: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, label: 'owned cost', color: 'oklch(0.74 0.1 85)' },
-      { kind: 'moneySum', field: 'price', match: { field: 'platform', eq: 'Pirated' }, label: 'pirated cost', color: 'oklch(0.66 0.13 25)' },
-      { kind: 'moneySum', field: 'price', match: { field: 'platform', eq: 'GamePass' }, label: 'game pass value', color: 'oklch(0.68 0.14 155)' },
-      { kind: 'moneySum', field: 'price', match: { field: 'platform', notIn: ['GamePass'] }, label: 'total spent', color: 'var(--accent,#9ce6b0)', accent: true },
+      { kind: 'moneySum', field: 'price', match: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, label: 'spent', color: 'var(--accent,#9ce6b0)', accent: true },
+      { kind: 'moneySum', field: 'price', match: { field: 'platform', notIn: ['GamePass'] }, label: 'without piracy', color: 'oklch(0.74 0.1 85)' },
+      { kind: 'moneySum', field: 'price', match: { field: 'platform', eq: 'Pirated' }, label: 'saved pirating', color: 'oklch(0.66 0.13 25)' },
+      { kind: 'moneySum', field: 'price', match: { field: 'platform', eq: 'GamePass' }, label: 'saved with Game Pass', color: 'oklch(0.68 0.14 155)' },
     ],
     left: [
       { kind: 'barList', title: 'Highest rated', field: 'score', dir: 'desc', top: 10, podium: true, barColor: 'var(--accent,#9ce6b0)', valColor: 'var(--accent,#9ce6b0)', scale: 10 },
@@ -190,7 +194,7 @@ window.GAMES_CONFIG = {
           { label: 'Bought', match: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, color: 'oklch(0.74 0.1 85)' },
           { label: 'Pirated', match: { field: 'platform', eq: 'Pirated' }, color: 'oklch(0.66 0.13 25)' },
           { label: 'Game Pass', match: { field: 'platform', eq: 'GamePass' }, color: 'oklch(0.68 0.14 155)' },
-        ], yearFilter: 'yearCompleted' },
+        ], centerMatch: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, yearFilter: 'purchaseDate', yearFallback: 'yearCompleted' },
       { kind: 'barList', title: 'Top tags', field: '#tags', top: 8, barColor: 'var(--accent,#9ce6b0)', barOpacity: '.85', valColor: 'var(--muted,#8b938d)', compact: true },
       { kind: 'barList', title: 'Platforms', field: '#platform', top: 6, barColor: '#7fb894', valColor: 'var(--muted,#8b938d)', compact: true },
       { kind: 'byYear', title: 'Completed by year', field: 'yearCompleted' },

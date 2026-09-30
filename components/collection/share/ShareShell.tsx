@@ -2,7 +2,7 @@
 
 // Shared layout for the two share dialogs: a controls panel beside a live
 // preview that is rasterized to PNG on copy / download.
-import { useRef, useState, type ReactNode, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { CloseIcon } from "@/components/icons";
 import { accentButton, closeButton, neutralButton, toggleChip } from "@/components/ui/Pills";
 import { useDialog } from "@/lib/hooks/useDialog";
@@ -44,6 +44,15 @@ export function ShareShell({
   const render = () => {
     const node = previewRef.current;
     if (!node) return Promise.reject(new Error("render failed"));
+    // The PNG is taken from the live preview: jump running animations to their
+    // end so a quick copy never catches a half-grown bar (finish() doesn't replay them).
+    node.getAnimations?.({ subtree: true }).forEach((a) => {
+      try {
+        a.finish();
+      } catch {
+        // infinite animations can't finish; none are expected here
+      }
+    });
     return renderPng(node, pixelRatio);
   };
   const run = async (op: () => Promise<string>) => {
@@ -98,11 +107,48 @@ export function ShareShell({
               Download
             </button>
           </div>
-          <div aria-live="polite" className="mt-[11px] text-center text-xs text-muted">
-            {msg}
+          <div aria-live="polite" className="mt-[11px] min-h-[1lh] text-center text-xs text-muted">
+            {msg && (
+              <span key={msg} className="g-rise inline-block">
+                {msg}
+              </span>
+            )}
           </div>
         </div>
-        <div className="g-scroll max-w-full flex-none overflow-auto">{preview}</div>
+        <FitPreview target={previewRef}>{preview}</FitPreview>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Shows the fixed-width preview whole on narrow screens by scaling it down.
+ * Only the wrapper is transformed, so the exported PNG keeps its full size.
+ */
+function FitPreview({ target, children }: { target: RefObject<HTMLDivElement | null>; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<{ scale: number; height: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const outer = box.current, node = target.current;
+    if (!outer || !node) return;
+    const measure = () => {
+      const scale = Math.min(1, outer.clientWidth / node.offsetWidth);
+      setFit(scale < 1 ? { scale, height: node.offsetHeight * scale } : null);
+    };
+    measure();
+    // The card grows as modules are toggled; the dialog narrows with the window.
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(outer);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [target]);
+
+  return (
+    <div ref={box} className="max-w-full min-w-0 flex-none overflow-hidden" style={fit ? { width: "100%", height: fit.height } : undefined}>
+      <div className="w-max origin-top-left" style={fit ? { transform: `scale(${fit.scale})` } : undefined}>
+        {children}
       </div>
     </div>
   );

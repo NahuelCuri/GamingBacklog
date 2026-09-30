@@ -139,6 +139,9 @@
     'Avg rating': 'Valoración media',
     'Completion': 'Progreso',
     'spent': 'gastado',
+    'without piracy': 'sin piratear',
+    'saved pirating': 'ahorrado pirateando',
+    'saved with Game Pass': 'ahorrado con Game Pass',
 
     // ---- roulette ----
     'Build your pool': 'Arma tu selección',

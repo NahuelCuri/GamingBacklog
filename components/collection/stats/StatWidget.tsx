@@ -114,7 +114,8 @@ function Podium({ entries }: { entries: PodiumEntry[] }) {
               <div className={mono + " font-semibold text-accent"} style={{ fontSize: first ? 30 : 21 }}>
                 <CountUp value={p.score} />
               </div>
-              <div className="mt-2 leading-[1.3] font-medium" style={{ fontSize: first ? 13 : 11.5 }}>
+              {/* Two lines at most, so a long title doesn't make one step taller than the winner's. */}
+              <div className="mt-2 line-clamp-2 leading-[1.3] font-medium break-words" title={p.title} style={{ fontSize: first ? 13 : 11.5 }}>
                 {p.title}
               </div>
             </div>
@@ -188,6 +189,14 @@ function Legend({ items }: { items: { color: string; label: string; value: React
   );
 }
 
+/** Scrolls a horizontal scroller to its end once, when it mounts. */
+function scrollToEnd(el: HTMLDivElement | null) {
+  if (el && !el.dataset.scrolled) {
+    el.dataset.scrolled = "1";
+    el.scrollLeft = el.scrollWidth;
+  }
+}
+
 const cell: CSSProperties = { width: 13, height: 13, borderRadius: 3 };
 const swatch: CSSProperties = { width: 11, height: 11, borderRadius: 3 };
 
@@ -232,7 +241,8 @@ export function StatWidget({ w, onYear }: { w: Widget; onYear?(year: string): vo
     case "heatmap":
       return (
         <Card title={w.title}>
-          <div className="g-scroll overflow-x-auto">
+          {/* Narrow screens scroll it; open on the latest weeks rather than the oldest. */}
+          <div className="g-scroll overflow-x-auto" ref={scrollToEnd}>
             <div className="mb-1 flex gap-[3px]">
               {w.monthCols.map((m, i) => (
                 <div key={i} className={mono + " w-[13px] text-[8.5px] whitespace-nowrap text-dim"}>
@@ -249,14 +259,14 @@ export function StatWidget({ w, onYear }: { w: Widget; onYear?(year: string): vo
                 </div>
               ))}
             </div>
-            <div className={mono + " mt-3 flex items-center gap-1.5 text-[9.5px] text-dim"}>
-              <span>less</span>
-              <div style={{ ...swatch, background: "var(--wc)" }} />
-              {[30, 55, 80].map((p) => (
-                <div key={p} style={{ ...swatch, background: `color-mix(in srgb, var(--accent) ${p}%, transparent)` }} />
-              ))}
-              <span>more</span>
-            </div>
+          </div>
+          <div className={mono + " mt-3 flex items-center gap-1.5 text-[9.5px] text-dim"}>
+            <span>less</span>
+            <div style={{ ...swatch, background: "var(--wc)" }} />
+            {[30, 55, 80].map((p) => (
+              <div key={p} style={{ ...swatch, background: `color-mix(in srgb, var(--accent) ${p}%, transparent)` }} />
+            ))}
+            <span>more</span>
           </div>
         </Card>
       );

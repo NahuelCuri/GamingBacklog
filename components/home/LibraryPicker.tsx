@@ -135,7 +135,7 @@ export function LibraryPicker() {
           type="button"
           onClick={openSettings}
           title="Settings & admin"
-          className="flex max-w-[230px] cursor-pointer items-center gap-[7px] rounded-lg border bg-topchip px-[11px] py-1.5 font-mono text-[11px] text-muted transition-[color,border-color,background] duration-250 hover:text-text"
+          className="max-[720px]:min-h-10 flex max-w-[230px] cursor-pointer items-center gap-[7px] rounded-lg border bg-topchip px-[11px] py-1.5 font-mono text-[11px] text-muted transition-[color,border-color,background] duration-250 hover:text-text"
           style={{ borderColor: chipBorder }}
         >
           <GearIcon />
@@ -144,7 +144,7 @@ export function LibraryPicker() {
         <button
           type="button"
           onClick={signOut}
-          className="cursor-pointer rounded-[7px] border bg-topchip px-2.5 py-[7px] text-xs transition-[color,border-color,background-color,transform] duration-300 hover:bg-wc active:translate-y-px"
+          className="max-[720px]:min-h-10 cursor-pointer rounded-[7px] border bg-topchip px-2.5 py-[7px] text-xs transition-[color,border-color,background-color,transform] duration-300 hover:bg-wc active:translate-y-px"
           style={{ color: pal || "var(--text)", borderColor: chipBorder }}
         >
           Sign out
