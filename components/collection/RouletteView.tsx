@@ -104,7 +104,7 @@ export function RouletteView() {
   const subV = winner?.[r.winnerSubField];
 
   return (
-    <div className="grid items-start gap-6 pt-[26px]" style={{ gridTemplateColumns: isMobile ? "1fr" : "360px 1fr", animation: "gfade .2s ease" }}>
+    <div className="grid items-start gap-6 pt-[26px]" style={{ gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "360px 1fr", animation: "gfade .2s ease" }}>
       {/* pool builder (below the reel on mobile, so Spin is on the first screen) */}
       <div className="min-w-0 rounded-[14px] border border-wd bg-surface px-5 pt-5 pb-[22px]" style={{ order: isMobile ? 2 : undefined }}>
         <div className="mb-[3px] text-[15px] font-bold">Build your pool</div>

@@ -87,7 +87,8 @@ export function LibraryView() {
             aria-label="Search your library"
             autoComplete="off"
             spellCheck={false}
-            placeholder="Search title, tag, platform, review…"
+            // Legacy used the games wording everywhere ("platform, review" on wines and expenses).
+            placeholder={`Search ${cfg.nounPlural}…`}
             className="flex-1 border-none bg-transparent p-0 text-[13.5px] text-text outline-none"
           />
           {url.q && (
@@ -101,13 +102,14 @@ export function LibraryView() {
             </button>
           )}
         </div>
-        <PillGroup label="Status" className={isMobile ? "w-full" : "flex-wrap"}>
+        {/* Mobile: one row that fills the width, and scrolls sideways when the labels (or their translation) don't fit. */}
+        <PillGroup label="Status" className={isMobile ? "g-noscroll w-full overflow-x-auto" : "flex-wrap"}>
           {cfg.statusFilters.map((c) => (
             <Pill
               key={c.value}
               active={url.status === c.value}
               onClick={() => setUrl({ status: c.value })}
-              className={"px-3 text-[12.5px] font-medium " + (isMobile ? "flex-1 px-1 py-2.5" : "py-1.5")}
+              className={"text-[12.5px] font-medium " + (isMobile ? "flex-[1_0_auto] px-2.5 py-2.5 whitespace-nowrap" : "px-3 py-1.5")}
             >
               {c.label}
             </Pill>
@@ -138,9 +140,14 @@ export function LibraryView() {
       </div>
 
       {categories.length > 1 && (
-        <PillGroup label="Category" className="mb-[14px] w-fit flex-wrap">
+        <PillGroup label="Category" className={"mb-[14px] " + (isMobile ? "g-noscroll w-full overflow-x-auto" : "w-fit flex-wrap")}>
           {categories.map((c) => (
-            <Pill key={c.value} active={url.catFilter === c.value} onClick={() => setUrl({ catFilter: c.value })} className="px-3 py-1.5 text-[12.5px] font-medium">
+            <Pill
+              key={c.value}
+              active={url.catFilter === c.value}
+              onClick={() => setUrl({ catFilter: c.value })}
+              className={"text-[12.5px] font-medium " + (isMobile ? "flex-[1_0_auto] px-2.5 py-2.5 whitespace-nowrap" : "px-3 py-1.5")}
+            >
               {c.label}
             </Pill>
           ))}

@@ -32,7 +32,7 @@ interface MapHandle {
 const overlay = "color-mix(in srgb, var(--surface) 82%, transparent)";
 
 export function GeoMapView() {
-  const { cfg, items } = useCollectionCtx();
+  const { cfg, items, isMobile } = useCollectionCtx();
   const geo = useMemo(() => buildGeo(cfg, items), [cfg, items]);
   const accent = cfg.theme.accent;
   const [features, setFeatures] = useState<Province[] | null>(null);
@@ -295,7 +295,8 @@ export function GeoMapView() {
         className="relative overflow-hidden rounded-[14px] border border-we"
         style={{ background: "radial-gradient(130% 130% at 50% -10%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 55%), var(--inset)" }}
       >
-        <div ref={mapRef} data-testid="geo-map" className="w-full cursor-grab" style={{ height: "clamp(420px, 72vh, 720px)" }} />
+        {/* Shorter on phones: the map takes every touch, so leave page around it to scroll by. */}
+        <div ref={mapRef} data-testid="geo-map" className="w-full cursor-grab" style={{ height: isMobile ? "clamp(340px, 58vh, 520px)" : "clamp(420px, 72vh, 720px)" }} />
 
         {!features && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-xs text-dim">
@@ -308,7 +309,7 @@ export function GeoMapView() {
           className="pointer-events-none absolute bottom-3 left-3 rounded-[7px] border border-wd px-[9px] py-[5px] font-mono text-[10.5px] text-dim"
           style={{ background: "color-mix(in srgb, var(--surface) 70%, transparent)" }}
         >
-          drag to pan · scroll to zoom · click a province
+          {isMobile ? "drag to pan · pinch to zoom · tap a province" : "drag to pan · scroll to zoom · click a province"}
         </div>
 
         <button

@@ -39,7 +39,7 @@ export function StatsView() {
         ))}
       </div>
 
-      <div className="grid items-start gap-5" style={{ gridTemplateColumns: isMobile ? "1fr" : "1.15fr .85fr" }}>
+      <div className="grid items-start gap-5" style={{ gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "1.15fr .85fr" }}>
         {[stats.left, stats.right].map((col, i) => (
           <div key={i} className="flex flex-col gap-5">
             {col.map((w) => (

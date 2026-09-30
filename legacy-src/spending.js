@@ -17,15 +17,15 @@
   //  money(1234.5) -> "US$1,235"  (or "AR$…" once the currency is switched)
   function money(n) {
     var c = window.__CURRENCY || { symbol: '$', rate: 1 };
-    var v = (Number(n) || 0) * (c.rate || 1);
-    return c.symbol + Math.round(v).toLocaleString('en-US');
+    var v = Math.round((Number(n) || 0) * (c.rate || 1));
+    return (v < 0 ? '−' : '') + c.symbol + Math.abs(v).toLocaleString('en-US');
   }
   // Two-decimal variant used by detail rows / priciest lists.
   function money2(n) {
     if (n == null || n === '') return '—';
     var c = window.__CURRENCY || { symbol: '$', rate: 1 };
-    var v = (Number(n) || 0) * (c.rate || 1);
-    return c.symbol + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var v = Math.round((Number(n) || 0) * (c.rate || 1) * 100) / 100;
+    return (v < 0 ? '−' : '') + c.symbol + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   // Does an item match a selector?

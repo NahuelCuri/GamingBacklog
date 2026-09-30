@@ -126,7 +126,8 @@ function AuthCard() {
           {signup ? "Already have an account?" : "New here?"}{" "}
           <button
             type="button"
-            className="cursor-pointer font-semibold text-accent underline-offset-2 hover:underline"
+            // Padding widens the tap area; the negative margin keeps it inline with the sentence.
+            className="-mx-1.5 -my-2.5 cursor-pointer px-1.5 py-2.5 font-semibold text-accent underline-offset-2 hover:underline"
             onClick={() => {
               setMode(signup ? "signin" : "signup");
               setError("");
