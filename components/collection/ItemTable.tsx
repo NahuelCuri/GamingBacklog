@@ -48,6 +48,12 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
   const rowEls = useRef(new Map<string, HTMLDivElement>());
   const prevRows = useRef<Map<string, Item> | null>(null);
   const [leaving, setLeaving] = useState<string | null>(null);
+  // Detail panels are built the first time their row is opened: rendering all
+  // of them up front cost thousands of nodes, and a pulsing link animation
+  // each, for panels nobody had asked to see. Once built one stays mounted so
+  // closing still animates.
+  const opened = useRef(new Set<string>());
+  if (expandedId) opened.current.add(expandedId);
 
   // New rows fade in (staggered); an edited row flashes and its status dot pops.
   useLayoutEffect(() => {
@@ -151,6 +157,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
       <div ref={body}>
         {view.rows.map((g) => {
           const open = expandedId === g.id;
+          const built = open || opened.current.has(g.id);
           const confirming = pendingDelete === g.id;
           const review = reviewOf(cfg, g);
           const corner = cornerLink(cfg, g);
@@ -239,6 +246,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
 
               <div className="grid transition-[grid-template-rows] duration-[280ms] ease-out" style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
                 <div className="overflow-hidden" inert={!open}>
+                  {built && (
                     <div data-detail className="relative grid gap-[26px] px-[14px] pt-4 pb-5" style={{ gridTemplateColumns: isMobile ? "1fr" : "1.7fr 1fr" }}>
                       <div>
                         <div className="mb-2 text-[10px] font-semibold tracking-[.09em] text-dim uppercase">{cfg.reviewLabel}</div>
@@ -313,6 +321,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                         </a>
                       )}
                     </div>
+                  )}
                 </div>
               </div>
             </div>
