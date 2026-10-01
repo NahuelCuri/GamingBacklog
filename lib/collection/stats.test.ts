@@ -198,3 +198,49 @@ describe("books reading stats", () => {
     expect(pages.bars.map((b) => [b.label, b.amount])).toEqual([["2025", "300"], ["2026", "300"]]);
   });
 });
+
+describe("movies stats", () => {
+  const cfg = COLLECTIONS.movies;
+  const items: Item[] = [
+    { id: "a", title: "A", type: "Movie", status: "completed", runtime: 120, rating: 9, imdb: 7.5, director: "Kim", cast: ["X", "Y"], watchedOn: "Cinema" },
+    { id: "b", title: "B", type: "Movie", status: "completed", runtime: 90, rating: 6, imdb: 8, director: "Kim", cast: ["X"], watchedOn: "Home" },
+    // series: no runtime, so no hours
+    { id: "c", title: "C", type: "Series", status: "completed", rating: 8, imdb: 8, director: "", watchedOn: "Home" },
+    { id: "d", title: "D", type: "Movie", status: "backlog", runtime: 150, imdb: 7, dateAdded: "2025-04-01" },
+  ];
+  const now = new Date(2026, 9, 1);
+  const all = [...cfg.stats.left, ...cfg.stats.right];
+  const widget = (title: string) => buildWidget(cfg, items, all.find((w) => w.title === title)!, { accent: "#a9aee0" }, now);
+  const rows = (title: string) => {
+    const w = widget(title);
+    if (w?.kind !== "barList" && w?.kind !== "diverging") throw new Error("expected bar rows");
+    return w.rows.map((r) => [r.label, r.val]);
+  };
+  const summary = (label: string) => metric(cfg, items, cfg.stats.summary.find((s) => s.label === label)!).value;
+
+  it("sums film hours watched and the mean gap to IMDb", () => {
+    // 210 minutes of completed films
+    expect(summary("Hours of film")).toBe("4");
+    // (+1.5 − 2 + 0) / 3
+    expect(summary("Vs IMDb")).toBe("-0.2");
+  });
+
+  it("shows where my rating parts from IMDb, both ways", () => {
+    expect(rows("Me vs IMDb · biggest gaps")).toEqual([["B", "-2"], ["A", "+1.5"]]);
+  });
+
+  it("ranks directors and cast, skipping blanks", () => {
+    expect(rows("Top directors")).toEqual([["Kim", "2"]]);
+    expect(rows("Directors by rating")).toEqual([["Kim · 2", "★7.5"]]);
+    expect(rows("Cast by rating")).toEqual([["X · 2", "★7.5"]]);
+  });
+
+  it("rates by type and by where it was watched", () => {
+    expect(rows("Type by rating")).toEqual([["Series · 1", "★8.0"], ["Movie · 3", "★7.5"]]);
+    expect(rows("Rating by where watched")).toEqual([["Cinema · 1", "★9.0"], ["Home · 2", "★7.0"]]);
+  });
+
+  it("ages the backlog", () => {
+    expect(rows("Longest in backlog")).toEqual([["D", "1y 6m"]]);
+  });
+});

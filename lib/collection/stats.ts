@@ -83,7 +83,8 @@ export function metric(cfg: CollectionConfig, items: Item[], spec: MetricSpec, m
     }
     // Values may arrive as numeric strings (imports); coerce so "12" sums, not concatenates.
     case "sum": {
-      const s = numbers(spec.match ? items.filter((x) => matchSel(x, spec.match)) : items, spec.field).reduce((a, b) => a + b, 0);
+      let s = numbers(spec.match ? items.filter((x) => matchSel(x, spec.match)) : items, spec.field).reduce((a, b) => a + b, 0);
+      if (spec.divide) s = Math.round(s / spec.divide);
       return { value: fmt(s), num: s };
     }
     case "avg": {
@@ -129,6 +130,12 @@ export function metric(cfg: CollectionConfig, items: Item[], spec: MetricSpec, m
         })
         .reduce((a, b) => a + num(b[pf]), 0);
       return { value: m.money(v), num: v };
+    }
+    case "avgDelta": {
+      const l = withBoth(items, spec.field, spec.vs);
+      if (!l.length) return { value: "—", num: 0 };
+      const v = Math.round(((sumOf(l, spec.field) - sumOf(l, spec.vs)) / l.length) * 10) / 10;
+      return { value: (v > 0 ? "+" : "") + v.toFixed(1), num: v };
     }
     case "ratio": {
       const l = withBoth(items, spec.field, spec.over, spec.match);

@@ -134,7 +134,8 @@ export type MetricSpec = {
   | { kind: "count" }
   | { kind: "statusCount"; status: string }
   | { kind: "boolCount"; field: string }
-  | { kind: "sum"; field: string; match?: Selector }
+  /** `divide` turns units (e.g. minutes → hours, rounded). */
+  | { kind: "sum"; field: string; match?: Selector; divide?: number }
   | { kind: "avg"; field: string }
   | { kind: "completion"; status: string }
   | { kind: "moneySum"; field?: string; match?: Selector; bool?: string }
@@ -143,6 +144,8 @@ export type MetricSpec = {
   | { kind: "avgPerDay" }
   | { kind: "maxAmount" }
   | { kind: "accountSum"; account?: string; exclude?: string[] }
+  /** Mean of field − vs, signed, over items with both set. */
+  | { kind: "avgDelta"; field: string; vs: string }
   /** Σfield / Σover − 1 as a signed percent, over items with both set. */
   | { kind: "ratio"; field: string; over: string; match?: Selector }
   /** Σfield / Σper (a field, or days between two dates), over items with both set. */
