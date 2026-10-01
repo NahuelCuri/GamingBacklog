@@ -4,7 +4,7 @@ import type { Item } from "@/lib/collection/types";
 import { collectionActions } from "./collection-actions";
 import { canTransfer, collectionReducer, initialCollectionState, type CollectionAction, type CollectionState } from "./collection-state";
 import { memoryStore, supabaseStore, type CollectionStore } from "./store";
-import { exportFileName, parseImport } from "./transfer";
+import { buildExports, diffImport, exportFileName, parseImport } from "./transfer";
 
 const a = (id: string, title = id): Item => ({ id, title });
 
@@ -124,6 +124,17 @@ describe("collectionActions", () => {
     expect(calls).toEqual(["load", "putAll", "delMany"]);
     expect([...rows.values()]).toEqual([a("2", "new"), a("3")]);
     expect(h.state.items).toEqual([a("2", "new"), a("3")]);
+  });
+
+  it("merge import backs up first, adds and overwrites but never deletes", async () => {
+    const { store, calls, rows } = recordingStore([a("1"), a("2")]);
+    const h = harness(store);
+    await h.act.refresh();
+    await h.act.importMerge([a("2", "new"), a("3")]);
+    expect(h.backup).toHaveBeenCalledWith([a("1"), a("2")]);
+    expect(calls).toEqual(["load", "putAll"]);
+    expect([...rows.values()]).toEqual([a("1"), a("2", "new"), a("3")]);
+    expect(h.state.items).toEqual([a("1"), a("2", "new"), a("3")]);
   });
 
   it("an import whose write fails leaves the old rows in place", async () => {
@@ -262,5 +273,22 @@ describe("parseImport", () => {
 
   it("names exports by collection and date", () => {
     expect(exportFileName("games", new Date("2026-09-25T12:00:00Z"))).toBe("backlog-games-2026-09-25.json");
+  });
+
+  it("diffs an import into new, changed, unchanged and removed", () => {
+    const current = [a("1"), a("2"), { id: "3", title: "3", tags: ["x"], score: 7 }];
+    const incoming = [a("2", "renamed"), { id: "3", score: 7, tags: ["x"], title: "3" }, a("4")];
+    const d = diffImport(current, incoming);
+    expect(d.added.map((g) => g.id)).toEqual(["4"]);
+    expect(d.changed).toEqual([{ before: a("2"), after: a("2", "renamed"), fields: ["title"] }]);
+    expect(d.unchanged).toBe(1);
+    expect(d.removed.map((g) => g.id)).toEqual(["1"]);
+  });
+
+  it("builds one importable file per library", async () => {
+    const data: Record<string, Item[]> = { games: [a("1")], books: [{ id: "b" }] };
+    const files = await buildExports(["games", "books"], async (k) => data[k], new Date("2026-09-25T12:00:00Z"));
+    expect(files.map((f) => f.fileName)).toEqual(["backlog-games-2026-09-25.json", "backlog-books-2026-09-25.json"]);
+    expect(parseImport(files[1].json, COLLECTIONS.books)).toEqual({ ok: true, items: [{ id: "b" }] });
   });
 });

@@ -72,6 +72,20 @@ export function collectionActions(
     },
 
     /**
+     * Add `items` to the collection without deleting anything: new ids are
+     * appended, existing ids are overwritten by the file's version. Downloads a
+     * backup first since those overwrites can't be undone otherwise.
+     */
+    async importMerge(items: Item[]) {
+      const before = requireLoaded().items;
+      deps.backup(before);
+      const incoming = new Map(items.map((g) => [g.id, g]));
+      const merged = [...before.map((g) => incoming.get(g.id) ?? g), ...items.filter((g) => !before.some((b) => b.id === g.id))];
+      dispatch({ type: "replace", items: merged });
+      return write(() => store.putAll(items));
+    },
+
+    /**
      * Replace the whole collection with `items`. Always downloads a backup of
      * the current data first. New rows are written before stale ones are
      * deleted, so a failure midway never leaves the table empty.
