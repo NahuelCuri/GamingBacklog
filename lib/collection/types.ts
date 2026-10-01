@@ -134,7 +134,8 @@ export type MetricSpec = {
   | { kind: "count" }
   | { kind: "statusCount"; status: string }
   | { kind: "boolCount"; field: string }
-  | { kind: "sum"; field: string }
+  /** `divide` turns units (e.g. minutes → hours, rounded). */
+  | { kind: "sum"; field: string; match?: Selector; divide?: number }
   | { kind: "avg"; field: string }
   | { kind: "completion"; status: string }
   | { kind: "moneySum"; field?: string; match?: Selector; bool?: string }
@@ -143,9 +144,21 @@ export type MetricSpec = {
   | { kind: "avgPerDay" }
   | { kind: "maxAmount" }
   | { kind: "accountSum"; account?: string; exclude?: string[] }
+  /** Mean of field − vs, signed, over items with both set. */
+  | { kind: "avgDelta"; field: string; vs: string }
+  /** Σfield / Σover − 1 as a signed percent, over items with both set. */
+  | { kind: "ratio"; field: string; over: string; match?: Selector }
+  /** Σfield / Σper (a field, or days between two dates), over items with both set. */
+  | { kind: "perUnit"; field: string; per?: string; perDays?: DaySpan; match?: Selector; money?: boolean }
 );
 
 export type MetricKind = MetricSpec["kind"];
+
+/** Days from one date field to another, both ends counted. */
+export interface DaySpan {
+  from: string;
+  to: string;
+}
 
 interface WidgetBase {
   title: string;
@@ -233,7 +246,55 @@ export interface WeekdaySpec extends WidgetBase {
 export interface TrendSpec extends WidgetBase {
   kind: "trend";
   type?: string;
+  /** How many periods to show. */
   months?: number;
+  /** Date field to bucket by (default `date`), and one to fall back to when it is empty. */
+  dateField?: string;
+  fallbackField?: string;
+  /** Filter items with a selector instead of by `type`. */
+  match?: Selector;
+  period?: "month" | "year";
+  /** Sum this field as a plain number instead of the price as money. */
+  valueField?: string;
+}
+
+/** Items ranked by field / per (e.g. price per hour, pages per day). */
+export interface RatioListSpec extends WidgetBase {
+  kind: "ratioList";
+  field: string;
+  per?: string;
+  perDays?: DaySpan;
+  money?: boolean;
+  match?: Selector;
+  dir?: "asc" | "desc";
+  suffix?: string;
+}
+
+/** Items ranked by how far field is from vs (e.g. hours played vs HLTB). */
+export interface DeltaListSpec extends WidgetBase {
+  kind: "deltaList";
+  field: string;
+  vs: string;
+  suffix?: string;
+  /** Color for items below `vs` (barColor is above). */
+  negColor?: string;
+  /** Axis captions for each side. */
+  negLabel?: string;
+  posLabel?: string;
+}
+
+/** Oldest items by a date field, with their age. */
+export interface AgeListSpec extends WidgetBase {
+  kind: "ageList";
+  field: string;
+  match?: Selector;
+}
+
+/** How many years passed between two year/date fields, bucketed. */
+export interface YearGapSpec extends WidgetBase {
+  kind: "yearGap";
+  from: string;
+  to: string;
 }
 
 export interface HeatmapSpec extends WidgetBase {
@@ -251,7 +312,11 @@ export type WidgetSpec =
   | SumBarsSpec
   | WeekdaySpec
   | TrendSpec
-  | HeatmapSpec;
+  | HeatmapSpec
+  | RatioListSpec
+  | DeltaListSpec
+  | AgeListSpec
+  | YearGapSpec;
 
 export interface ShareModule {
   key: string;

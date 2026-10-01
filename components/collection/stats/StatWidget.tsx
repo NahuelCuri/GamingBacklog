@@ -6,6 +6,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { CountUp } from "@/components/ui/CountUp";
 import type { BarRow, PodiumEntry, Widget } from "@/lib/collection";
 import type { WidgetSpec } from "@/lib/collection/types";
+import { DivergingBars } from "./DivergingBars";
 
 const ACC = "var(--accent)";
 const mono = "font-mono";
@@ -60,6 +61,11 @@ function barStyle(spec: WidgetSpec): BarStyle {
       return { ...base, rowGap: "9px", labelWidth: spec.labelWidth || "120px", barColor: spec.barColor || ACC, barOpacity: "1", valWidth: "96px" };
     case "weekday":
       return { ...base, rowGap: "9px", labelWidth: "52px", barColor: spec.barColor || ACC, barOpacity: "1", valWidth: "96px" };
+    case "ratioList":
+    case "ageList":
+      return { ...base, rowGap: "9px", labelWidth: "150px", barColor: spec.barColor || ACC, barOpacity: "1", valWidth: spec.kind === "ratioList" ? "80px" : "60px" };
+    case "yearGap":
+      return { ...base, rowGap: "9px", labelWidth: "84px", barColor: spec.barColor || ACC, barOpacity: "1", valWidth: "32px" };
     default:
       return { ...base, rowGap: "9px", labelWidth: "120px", barColor: ACC, barOpacity: "1", valWidth: "96px" };
   }
@@ -211,6 +217,18 @@ export function StatWidget({ w, onYear }: { w: Widget; onYear?(year: string): vo
         </Card>
       );
     }
+    case "diverging":
+      return (
+        <Card title={w.title}>
+          <DivergingBars
+            rows={w.rows}
+            posColor={w.spec.barColor}
+            negColor={w.spec.negColor}
+            negLabel={w.spec.negLabel}
+            posLabel={w.spec.posLabel}
+          />
+        </Card>
+      );
     case "histogram":
       return (
         <Card title={w.title} mb={18}>

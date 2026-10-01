@@ -50,6 +50,7 @@ Frontend-only migration. Supabase (auth, tables, RLS, `admin_usage` RPC) is alre
    - `lib/collection/*`: types, library (filter, sort, ledger cap, paging, cells), draft, roulette, stats, geo, months. Plus `lib/spending.ts`.
    - `config/collections/*.ts` are generated from the legacy configs. `public/seeds/*.json` hold the seeds.
    - `tests/parity.test.ts` runs the legacy JS in a VM and asserts identical output on every seed. Mutation-checked.
+     Retired after cutover, with `legacy-src/`: new features no longer have to be written twice. The trip model's parity checks became snapshots taken while it still matched.
    - Deliberate differences: currency is passed explicitly instead of via the `window.__CURRENCY` global, builders return data only (styles and handlers move into components), and detail values are always strings.
    - Deferred to phase 4: the share-image and share-card builders (`buildShare` / `buildShareCard`), ported together with their components.
    - Found: no config defines `currency`, so the Expenses currency toggle is currently inert in legacy.

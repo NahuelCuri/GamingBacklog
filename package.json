@@ -8,8 +8,7 @@
     "preview": "next build && node scripts/preview.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint",
-    "extract-legacy": "python scripts/extract-legacy.py"
+    "lint": "eslint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

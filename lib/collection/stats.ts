@@ -1,15 +1,16 @@
 // Stats: summary metrics and the data behind every stats widget. Widgets carry
 // their spec so the component can read presentation options (barColor,
 // compact, …); this module only computes values.
-import { donutFromParts, spend, usd, type MoneyFormat } from "@/lib/spending";
+import { donutFromParts, matchSel, spend, usd, type MoneyFormat } from "@/lib/spending";
 import {
   ACC, MON, SUMMARY_STEPS, bucketColor, dnum, dynColors, fitFont, fmt, heatColor, isoDay, monthKey, monthShort,
   pct, priceOf, primaryKey, ymd,
 } from "./format";
 import { statusMeta } from "./library";
 import type {
-  BarListSpec, ByYearSpec, CollectionConfig, HeatmapSpec, HistogramSpec, Item, MetricSpec, MoneyDonutGroup,
-  MoneyDonutSpec, StatusDonutSpec, SumBarsSpec, TagRatingSpec, TrendSpec, WeekdaySpec, WidgetSpec,
+  AgeListSpec, BarListSpec, ByYearSpec, CollectionConfig, DaySpan, DeltaListSpec, HeatmapSpec, HistogramSpec, Item, MetricSpec,
+  MoneyDonutGroup, MoneyDonutSpec, RatioListSpec, Selector, StatusDonutSpec, SumBarsSpec, TagRatingSpec, TrendSpec,
+  WeekdaySpec, WidgetSpec, YearGapSpec,
 } from "./types";
 
 export interface StatsContext {
@@ -29,6 +30,34 @@ const numbers = (items: Item[], field: string) =>
     .filter((v) => v != null && v !== "")
     .map(Number)
     .filter((n) => !Number.isNaN(n));
+
+/** Items matching `sel` with both fields set to a positive number. */
+const withBoth = (items: Item[], a: string, b: string, sel?: Selector) =>
+  items.filter((x) => matchSel(x, sel) && num(x[a]) > 0 && num(x[b]) > 0);
+
+const sumOf = (items: Item[], field: string) => items.reduce((a, x) => a + num(x[field]), 0);
+
+/** Days from `from` to `to`, both counted (same day = 1); 0 when either is missing or out of order. */
+export function daysBetween(x: Item, span: DaySpan): number {
+  const a = dnum(x[span.from]), b = dnum(x[span.to]);
+  if (!a || !b) return 0;
+  const d = Math.round((b.getTime() - a.getTime()) / 864e5) + 1;
+  return d > 0 ? d : 0;
+}
+
+interface RateSpec {
+  field: string;
+  per?: string;
+  perDays?: DaySpan;
+  match?: Selector;
+}
+
+/** The denominator of a rate: a numeric field or a span of days. */
+const perOf = (x: Item, spec: RateSpec) => (spec.perDays ? daysBetween(x, spec.perDays) : num(x[spec.per!]));
+/** Items matching the rate's selector with a positive numerator and denominator. */
+const rated = (items: Item[], spec: RateSpec) => items.filter((x) => matchSel(x, spec.match) && num(x[spec.field]) > 0 && perOf(x, spec) > 0);
+/** "4.5" under ten, "38" from there. */
+const rateText = (v: number) => (v < 10 ? v.toFixed(1) : fmt(Math.round(v)));
 
 // ---------------------------------------------------------------- metrics
 
@@ -54,7 +83,8 @@ export function metric(cfg: CollectionConfig, items: Item[], spec: MetricSpec, m
     }
     // Values may arrive as numeric strings (imports); coerce so "12" sums, not concatenates.
     case "sum": {
-      const s = numbers(items, spec.field).reduce((a, b) => a + b, 0);
+      let s = numbers(spec.match ? items.filter((x) => matchSel(x, spec.match)) : items, spec.field).reduce((a, b) => a + b, 0);
+      if (spec.divide) s = Math.round(s / spec.divide);
       return { value: fmt(s), num: s };
     }
     case "avg": {
@@ -101,6 +131,26 @@ export function metric(cfg: CollectionConfig, items: Item[], spec: MetricSpec, m
         .reduce((a, b) => a + num(b[pf]), 0);
       return { value: m.money(v), num: v };
     }
+    case "avgDelta": {
+      const l = withBoth(items, spec.field, spec.vs);
+      if (!l.length) return { value: "—", num: 0 };
+      const v = Math.round(((sumOf(l, spec.field) - sumOf(l, spec.vs)) / l.length) * 10) / 10;
+      return { value: (v > 0 ? "+" : "") + v.toFixed(1), num: v };
+    }
+    case "ratio": {
+      const l = withBoth(items, spec.field, spec.over, spec.match);
+      const over = sumOf(l, spec.over);
+      if (!over) return { value: "—", num: 0 };
+      const v = Math.round((sumOf(l, spec.field) / over - 1) * 100);
+      return { value: (v > 0 ? "+" : "") + v + "%", num: v };
+    }
+    case "perUnit": {
+      const l = rated(items, spec);
+      const per = l.reduce((a, x) => a + perOf(x, spec), 0);
+      if (!per) return { value: "—", num: 0 };
+      const v = sumOf(l, spec.field) / per;
+      return { value: spec.money ? m.money2(v) : rateText(v), num: v };
+    }
   }
 }
 
@@ -129,6 +179,11 @@ export interface BarRow {
   rank?: string;
 }
 
+/** A signed bar: `pct` is the share of the half-track, `neg` picks the side. */
+export interface DivergingRow extends BarRow {
+  neg: boolean;
+}
+
 export interface PodiumEntry {
   rank: number;
   title: string;
@@ -148,6 +203,7 @@ export type Widget =
       centerSize: string; year: string; yearOptions: { value: string; label: string }[];
       legend: { color: string; label: string; amount: string }[];
     }
+  | { kind: "diverging"; spec: DeltaListSpec; title: string; rows: DivergingRow[] }
   | { kind: "trend"; spec: TrendSpec; title: string; bars: { label: string; amount: string; pct: string }[]; empty: boolean }
   | {
       kind: "heatmap"; spec: HeatmapSpec; title: string; monthCols: string[];
@@ -235,7 +291,10 @@ export function tagAverages(items: Item[], tagField: string, ratingField: string
   const agg: Record<string, { sum: number; n: number; cnt: number }> = {};
   items.forEach((x) => {
     const r = x[ratingField] as number | null | undefined;
-    ((x[tagField] as string[]) || []).forEach((t) => {
+    const v = x[tagField];
+    // Array fields (tags) count each entry; a plain field (platform) is one tag.
+    const tags = Array.isArray(v) ? (v as string[]) : v == null || String(v).trim() === "" ? [] : [String(v).trim()];
+    tags.forEach((t) => {
       const a = agg[t] || (agg[t] = { sum: 0, n: 0, cnt: 0 });
       a.cnt++;
       if (r != null) {
@@ -356,19 +415,90 @@ function weekday(cfg: CollectionConfig, items: Item[], spec: WeekdaySpec, m: Mon
   return { kind: "barList", spec, title: spec.title, rows, showRank: false, podium: [] };
 }
 
-function trend(cfg: CollectionConfig, items: Item[], spec: TrendSpec, m: MoneyFormat): Widget {
-  const pf = priceOf(cfg), type = spec.type || "expense";
+function trend(cfg: CollectionConfig, items: Item[], spec: TrendSpec, m: MoneyFormat): Widget | null {
+  const pf = spec.valueField || priceOf(cfg), type = spec.type || "expense", df = spec.dateField || "date", yearly = spec.period === "year";
+  const show = spec.valueField ? fmt : m.money;
   const sums: Record<string, number> = {};
-  items
-    .filter((x) => x[cfg.statusField] === type && x.date)
-    .forEach((x) => {
-      const k = monthKey(x.date);
-      sums[k] = (sums[k] || 0) + num(x[pf]);
-    });
+  // With a selector, items without a value add nothing (a year of only free games is no bar).
+  const list = spec.match ? items.filter((x) => matchSel(x, spec.match) && num(x[pf])) : items.filter((x) => x[cfg.statusField] === type);
+  list.forEach((x) => {
+    const d = x[df] || (spec.fallbackField ? x[spec.fallbackField] : "");
+    if (!d) return;
+    const k = yearly ? String(d).slice(0, 4) : monthKey(d);
+    sums[k] = (sums[k] || 0) + num(x[pf]);
+  });
   const keys = Object.keys(sums).sort().slice(-(spec.months || 12));
+  if (spec.hideWhenEmpty && !keys.length) return null;
   const maxV = Math.max(1, ...keys.map((k) => sums[k]));
-  const bars = keys.map((k) => ({ label: monthShort(k), amount: m.money(sums[k]), pct: pct(sums[k], maxV) }));
+  const bars = keys.map((k) => ({ label: yearly ? k : monthShort(k), amount: show(sums[k]), pct: pct(sums[k], maxV) }));
   return { kind: "trend", spec, title: spec.title, bars, empty: !keys.length };
+}
+
+const barRows = (spec: WidgetSpec, rows: BarRow[]): Widget => ({ kind: "barList", spec, title: spec.title, rows, showRank: false, podium: [] });
+
+/** Items ranked by field / per, e.g. what each hour played cost or pages read per day. */
+function ratioList(cfg: CollectionConfig, items: Item[], spec: RatioListSpec, m: MoneyFormat): Widget | null {
+  const primary = primaryKey(cfg);
+  const list = rated(items, spec)
+    .map((x) => ({ x, r: num(x[spec.field]) / perOf(x, spec) }))
+    .sort((a, b) => (spec.dir === "desc" ? b.r - a.r : a.r - b.r))
+    .slice(0, spec.top || 8);
+  if (spec.hideWhenEmpty && !list.length) return null;
+  const maxV = Math.max(0, ...list.map((l) => l.r)) || 1;
+  return barRows(spec, list.map((l) => ({ label: String(l.x[primary] ?? ""), val: (spec.money ? m.money2(l.r) : rateText(l.r)) + (spec.suffix || ""), pct: pct(l.r, maxV) })));
+}
+
+/** Items furthest from a reference value, e.g. hours played vs. HowLongToBeat. */
+function deltaList(cfg: CollectionConfig, items: Item[], spec: DeltaListSpec): Widget | null {
+  const primary = primaryKey(cfg);
+  const list = withBoth(items, spec.field, spec.vs)
+    .map((x) => ({ x, d: Math.round((num(x[spec.field]) - num(x[spec.vs])) * 10) / 10 }))
+    .filter((l) => l.d !== 0)
+    .sort((a, b) => Math.abs(b.d) - Math.abs(a.d))
+    .slice(0, spec.top || 8);
+  if (spec.hideWhenEmpty && !list.length) return null;
+  const maxV = Math.max(0, ...list.map((l) => Math.abs(l.d))) || 1;
+  const rows = list.map((l) => ({
+    label: String(l.x[primary] ?? ""), val: (l.d > 0 ? "+" : "") + l.d + (spec.suffix || ""), pct: pct(Math.abs(l.d), maxV), neg: l.d < 0,
+  }));
+  return { kind: "diverging", spec, title: spec.title, rows };
+}
+
+/** "2y 3m", "2y", "5m" */
+const ageLabel = (months: number) => (months < 12 ? months + "m" : Math.floor(months / 12) + "y" + (months % 12 ? " " + (months % 12) + "m" : ""));
+
+/** Oldest items by a date field, with how long ago that was. */
+function ageList(cfg: CollectionConfig, items: Item[], spec: AgeListSpec, now: Date): Widget | null {
+  const primary = primaryKey(cfg);
+  const list = items
+    .filter((x) => matchSel(x, spec.match) && dnum(x[spec.field]))
+    .sort((a, b) => (ymd(a[spec.field]) < ymd(b[spec.field]) ? -1 : ymd(a[spec.field]) > ymd(b[spec.field]) ? 1 : 0))
+    .slice(0, spec.top || 8)
+    .map((x) => {
+      const d = dnum(x[spec.field])!;
+      const mo = (now.getFullYear() - d.getFullYear()) * 12 + now.getMonth() - d.getMonth() - (now.getDate() < d.getDate() ? 1 : 0);
+      return { x, mo: Math.max(0, mo) };
+    });
+  if (spec.hideWhenEmpty && !list.length) return null;
+  const maxV = Math.max(1, ...list.map((l) => l.mo));
+  return barRows(spec, list.map((l) => ({ label: String(l.x[primary] ?? ""), val: ageLabel(l.mo), pct: pct(l.mo, maxV) })));
+}
+
+const GAP_BUCKETS: [string, number, number][] = [
+  ["Same year", 0, 0], ["1 year", 1, 1], ["2–3 years", 2, 3], ["4–6 years", 4, 6], ["7+ years", 7, Infinity],
+];
+
+/** Years between two year/date fields, bucketed, e.g. release → completion. */
+function yearGap(items: Item[], spec: YearGapSpec): Widget | null {
+  const counts = GAP_BUCKETS.map(() => 0);
+  items.forEach((x) => {
+    const a = parseInt(String(x[spec.from] ?? "").slice(0, 4), 10), b = parseInt(String(x[spec.to] ?? "").slice(0, 4), 10);
+    if (Number.isNaN(a) || Number.isNaN(b) || b < a) return;
+    counts[GAP_BUCKETS.findIndex(([, lo, hi]) => b - a >= lo && b - a <= hi)]++;
+  });
+  if (spec.hideWhenEmpty && !counts.some(Boolean)) return null;
+  const maxV = Math.max(1, ...counts);
+  return barRows(spec, GAP_BUCKETS.map(([label], i) => ({ label, val: String(counts[i]), pct: pct(counts[i], maxV) })));
 }
 
 /** GitHub-style calendar of daily expense, ending on the week of the latest entry. */
@@ -423,6 +553,10 @@ export function buildWidget(cfg: CollectionConfig, items: Item[], spec: WidgetSp
     case "tagRating": return tagRating(cfg, items, spec);
     case "statusDonut": return statusDonut(cfg, items, spec, ctx);
     case "moneyDonut": return moneyDonut(cfg, items, spec, ctx);
+    case "ratioList": return ratioList(cfg, items, spec, m);
+    case "deltaList": return deltaList(cfg, items, spec);
+    case "ageList": return ageList(cfg, items, spec, now);
+    case "yearGap": return yearGap(items, spec);
   }
 }
 

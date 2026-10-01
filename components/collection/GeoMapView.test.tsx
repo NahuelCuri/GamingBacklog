@@ -8,7 +8,7 @@ import type { Item } from "@/lib/collection/types";
 import { DEFAULT_URL_STATE } from "@/lib/collection/url-state";
 import { initialCollectionState } from "@/lib/data/collection-state";
 import { usd } from "@/lib/spending";
-import { seed } from "@/tests/legacy";
+import { seed } from "@/tests/seeds";
 import { CollectionContext, type CollectionCtx } from "./CollectionContext";
 import { GeoMapView } from "./GeoMapView";
 
