@@ -1,6 +1,7 @@
 // Trip Planner data model and pure logic, ported from legacy-src/Trip Planner.dc.html.
 // Trips and cards are stored as-is in the shared `trips` / `trip_cards` tables
 // (row.data), so the shapes below must stay compatible with legacy.
+import { dateFormat, numberFormat } from "@/lib/intl";
 
 export interface Companion {
   initial: string;
@@ -92,14 +93,15 @@ export const statusDotColor = (v: unknown) => {
 export function money(n: unknown, cur?: string): string {
   if (n == null || n === "") return "";
   const c = cur || "$";
-  return c === "$" ? "$" + Number(n).toLocaleString() : c + " " + Number(n).toLocaleString();
+  const v = numberFormat(undefined).format(Number(n));
+  return c === "$" ? "$" + v : c + " " + v;
 }
 
 export function fmtRange(a: string, b: string): string {
   const A = new Date(a + "T00:00"), B = new Date(b + "T00:00");
   if (isNaN(+A) || isNaN(+B)) return "Dates TBD";
-  const o: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  return A.toLocaleDateString(undefined, o) + " – " + B.toLocaleDateString(undefined, o);
+  const f = dateFormat(undefined, { month: "short", day: "numeric" });
+  return f.format(A) + " – " + f.format(B);
 }
 
 export const tripRange = (t: Trip) => (t.start && t.end ? fmtRange(t.start, t.end) : "Dates TBD");
@@ -110,7 +112,7 @@ export function dayHint(t: Trip, d: number): string {
   const base = new Date(t.start + "T00:00");
   if (isNaN(+base)) return "unscheduled";
   const dt = new Date(base.getTime() + (d - 1) * 86400000);
-  return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return dateFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(dt);
 }
 
 export const tripCards = (cards: TripCard[], tripId: string | null) => cards.filter((c) => c.trip === tripId);

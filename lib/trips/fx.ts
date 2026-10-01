@@ -1,5 +1,6 @@
 // Currency quick-convert for the Trip Planner (Cards tab), from legacy.
 // Rates from open.er-api.com; the chosen pair is remembered per device.
+import { numberFormat } from "@/lib/intl";
 
 export const FX_CCY = [
   { c: "USD", n: "US Dollar", s: "$" }, { c: "EUR", n: "Euro", s: "€" }, { c: "GBP", n: "British Pound", s: "£" }, { c: "JPY", n: "Japanese Yen", s: "¥" },
@@ -54,6 +55,6 @@ export async function fetchFx(from: string, to: string, get: typeof fetch = fetc
 }
 
 export const nfx = (v: number | null | undefined, dec: number) =>
-  v == null || isNaN(v) ? "—" : Number(v).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  v == null || isNaN(v) ? "—" : numberFormat(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(Number(v));
 
 export const rateLine = (from: string, to: string, rate: number) => "1 " + from + " = " + nfx(rate, rate < 1 ? 6 : 4) + " " + to;

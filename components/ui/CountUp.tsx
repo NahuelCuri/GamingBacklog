@@ -3,6 +3,7 @@
 // A formatted number ("142", "$1,234", "64%", "8.4") that counts up from its
 // previous value (0 on mount). Anything else, or reduced motion, renders as is.
 import { useLayoutEffect, useRef } from "react";
+import { numberFormat } from "@/lib/intl";
 import { reducedMotion } from "@/lib/motion";
 
 /** Short symbol prefix, the number, then a suffix without letters (so nothing needs translating). */
@@ -25,8 +26,9 @@ function parse(text: string): Parsed | null {
 }
 
 function format(p: Parsed, v: number) {
+  // This runs on every animation frame, so the formatter has to be a cached one.
   const body = p.grouped
-    ? v.toLocaleString("en-US", { minimumFractionDigits: p.dec, maximumFractionDigits: p.dec })
+    ? numberFormat("en-US", { minimumFractionDigits: p.dec, maximumFractionDigits: p.dec }).format(v)
     : v.toFixed(p.dec);
   return p.pre + body + p.post;
 }

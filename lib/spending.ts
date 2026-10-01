@@ -1,6 +1,7 @@
 // Shared price / spending math, ported from legacy-src/spending.js.
 // Base amounts are always stored in USD. The display currency is passed in
 // explicitly (legacy used a mutable window.__CURRENCY global).
+import { numberFormat } from "@/lib/intl";
 import type { Item, Selector } from "@/lib/collection/types";
 
 export interface Currency {
@@ -32,12 +33,12 @@ export function moneyFormat(cur: Currency = USD): MoneyFormat {
   return {
     money: (n) => {
       const v = Math.round((Number(n) || 0) * rate);
-      return signed(v, Math.abs(v).toLocaleString("en-US"));
+      return signed(v, numberFormat("en-US").format(Math.abs(v)));
     },
     money2: (n) => {
       if (n == null || n === "") return "—";
       const v = Math.round((Number(n) || 0) * rate * 100) / 100;
-      return signed(v, Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      return signed(v, numberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(v)));
     },
   };
 }

@@ -1,9 +1,10 @@
 // Small pure helpers shared by every collection (legacy-src/collection-lib.js).
+import { numberFormat } from "@/lib/intl";
 import type { CollectionConfig, Cond, Item } from "./types";
 
 export const ACC = "var(--accent)";
 
-export const fmt = (n: unknown) => Number(n).toLocaleString("en-US");
+export const fmt = (n: unknown) => numberFormat("en-US").format(Number(n));
 
 export const isEmpty = (v: unknown) => v == null || v === "";
 
