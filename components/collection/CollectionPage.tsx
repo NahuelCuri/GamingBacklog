@@ -2,6 +2,7 @@
 
 // Collection route: loads the data, owns the URL-synced view and filters, and
 // hosts the header, the active tab, the add/edit form and the library switcher.
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { useCollectionTheme } from "@/components/shell/useCollectionTheme";
@@ -19,7 +20,6 @@ import { hasView } from "@/lib/collection/url-state";
 import { useUrlState } from "@/lib/hooks/useUrlState";
 import { CollectionContext, type CollectionCtx } from "./CollectionContext";
 import { CollectionHeader } from "./CollectionHeader";
-import { GeoMapView } from "./GeoMapView";
 import { ItemModal, type ModalState } from "./ItemModal";
 import { LibraryFab } from "./LibraryFab";
 import { LibraryView } from "./LibraryView";
@@ -28,6 +28,10 @@ import { RouletteView } from "./RouletteView";
 import { ShareCardDialog } from "./share/ShareCardDialog";
 import { ShareImageDialog } from "./share/ShareImageDialog";
 import { StatsView } from "./stats/StatsView";
+
+// Only wines has a map, and it pulls in d3. Keeping it out of the page bundle
+// means every other library stops downloading it.
+const GeoMapView = dynamic(() => import("./GeoMapView").then((m) => m.GeoMapView), { ssr: false });
 
 export function CollectionPage({ collection }: { collection: CollectionKey }) {
   useCollectionTheme(collection);
