@@ -162,6 +162,9 @@ window.GAMES_CONFIG = {
       { kind: 'avg', field: 'score', label: 'Avg score' },
       { kind: 'boolCount', field: 'owned', label: 'Owned' },
       { kind: 'completion', status: 'played', label: 'Completion', accent: true },
+      { kind: 'sum', field: 'hltb', match: { field: 'status', eq: 'backlog' }, label: 'Backlog hours' },
+      { kind: 'ratio', field: 'hours', over: 'hltb', label: 'Pace vs HLTB' },
+      { kind: 'perUnit', field: 'price', per: 'hours', match: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, label: 'Cost / hour' },
     ],
     // library strip (compact one-liners under the toolbar)
     strip: [
@@ -172,6 +175,7 @@ window.GAMES_CONFIG = {
       { kind: 'sum', field: 'hours', label: 'hrs' },
       { kind: 'avg', field: 'score', label: 'avg score' },
       { kind: 'completion', status: 'played', label: 'done' },
+      { kind: 'sum', field: 'hltb', match: { field: 'status', eq: 'backlog' }, label: 'backlog hrs' },
       { kind: 'moneySum', field: 'price', match: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, label: 'spent', color: 'var(--accent,#9ce6b0)', accent: true },
       { kind: 'moneySum', field: 'price', match: { field: 'platform', notIn: ['GamePass'] }, label: 'without piracy', color: 'oklch(0.74 0.1 85)' },
       { kind: 'moneySum', field: 'price', match: { field: 'platform', eq: 'Pirated' }, label: 'saved pirating', color: 'oklch(0.66 0.13 25)' },
@@ -180,8 +184,12 @@ window.GAMES_CONFIG = {
     left: [
       { kind: 'barList', title: 'Highest rated', field: 'score', dir: 'desc', top: 10, podium: true, barColor: 'var(--accent,#9ce6b0)', valColor: 'var(--accent,#9ce6b0)', scale: 10 },
       { kind: 'barList', title: 'Most played · hours', field: 'hours', dir: 'desc', top: 8, barColor: '#5b9e73', valColor: 'var(--text2,#c8d6cb)', suffix: 'h' },
+      { kind: 'deltaList', title: 'Hours vs HLTB · biggest gaps', field: 'hours', vs: 'hltb', top: 8, suffix: 'h', barColor: 'oklch(0.74 0.1 85)', negColor: 'var(--accent,#9ce6b0)', negLabel: 'finished faster', posLabel: 'took longer', hideWhenEmpty: true },
       { kind: 'barList', title: 'Priciest · cost', field: 'price', dir: 'desc', top: 8, barColor: 'oklch(0.74 0.1 85)', valColor: 'oklch(0.8 0.09 85)', money2: true, hideWhenEmpty: true },
+      { kind: 'ratioList', title: 'Best value · cost per hour', field: 'price', per: 'hours', match: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, dir: 'asc', top: 8, suffix: '/h', barColor: 'oklch(0.74 0.1 85)', valColor: 'oklch(0.8 0.09 85)', hideWhenEmpty: true },
       { kind: 'histogram', title: 'Score distribution', field: 'score', buckets: 10 },
+      { kind: 'tagRating', title: 'Top tags by rating', minCount: 2, top: 8, barColor: 'var(--accent,#9ce6b0)', valColor: 'var(--accent,#9ce6b0)', hideWhenEmpty: true },
+      { kind: 'yearGap', title: 'Played after release', from: 'releaseDate', to: 'yearCompleted', barColor: '#7fb894', valColor: 'var(--muted,#8b938d)', hideWhenEmpty: true },
     ],
     right: [
       { kind: 'statusDonut', title: 'Library status', center: { status: 'played', label: 'done' },
@@ -190,13 +198,16 @@ window.GAMES_CONFIG = {
           { status: 'playing', color: '{accent}',             legendColor: '{accent}' },
           { status: 'backlog', color: 'var(--we)', legendColor: 'var(--wk)' },
         ] },
+      { kind: 'ageList', title: 'Longest in backlog', field: 'purchaseDate', match: { field: 'status', eq: 'backlog' }, top: 6, barColor: 'oklch(0.66 0.13 25)', valColor: 'var(--text2,#c8d6cb)', hideWhenEmpty: true },
       { kind: 'moneyDonut', title: 'Spending', field: 'price', groups: [
           { label: 'Bought', match: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, color: 'oklch(0.74 0.1 85)' },
           { label: 'Pirated', match: { field: 'platform', eq: 'Pirated' }, color: 'oklch(0.66 0.13 25)' },
           { label: 'Game Pass', match: { field: 'platform', eq: 'GamePass' }, color: 'oklch(0.68 0.14 155)' },
         ], centerMatch: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, yearFilter: 'purchaseDate', yearFallback: 'yearCompleted' },
+      { kind: 'trend', title: 'Spending by year', dateField: 'purchaseDate', fallbackField: 'yearCompleted', match: { field: 'platform', notIn: ['GamePass', 'Pirated'] }, period: 'year', months: 10, barColor: 'oklch(0.74 0.1 85)', hideWhenEmpty: true },
       { kind: 'barList', title: 'Top tags', field: '#tags', top: 8, barColor: 'var(--accent,#9ce6b0)', barOpacity: '.85', valColor: 'var(--muted,#8b938d)', compact: true },
       { kind: 'barList', title: 'Platforms', field: '#platform', top: 6, barColor: '#7fb894', valColor: 'var(--muted,#8b938d)', compact: true },
+      { kind: 'tagRating', title: 'Platforms by rating', tag: 'platform', top: 6, barColor: '#7fb894', valColor: 'var(--accent,#9ce6b0)', hideWhenEmpty: true },
       { kind: 'byYear', title: 'Completed by year', field: 'yearCompleted' },
     ],
     // share-image module toggles (key must match a builder module below)

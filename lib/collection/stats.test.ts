@@ -72,3 +72,71 @@ describe("metrics with numbers stored as text", () => {
     expect(metric(cfg, items, avg).value).toBe("7.0");
   });
 });
+
+describe("games time and value stats", () => {
+  const cfg = COLLECTIONS.games;
+  const items: Item[] = [
+    { id: "a", title: "A", status: "played", platform: "Steam", price: 20, hours: 40, hltb: 30, purchaseDate: "2024-03-10", releaseDate: "2020-01-01", yearCompleted: "2024" },
+    { id: "b", title: "B", status: "played", platform: "Steam", price: 30, hours: 10, hltb: 10, purchaseDate: "2025-05-01", releaseDate: "2025-02-01", yearCompleted: "2025", score: 9 },
+    { id: "c", title: "C", status: "played", platform: "GamePass", price: 70, hours: 5, hltb: 15, releaseDate: "2023-01-01", yearCompleted: "2024", score: 7 },
+    { id: "d", title: "D", status: "backlog", platform: "Steam", price: 15, hltb: 25, purchaseDate: "2023-01-20" },
+    { id: "e", title: "E", status: "backlog", platform: "Pirated", price: 60, hltb: 12, purchaseDate: "2025-12-01" },
+  ];
+  const now = new Date(2026, 9, 1);
+  const widget = (title: string) => {
+    const spec = [...cfg.stats.left, ...cfg.stats.right].find((w) => w.title === title)!;
+    const w = buildWidget(cfg, items, spec, { accent: "#9ce6b0" }, now);
+    if (w?.kind !== "barList" && w?.kind !== "trend" && w?.kind !== "diverging") throw new Error("unexpected widget " + w?.kind);
+    return w;
+  };
+  const rows = (title: string) => {
+    const w = widget(title);
+    if (w.kind !== "barList" && w.kind !== "diverging") throw new Error("expected bar rows");
+    return w.rows.map((r) => [r.label, r.val]);
+  };
+  const summary = (label: string) => metric(cfg, items, cfg.stats.summary.find((s) => s.label === label)!).value;
+
+  it("summarises backlog hours, pace and cost per hour", () => {
+    expect(summary("Backlog hours")).toBe("37");
+    // 55h played over 55h HLTB
+    expect(summary("Pace vs HLTB")).toBe("0%");
+    // paid games with hours: $50 over 50h; Game Pass is left out
+    expect(summary("Cost / hour")).toBe("$1.00");
+  });
+
+  it("ranks games by hours over HLTB and by cost per hour", () => {
+    expect(rows("Hours vs HLTB · biggest gaps")).toEqual([["A", "+10h"], ["C", "-10h"]]);
+    const gaps = widget("Hours vs HLTB · biggest gaps");
+    if (gaps.kind !== "diverging") throw new Error("expected diverging bars");
+    expect(gaps.rows.map((r) => [r.neg, r.pct])).toEqual([[false, "100%"], [true, "100%"]]);
+    expect(rows("Best value · cost per hour")).toEqual([["A", "$0.50/h"], ["B", "$3.00/h"]]);
+  });
+
+  it("ages the backlog from the purchase date", () => {
+    expect(rows("Longest in backlog")).toEqual([["D", "3y 8m"], ["E", "10m"]]);
+  });
+
+  it("buckets years between release and completion", () => {
+    expect(rows("Played after release")).toEqual([["Same year", "1"], ["1 year", "1"], ["2–3 years", "0"], ["4–6 years", "1"], ["7+ years", "0"]]);
+  });
+
+  it("rates platforms, a plain field, like tags", () => {
+    expect(rows("Platforms by rating")).toEqual([["Steam · 3", "★9.0"], ["GamePass · 1", "★7.0"]]);
+  });
+
+  it("spends by purchase year, falling back to the year completed, paid games only", () => {
+    const w = widget("Spending by year");
+    if (w.kind !== "trend") throw new Error("expected a trend");
+    expect(w.bars.map((b) => [b.label, b.amount])).toEqual([["2023", "$15"], ["2024", "$20"], ["2025", "$30"]]);
+  });
+});
+
+describe("ratio metrics without data", () => {
+  it("show a dash instead of zero", () => {
+    const cfg = COLLECTIONS.games;
+    const items: Item[] = [{ id: "a", platform: "Steam", hours: 10 }];
+    const value = (label: string) => metric(cfg, items, cfg.stats.summary.find((s) => s.label === label)!).value;
+    expect(value("Cost / hour")).toBe("—");
+    expect(value("Pace vs HLTB")).toBe("—");
+  });
+});

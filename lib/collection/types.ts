@@ -134,7 +134,7 @@ export type MetricSpec = {
   | { kind: "count" }
   | { kind: "statusCount"; status: string }
   | { kind: "boolCount"; field: string }
-  | { kind: "sum"; field: string }
+  | { kind: "sum"; field: string; match?: Selector }
   | { kind: "avg"; field: string }
   | { kind: "completion"; status: string }
   | { kind: "moneySum"; field?: string; match?: Selector; bool?: string }
@@ -143,6 +143,10 @@ export type MetricSpec = {
   | { kind: "avgPerDay" }
   | { kind: "maxAmount" }
   | { kind: "accountSum"; account?: string; exclude?: string[] }
+  /** Σfield / Σover − 1 as a signed percent, over items with both set. */
+  | { kind: "ratio"; field: string; over: string; match?: Selector }
+  /** Σfield / Σper as money, over items with both set. */
+  | { kind: "perUnit"; field: string; per: string; match?: Selector }
 );
 
 export type MetricKind = MetricSpec["kind"];
@@ -233,7 +237,51 @@ export interface WeekdaySpec extends WidgetBase {
 export interface TrendSpec extends WidgetBase {
   kind: "trend";
   type?: string;
+  /** How many periods to show. */
   months?: number;
+  /** Date field to bucket by (default `date`), and one to fall back to when it is empty. */
+  dateField?: string;
+  fallbackField?: string;
+  /** Filter items with a selector instead of by `type`. */
+  match?: Selector;
+  period?: "month" | "year";
+}
+
+/** Items ranked by field / per (e.g. price per hour). */
+export interface RatioListSpec extends WidgetBase {
+  kind: "ratioList";
+  field: string;
+  per: string;
+  match?: Selector;
+  dir?: "asc" | "desc";
+  suffix?: string;
+}
+
+/** Items ranked by how far field is from vs (e.g. hours played vs HLTB). */
+export interface DeltaListSpec extends WidgetBase {
+  kind: "deltaList";
+  field: string;
+  vs: string;
+  suffix?: string;
+  /** Color for items below `vs` (barColor is above). */
+  negColor?: string;
+  /** Axis captions for each side. */
+  negLabel?: string;
+  posLabel?: string;
+}
+
+/** Oldest items by a date field, with their age. */
+export interface AgeListSpec extends WidgetBase {
+  kind: "ageList";
+  field: string;
+  match?: Selector;
+}
+
+/** How many years passed between two year/date fields, bucketed. */
+export interface YearGapSpec extends WidgetBase {
+  kind: "yearGap";
+  from: string;
+  to: string;
 }
 
 export interface HeatmapSpec extends WidgetBase {
@@ -251,7 +299,11 @@ export type WidgetSpec =
   | SumBarsSpec
   | WeekdaySpec
   | TrendSpec
-  | HeatmapSpec;
+  | HeatmapSpec
+  | RatioListSpec
+  | DeltaListSpec
+  | AgeListSpec
+  | YearGapSpec;
 
 export interface ShareModule {
   key: string;

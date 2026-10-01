@@ -258,6 +258,12 @@ export const games: CollectionConfig = {
       { kind: "avg", field: "score", label: "Avg score" },
       { kind: "boolCount", field: "owned", label: "Owned" },
       { kind: "completion", status: "played", label: "Completion", accent: true },
+      // HowLongToBeat hours still ahead in the backlog.
+      { kind: "sum", field: "hltb", match: { field: "status", eq: "backlog" }, label: "Backlog hours" },
+      // Hours played against HLTB across games with both: "+12%" is slower than average.
+      { kind: "ratio", field: "hours", over: "hltb", label: "Pace vs HLTB" },
+      // What each hour cost, over games actually paid for.
+      { kind: "perUnit", field: "price", per: "hours", match: { field: "platform", notIn: ["GamePass", "Pirated"] }, label: "Cost / hour" },
     ],
     strip: [
       { kind: "count", label: "games" },
@@ -267,6 +273,7 @@ export const games: CollectionConfig = {
       { kind: "sum", field: "hours", label: "hrs" },
       { kind: "avg", field: "score", label: "avg score" },
       { kind: "completion", status: "played", label: "done" },
+      { kind: "sum", field: "hltb", match: { field: "status", eq: "backlog" }, label: "backlog hrs" },
       // What was actually paid, what it would have been without piracy, and
       // what piracy and Game Pass saved.
       {
@@ -322,6 +329,19 @@ export const games: CollectionConfig = {
         suffix: "h",
       },
       {
+        kind: "deltaList",
+        title: "Hours vs HLTB · biggest gaps",
+        field: "hours",
+        vs: "hltb",
+        top: 8,
+        suffix: "h",
+        barColor: "oklch(0.74 0.1 85)",
+        negColor: "var(--accent,#9ce6b0)",
+        negLabel: "finished faster",
+        posLabel: "took longer",
+        hideWhenEmpty: true,
+      },
+      {
         kind: "barList",
         title: "Priciest · cost",
         field: "price",
@@ -332,7 +352,38 @@ export const games: CollectionConfig = {
         money2: true,
         hideWhenEmpty: true,
       },
+      {
+        kind: "ratioList",
+        title: "Best value · cost per hour",
+        field: "price",
+        per: "hours",
+        match: { field: "platform", notIn: ["GamePass", "Pirated"] },
+        dir: "asc",
+        top: 8,
+        suffix: "/h",
+        barColor: "oklch(0.74 0.1 85)",
+        valColor: "oklch(0.8 0.09 85)",
+        hideWhenEmpty: true,
+      },
       { kind: "histogram", title: "Score distribution", field: "score", buckets: 10 },
+      {
+        kind: "tagRating",
+        title: "Top tags by rating",
+        minCount: 2,
+        top: 8,
+        barColor: "var(--accent,#9ce6b0)",
+        valColor: "var(--accent,#9ce6b0)",
+        hideWhenEmpty: true,
+      },
+      {
+        kind: "yearGap",
+        title: "Played after release",
+        from: "releaseDate",
+        to: "yearCompleted",
+        barColor: "#7fb894",
+        valColor: "var(--muted,#8b938d)",
+        hideWhenEmpty: true,
+      },
     ],
     right: [
       {
@@ -344,6 +395,16 @@ export const games: CollectionConfig = {
           { status: "playing", color: "{accent}", legendColor: "{accent}" },
           { status: "backlog", color: "var(--we)", legendColor: "var(--wk)" },
         ],
+      },
+      {
+        kind: "ageList",
+        title: "Longest in backlog",
+        field: "purchaseDate",
+        match: { field: "status", eq: "backlog" },
+        top: 6,
+        barColor: "oklch(0.66 0.13 25)",
+        valColor: "var(--text2,#c8d6cb)",
+        hideWhenEmpty: true,
       },
       {
         kind: "moneyDonut",
@@ -373,6 +434,17 @@ export const games: CollectionConfig = {
         yearFallback: "yearCompleted",
       },
       {
+        kind: "trend",
+        title: "Spending by year",
+        dateField: "purchaseDate",
+        fallbackField: "yearCompleted",
+        match: { field: "platform", notIn: ["GamePass", "Pirated"] },
+        period: "year",
+        months: 10,
+        barColor: "oklch(0.74 0.1 85)",
+        hideWhenEmpty: true,
+      },
+      {
         kind: "barList",
         title: "Top tags",
         field: "#tags",
@@ -390,6 +462,15 @@ export const games: CollectionConfig = {
         barColor: "#7fb894",
         valColor: "var(--muted,#8b938d)",
         compact: true,
+      },
+      {
+        kind: "tagRating",
+        title: "Platforms by rating",
+        tag: "platform",
+        top: 6,
+        barColor: "#7fb894",
+        valColor: "var(--accent,#9ce6b0)",
+        hideWhenEmpty: true,
       },
       { kind: "byYear", title: "Completed by year", field: "yearCompleted" },
     ],

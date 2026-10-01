@@ -196,6 +196,8 @@ describe.each(KEYS)("%s", (key: CollectionKey) => {
 function comparable(w: Widget): unknown {
   switch (w.kind) {
     case "barList": return { kind: w.kind, title: w.title, rows: w.rows, showRank: w.showRank, podium: w.podium };
+    // Legacy draws signed rows as a plain bar list.
+    case "diverging": return { kind: "barList", title: w.title, rows: w.rows.map(({ neg: _n, ...r }) => r), showRank: false, podium: [] };
     case "histogram": case "byYear": return { kind: w.kind, title: w.title, bars: w.bars };
     case "statusDonut": return { kind: w.kind, title: w.title, donut: w.donut, center: [w.centerValue, w.centerLabel], legend: w.legend };
     case "moneyDonut":

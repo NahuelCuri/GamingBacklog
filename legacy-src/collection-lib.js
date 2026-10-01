@@ -494,7 +494,7 @@
     if (spec.kind === 'count') return { value: fmt(total), num: total };
     if (spec.kind === 'statusCount') { const n = items.filter(x => x[cfg.statusField] === spec.status).length; return { value: fmt(n), num: n }; }
     if (spec.kind === 'boolCount') { const n = items.filter(x => x[spec.field]).length; return { value: fmt(n), num: n }; }
-    if (spec.kind === 'sum') { const s = items.map(x => x[spec.field]).filter(v => v != null).reduce((a, b) => a + b, 0); return { value: fmt(s), num: s }; }
+    if (spec.kind === 'sum') { const s = (spec.match ? items.filter(x => S.matchSel(x, spec.match)) : items).map(x => x[spec.field]).filter(v => v != null).reduce((a, b) => a + b, 0); return { value: fmt(s), num: s }; }
     if (spec.kind === 'avg') { const a = items.map(x => x[spec.field]).filter(v => v != null); const v = a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0; return { value: v.toFixed(1), num: v }; }
     if (spec.kind === 'completion') { const n = items.filter(x => x[cfg.statusField] === spec.status).length; const v = total ? Math.round(n / total * 100) : 0; return { value: v + '%', num: v }; }
     if (spec.kind === 'moneySum') { const s = S.spend(items, spec.match || spec.bool || 'all', (cfg.fields && cfg.fields.price) || 'price'); return { value: S.money(s), num: s }; }
@@ -512,6 +512,16 @@
       const ex = spec.exclude || [];
       const v = items.filter(x => x[sf] === 'transfer' && (spec.account ? x[af] === spec.account : (x[af] && x[af] !== 'None' && !ex.includes(x[af])))).reduce((a, b) => a + (Number(b[pf]) || 0), 0);
       return { value: S.money(v), num: v };
+    }
+    // ratio: Σfield / Σover − 1 as a signed percent; perUnit: Σfield / Σper as money.
+    // Both only over items with the two fields set.
+    if (spec.kind === 'ratio' || spec.kind === 'perUnit') {
+      const b = spec.over || spec.per;
+      const l = items.filter(x => S.matchSel(x, spec.match) && (Number(x[spec.field]) || 0) > 0 && (Number(x[b]) || 0) > 0);
+      const sa = l.reduce((a, x) => a + Number(x[spec.field]), 0), sb = l.reduce((a, x) => a + Number(x[b]), 0);
+      if (!sb) return { value: '—', num: 0 };
+      if (spec.kind === 'ratio') { const v = Math.round((sa / sb - 1) * 100); return { value: (v > 0 ? '+' : '') + v + '%', num: v }; }
+      const v = sa / sb; return { value: S.money2(v), num: v };
     }
     return { value: '—', num: 0 };
   }
@@ -592,7 +602,9 @@
     const rf = spec.field || (cfg.fields && cfg.fields.score) || 'score';
     const scale = spec.scale || 10, minCount = spec.minCount || 1;
     const agg = {};
-    items.forEach(x => { const r = x[rf]; (x[tf] || []).forEach(t => { const a = agg[t] || (agg[t] = { sum: 0, n: 0, cnt: 0 }); a.cnt++; if (r != null) { a.sum += r; a.n++; } }); });
+    // Array fields (tags) count each entry; a plain field (platform) is one tag.
+    const tagsOf = v => Array.isArray(v) ? v : (v == null || String(v).trim() === '' ? [] : [String(v).trim()]);
+    items.forEach(x => { const r = x[rf]; tagsOf(x[tf]).forEach(t => { const a = agg[t] || (agg[t] = { sum: 0, n: 0, cnt: 0 }); a.cnt++; if (r != null) { a.sum += r; a.n++; } }); });
     const rows = Object.keys(agg).filter(t => agg[t].cnt >= minCount && agg[t].n > 0)
       .map(t => ({ t, avg: agg[t].sum / agg[t].n, cnt: agg[t].cnt }))
       .sort((a, b) => b.avg - a.avg || b.cnt - a.cnt).slice(0, spec.top || 8)
@@ -688,14 +700,75 @@
   }
 
   // Monthly spend trend (bars with month labels).
+  // Optional: dateField/fallbackField to bucket by, match instead of type, period 'year'.
   function trendBarsWidget(cfg, items, spec) {
-    const S = SS(), pf = priceOf(cfg), sf = cfg.statusField, type = spec.type || 'expense';
+    const S = SS(), pf = priceOf(cfg), sf = cfg.statusField, type = spec.type || 'expense', df = spec.dateField || 'date', yearly = spec.period === 'year';
     const sums = {};
-    items.filter(x => x[sf] === type && x.date).forEach(x => { const k = monthKey(x.date); sums[k] = (sums[k] || 0) + (Number(x[pf]) || 0); });
+    const list = spec.match ? items.filter(x => S.matchSel(x, spec.match) && (Number(x[pf]) || 0)) : items.filter(x => x[sf] === type);
+    list.forEach(x => {
+      const d = x[df] || (spec.fallbackField ? x[spec.fallbackField] : '');
+      if (!d) return;
+      const k = yearly ? String(d).slice(0, 4) : monthKey(d);
+      sums[k] = (sums[k] || 0) + (Number(x[pf]) || 0);
+    });
     const keys = Object.keys(sums).sort().slice(-(spec.months || 12));
+    if (spec.hideWhenEmpty && !keys.length) return null;
     const maxV = Math.max(1, ...keys.map(k => sums[k]));
-    const bars = keys.map(k => ({ label: monthShort(k), amount: S.money(sums[k]), pct: Math.round(sums[k] / maxV * 100) + '%' }));
+    const bars = keys.map(k => ({ label: yearly ? k : monthShort(k), amount: S.money(sums[k]), pct: Math.round(sums[k] / maxV * 100) + '%' }));
     return { kind: 'trend', isTrend: true, title: spec.title, bars, barColor: spec.barColor || ACC, empty: !keys.length };
+  }
+
+  const primaryOf = cfg => (cfg.table.columns.find(c => c.primary) || {}).key || 'title';
+  const both = (items, a, b, sel) => items.filter(x => SS().matchSel(x, sel) && (Number(x[a]) || 0) > 0 && (Number(x[b]) || 0) > 0);
+
+  // Items ranked by field / per (e.g. what each hour played cost).
+  function ratioListWidget(cfg, items, spec) {
+    const S = SS(), primary = primaryOf(cfg);
+    const list = both(items, spec.field, spec.per, spec.match).map(x => ({ x, r: Number(x[spec.field]) / Number(x[spec.per]) }))
+      .sort((a, b) => spec.dir === 'desc' ? b.r - a.r : a.r - b.r).slice(0, spec.top || 8);
+    if (spec.hideWhenEmpty && !list.length) return null;
+    const maxV = Math.max(0, ...list.map(l => l.r)) || 1;
+    const rows = list.map(l => ({ label: String(l.x[primary] == null ? '' : l.x[primary]), val: S.money2(l.r) + (spec.suffix || ''), pct: Math.round(l.r / maxV * 100) + '%' }));
+    return barBag(spec.title, rows, { barColor: spec.barColor, valColor: spec.valColor, labelWidth: '150px', valWidth: '80px' });
+  }
+
+  // Items furthest from a reference value (e.g. hours played vs HLTB).
+  function deltaListWidget(cfg, items, spec) {
+    const primary = primaryOf(cfg);
+    const list = both(items, spec.field, spec.vs).map(x => ({ x, d: Math.round((Number(x[spec.field]) - Number(x[spec.vs])) * 10) / 10 }))
+      .filter(l => l.d !== 0).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, spec.top || 8);
+    if (spec.hideWhenEmpty && !list.length) return null;
+    const maxV = Math.max(0, ...list.map(l => Math.abs(l.d))) || 1;
+    const rows = list.map(l => ({ label: String(l.x[primary] == null ? '' : l.x[primary]), val: (l.d > 0 ? '+' : '') + l.d + (spec.suffix || ''), pct: Math.round(Math.abs(l.d) / maxV * 100) + '%' }));
+    return barBag(spec.title, rows, { barColor: spec.barColor, valColor: spec.valColor, labelWidth: '150px', valWidth: '60px' });
+  }
+
+  // Oldest items by a date field, with how long ago ("2y 3m").
+  function ageListWidget(cfg, items, spec, ctx) {
+    const primary = primaryOf(cfg), now = (ctx && ctx.now) || new Date(), f = spec.field;
+    const list = items.filter(x => SS().matchSel(x, spec.match) && dnum(x[f]))
+      .sort((a, b) => ymd(a[f]) < ymd(b[f]) ? -1 : ymd(a[f]) > ymd(b[f]) ? 1 : 0).slice(0, spec.top || 8)
+      .map(x => { const d = dnum(x[f]); const mo = (now.getFullYear() - d.getFullYear()) * 12 + now.getMonth() - d.getMonth() - (now.getDate() < d.getDate() ? 1 : 0); return { x, mo: Math.max(0, mo) }; });
+    if (spec.hideWhenEmpty && !list.length) return null;
+    const maxV = Math.max(1, ...list.map(l => l.mo));
+    const age = m => m < 12 ? m + 'm' : Math.floor(m / 12) + 'y' + (m % 12 ? ' ' + (m % 12) + 'm' : '');
+    const rows = list.map(l => ({ label: String(l.x[primary] == null ? '' : l.x[primary]), val: age(l.mo), pct: Math.round(l.mo / maxV * 100) + '%' }));
+    return barBag(spec.title, rows, { barColor: spec.barColor, valColor: spec.valColor, labelWidth: '150px', valWidth: '60px' });
+  }
+
+  // Years between two year/date fields, bucketed (e.g. release → completion).
+  function yearGapWidget(cfg, items, spec) {
+    const buckets = [['Same year', 0, 0], ['1 year', 1, 1], ['2–3 years', 2, 3], ['4–6 years', 4, 6], ['7+ years', 7, Infinity]];
+    const counts = buckets.map(() => 0);
+    items.forEach(x => {
+      const a = parseInt(String(x[spec.from] == null ? '' : x[spec.from]).slice(0, 4), 10), b = parseInt(String(x[spec.to] == null ? '' : x[spec.to]).slice(0, 4), 10);
+      if (isNaN(a) || isNaN(b) || b < a) return;
+      counts[buckets.findIndex(k => b - a >= k[1] && b - a <= k[2])]++;
+    });
+    if (spec.hideWhenEmpty && !counts.some(Boolean)) return null;
+    const maxV = Math.max(1, ...counts);
+    const rows = buckets.map((k, i) => ({ label: k[0], val: String(counts[i]), pct: Math.round(counts[i] / maxV * 100) + '%' }));
+    return barBag(spec.title, rows, { barColor: spec.barColor, valColor: spec.valColor, labelWidth: '84px', valWidth: '32px' });
   }
 
   // GitHub-style calendar heatmap of daily spend across the trailing window.
@@ -738,6 +811,10 @@
     if (spec.kind === 'tagRating') return tagRatingWidget(cfg, items, spec);
     if (spec.kind === 'statusDonut') return statusDonutWidget(cfg, items, spec, ctx);
     if (spec.kind === 'moneyDonut') return moneyDonutWidget(cfg, items, spec, ctx);
+    if (spec.kind === 'ratioList') return ratioListWidget(cfg, items, spec);
+    if (spec.kind === 'deltaList') return deltaListWidget(cfg, items, spec);
+    if (spec.kind === 'ageList') return ageListWidget(cfg, items, spec, ctx);
+    if (spec.kind === 'yearGap') return yearGapWidget(cfg, items, spec);
     return null;
   }
 
