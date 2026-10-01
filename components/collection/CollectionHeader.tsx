@@ -93,7 +93,12 @@ export function CollectionHeader() {
                   key={t.view}
                   tab
                   active={url.view === t.view}
-                  onClick={() => setUrl({ view: t.view })}
+                  onClick={() => {
+                    if (url.view === t.view) return;
+                    setUrl({ view: t.view });
+                    // A new tab starts at its own top, not where the last one was left scrolled.
+                    window.scrollTo({ top: 0, behavior: "instant" });
+                  }}
                   className="px-[14px] py-1.5 text-[13px] font-semibold"
                   style={{ flex: isMobile ? 1 : "0 0 auto", textAlign: isMobile ? "center" : "left" }}
                 >
