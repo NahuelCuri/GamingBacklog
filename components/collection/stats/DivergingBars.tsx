@@ -50,17 +50,19 @@ export function DivergingBars({
         );
       })}
       {(negLabel || posLabel) && (
+        // On phones the captions drop the row/value gutters and use the full
+        // width, so each one still fits on a single line.
         <div className="mt-1 flex items-center gap-3 font-mono text-[10px] text-dim">
-          <div className="flex-none" style={{ width: labelWidth }} />
+          <div className="flex-none max-[720px]:hidden" style={{ width: labelWidth }} />
           <div className="flex flex-1">
-            <div className="flex-1 pr-2 text-right">
+            <div className="flex-1 truncate pr-2 text-right">
               {negLabel && (
                 <>
                   ← <span>{negLabel}</span>
                 </>
               )}
             </div>
-            <div className="flex-1 pl-2">
+            <div className="flex-1 truncate pl-2">
               {posLabel && (
                 <>
                   <span>{posLabel}</span> →
@@ -68,7 +70,7 @@ export function DivergingBars({
               )}
             </div>
           </div>
-          <div className="flex-none" style={{ width: valWidth }} />
+          <div className="flex-none max-[720px]:hidden" style={{ width: valWidth }} />
         </div>
       )}
     </div>
