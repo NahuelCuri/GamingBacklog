@@ -263,7 +263,7 @@ export const games: CollectionConfig = {
       // Hours played against HLTB across games with both: "+12%" is slower than average.
       { kind: "ratio", field: "hours", over: "hltb", label: "Pace vs HLTB" },
       // What each hour cost, over games actually paid for.
-      { kind: "perUnit", field: "price", per: "hours", match: { field: "platform", notIn: ["GamePass", "Pirated"] }, label: "Cost / hour" },
+      { kind: "perUnit", field: "price", per: "hours", money: true, match: { field: "platform", notIn: ["GamePass", "Pirated"] }, label: "Cost / hour" },
     ],
     strip: [
       { kind: "count", label: "games" },
@@ -357,6 +357,7 @@ export const games: CollectionConfig = {
         title: "Best value · cost per hour",
         field: "price",
         per: "hours",
+        money: true,
         match: { field: "platform", notIn: ["GamePass", "Pirated"] },
         dir: "asc",
         top: 8,

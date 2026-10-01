@@ -145,11 +145,17 @@ export type MetricSpec = {
   | { kind: "accountSum"; account?: string; exclude?: string[] }
   /** Σfield / Σover − 1 as a signed percent, over items with both set. */
   | { kind: "ratio"; field: string; over: string; match?: Selector }
-  /** Σfield / Σper as money, over items with both set. */
-  | { kind: "perUnit"; field: string; per: string; match?: Selector }
+  /** Σfield / Σper (a field, or days between two dates), over items with both set. */
+  | { kind: "perUnit"; field: string; per?: string; perDays?: DaySpan; match?: Selector; money?: boolean }
 );
 
 export type MetricKind = MetricSpec["kind"];
+
+/** Days from one date field to another, both ends counted. */
+export interface DaySpan {
+  from: string;
+  to: string;
+}
 
 interface WidgetBase {
   title: string;
@@ -245,13 +251,17 @@ export interface TrendSpec extends WidgetBase {
   /** Filter items with a selector instead of by `type`. */
   match?: Selector;
   period?: "month" | "year";
+  /** Sum this field as a plain number instead of the price as money. */
+  valueField?: string;
 }
 
-/** Items ranked by field / per (e.g. price per hour). */
+/** Items ranked by field / per (e.g. price per hour, pages per day). */
 export interface RatioListSpec extends WidgetBase {
   kind: "ratioList";
   field: string;
-  per: string;
+  per?: string;
+  perDays?: DaySpan;
+  money?: boolean;
   match?: Selector;
   dir?: "asc" | "desc";
   suffix?: string;

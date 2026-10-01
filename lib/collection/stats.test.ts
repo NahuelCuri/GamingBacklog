@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { COLLECTIONS } from "@/config/collections";
-import { buildWidget, metric } from "./stats";
+import { buildWidget, daysBetween, metric } from "./stats";
 import type { Item, MoneyDonutSpec } from "./types";
 
 describe("category split (dynamic money donut)", () => {
@@ -138,5 +138,63 @@ describe("ratio metrics without data", () => {
     const value = (label: string) => metric(cfg, items, cfg.stats.summary.find((s) => s.label === label)!).value;
     expect(value("Cost / hour")).toBe("—");
     expect(value("Pace vs HLTB")).toBe("—");
+  });
+});
+
+describe("books reading stats", () => {
+  const cfg = COLLECTIONS.books;
+  const items: Item[] = [
+    // 300 pages over 10 days
+    { id: "a", title: "A", author: "Ann", status: "finished", pages: 300, score: 9, started: "2025-01-01", finished: "2025-01-10", dateAdded: "2024-12-01" },
+    // finished the day it started: 1 day
+    { id: "b", title: "B", author: "Ann", status: "finished", pages: 100, score: 7, started: "2026-03-05", finished: "2026-03-05" },
+    // no start date: no rate, still counts by year
+    { id: "c", title: "C", author: "Bo", status: "finished", pages: 200, finished: "2026-06-01" },
+    { id: "d", title: "D", author: "Bo", status: "reading", pages: 400, started: "2026-07-15" },
+    { id: "e", title: "E", author: "Cy", status: "backlog", pages: 250, dateAdded: "2023-09-01" },
+  ];
+  const now = new Date(2026, 9, 1);
+  const all = [...cfg.stats.left, ...cfg.stats.right];
+  const widget = (title: string) => buildWidget(cfg, items, all.find((w) => w.title === title)!, { accent: "#d8b98f" }, now);
+  const rows = (title: string) => {
+    const w = widget(title);
+    if (w?.kind !== "barList") throw new Error("expected a bar list");
+    return w.rows.map((r) => [r.label, r.val]);
+  };
+
+  it("counts both ends of a reading span", () => {
+    expect(daysBetween(items[0], { from: "started", to: "finished" })).toBe(10);
+    expect(daysBetween(items[1], { from: "started", to: "finished" })).toBe(1);
+    expect(daysBetween(items[2], { from: "started", to: "finished" })).toBe(0);
+    expect(daysBetween({ id: "x", started: "2026-02-01", finished: "2026-01-01" }, { from: "started", to: "finished" })).toBe(0);
+  });
+
+  it("averages pages per day over finished books with both dates", () => {
+    // 400 pages over 11 days
+    expect(metric(cfg, items, cfg.stats.summary.find((s) => s.label === "Pages / day")!).value).toBe("36");
+  });
+
+  it("ranks reads by pace", () => {
+    expect(rows("Fastest reads · pages/day")).toEqual([["B", "100/day"], ["A", "30/day"]]);
+    expect(rows("Slowest reads · pages/day")).toEqual([["A", "30/day"], ["B", "100/day"]]);
+  });
+
+  it("counts authors and rates them with at least two books", () => {
+    expect(rows("Top authors").slice(0, 2)).toEqual([["Ann", "2"], ["Bo", "2"]]);
+    expect(rows("Authors by rating")).toEqual([["Ann · 2", "★8.0"]]);
+  });
+
+  it("ages current reads and the backlog", () => {
+    expect(rows("Reading for")).toEqual([["D", "2m"]]);
+    expect(rows("Longest in backlog")).toEqual([["E", "3y 1m"]]);
+  });
+
+  it("files finished books and pages by the year they were finished", () => {
+    const byYear = widget("Finished by year");
+    if (byYear?.kind !== "byYear") throw new Error("expected by-year bars");
+    expect(byYear.bars.map((b) => [b.label, b.count])).toEqual([["2025", 1], ["2026", 2]]);
+    const pages = widget("Pages read by year");
+    if (pages?.kind !== "trend") throw new Error("expected a trend");
+    expect(pages.bars.map((b) => [b.label, b.amount])).toEqual([["2025", "300"], ["2026", "300"]]);
   });
 });
