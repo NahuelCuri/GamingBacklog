@@ -5,7 +5,7 @@ import { COLLECTIONS } from "@/config/collections";
 import { DEFAULT_URL_STATE } from "@/lib/collection/url-state";
 import { initialCollectionState } from "@/lib/data/collection-state";
 import { usd } from "@/lib/spending";
-import { seed } from "@/tests/legacy";
+import { seed } from "@/tests/seeds";
 
 const signOut = vi.fn();
 vi.mock("@/components/shell/ShellProvider", () => ({ useShell: () => ({ libs: ["games"], navigate: vi.fn(), openSettings: vi.fn() }) }));

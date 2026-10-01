@@ -18,7 +18,7 @@ import { blankDraft, buildStats, draftFromItem, type CollectionKey, type Item } 
 import { DEFAULT_URL_STATE } from "@/lib/collection/url-state";
 import { initialCollectionState } from "@/lib/data/collection-state";
 import { usd } from "@/lib/spending";
-import { KEYS, seed } from "./legacy";
+import { KEYS, seed } from "./seeds";
 
 let errors: string[] = [];
 beforeEach(() => {

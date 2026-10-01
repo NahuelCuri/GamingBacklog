@@ -1,0 +1,1383 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`trip model (frozen from the legacy planner) > builds the map plan and bounding box 1`] = `
+{
+  "bbox": {
+    "e": 140.53939999999997,
+    "n": 35.8628,
+    "s": 34.4912,
+    "w": 134.7506,
+  },
+  "plans": [
+    {
+      "day": "all",
+      "ghosts": [
+        "c7",
+        "c8",
+        "c9",
+      ],
+      "numbered": [
+        [
+          "c1",
+          1,
+        ],
+        [
+          "c2",
+          2,
+        ],
+        [
+          "c3",
+          1,
+        ],
+        [
+          "c6",
+          1,
+        ],
+      ],
+    },
+    {
+      "day": "none",
+      "ghosts": [
+        "c7",
+        "c8",
+        "c9",
+      ],
+      "numbered": [],
+    },
+    {
+      "day": 1,
+      "ghosts": [],
+      "numbered": [
+        [
+          "c1",
+          1,
+        ],
+        [
+          "c2",
+          2,
+        ],
+      ],
+    },
+    {
+      "day": 3,
+      "ghosts": [],
+      "numbered": [
+        [
+          "c6",
+          1,
+        ],
+      ],
+    },
+    {
+      "day": 4,
+      "ghosts": [],
+      "numbered": [],
+    },
+  ],
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > derives budget and filter values 1`] = `
+{
+  "budget": {
+    "budgetDisp": "$4,200",
+    "color": "#5fb8b0",
+    "overDisp": "",
+    "pct": "2.976190476190476%",
+    "spent": 125,
+    "spentDisp": "$125",
+  },
+  "grid": [
+    "c7",
+  ],
+  "gridFilters": [
+    "All",
+    "Place",
+    "Food",
+    "Activity",
+    "Transport",
+    "To watch",
+    "Look into",
+    "To-do",
+  ],
+  "typeFilters": [
+    "All",
+    "Place",
+    "Food",
+    "To watch",
+    "Look into",
+    "To-do",
+  ],
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > formats money, date ranges and day hints 1`] = `
+[
+  "$1,234",
+  "€ 1,234",
+  "",
+  "",
+  "$0",
+  "Apr 3 – Apr 14",
+  "Fri, Apr 3",
+  "Sat, Apr 4",
+  "Tue, Apr 14",
+]
+`;
+
+exports[`trip model (frozen from the legacy planner) > moves cards between days and within a day 1`] = `
+[
+  {
+    "cards": [
+      [
+        "c1",
+        2,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": "teamLab Planets moved to day 2",
+    "move": "day c1 1",
+  },
+  {
+    "cards": [
+      [
+        "c1",
+        null,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": "teamLab Planets moved to the pool",
+    "move": "day c1 -1",
+  },
+  {
+    "cards": [
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": null,
+    "move": "day c7 -1",
+  },
+  {
+    "cards": [
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        1,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": "Nishiki Market crawl moved to day 1",
+    "move": "day c7 1",
+  },
+  {
+    "cards": [
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        4,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": "Shinkansen to Kyoto moved to day 4",
+    "move": "day c5 1",
+  },
+  {
+    "cards": [
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        4,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": "Fushimi Inari at dawn moved to day 4",
+    "move": "day c6 1",
+  },
+  {
+    "cards": [
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": "Ichiran Ramen — Shibuya moved earlier",
+    "move": "order c2 -1",
+  },
+  {
+    "cards": [
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": null,
+    "move": "order c1 -1",
+  },
+  {
+    "cards": [
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": "teamLab Planets moved later",
+    "move": "order c1 1",
+  },
+  {
+    "cards": [
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": "Osaka Dotonbori street food moved earlier",
+    "move": "order c9 -1",
+  },
+  {
+    "cards": [
+      [
+        "c1",
+        1,
+        undefined,
+      ],
+      [
+        "c2",
+        1,
+        undefined,
+      ],
+      [
+        "c3",
+        2,
+        undefined,
+      ],
+      [
+        "c4",
+        2,
+        undefined,
+      ],
+      [
+        "c5",
+        3,
+        undefined,
+      ],
+      [
+        "c6",
+        3,
+        undefined,
+      ],
+      [
+        "c7",
+        null,
+        undefined,
+      ],
+      [
+        "c8",
+        null,
+        undefined,
+      ],
+      [
+        "c9",
+        null,
+        undefined,
+      ],
+      [
+        "c10",
+        null,
+        undefined,
+      ],
+      [
+        "c11",
+        null,
+        undefined,
+      ],
+      [
+        "c12",
+        null,
+        undefined,
+      ],
+    ],
+    "message": null,
+    "move": "order c12 1",
+  },
+]
+`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("") 1`] = `null`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("(35.6764;139.65)") 1`] = `
+{
+  "lat": 35.6764,
+  "lng": 139.65,
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("35.6764, 139.6500") 1`] = `
+{
+  "lat": 35.6764,
+  "lng": 139.65,
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("91, 10") 1`] = `null`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("Kyoto") 1`] = `null`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("https://maps.google.com/?ll=35.1%2C139.2") 1`] = `
+{
+  "lat": 35.1,
+  "lng": 139.2,
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("https://maps.google.com/?q=35.1,-58.2") 1`] = `
+{
+  "lat": 35.1,
+  "lng": -58.2,
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("https://www.google.com/maps/place/Senso-ji/@35.7147651,139.7966553,17z") 1`] = `
+{
+  "lat": 35.7147651,
+  "lng": 139.7966553,
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("https://www.google.com/maps/place/X/data=!3d35.71477!4d139.79665") 1`] = `
+{
+  "lat": 35.71477,
+  "lng": 139.79665,
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > parseLoc("near 35.123456, 139.654321 somewhere") 1`] = `
+{
+  "lat": 35.123456,
+  "lng": 139.654321,
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > quick add turns links into research cards 1`] = `
+[
+  {
+    "addedBy": "Me",
+    "day": null,
+    "duration": "",
+    "id": "x",
+    "notes": "",
+    "price": null,
+    "priority": "nice",
+    "region": "",
+    "source": "",
+    "status": "idea",
+    "tags": [],
+    "title": "Senso-ji",
+    "trip": "t1",
+    "type": "place",
+  },
+  {
+    "addedBy": "Me",
+    "day": null,
+    "duration": "",
+    "id": "x",
+    "notes": "",
+    "price": null,
+    "priority": "nice",
+    "region": "",
+    "source": "https://example.com/x",
+    "status": "idea",
+    "tags": [],
+    "title": "Untitled link",
+    "trip": "t1",
+    "type": "research",
+  },
+  null,
+]
+`;
+
+exports[`trip model (frozen from the legacy planner) > seeds the example trip, priced in dollars and with coordinates 1`] = `
+{
+  "cards": [
+    {
+      "addedBy": "Me",
+      "day": 1,
+      "duration": "2h",
+      "id": "c1",
+      "loc": {
+        "lat": 35.649,
+        "lng": 139.789,
+      },
+      "notes": "",
+      "price": 25,
+      "priority": "must",
+      "region": "Toyosu, Tokyo",
+      "source": "https://example.com",
+      "startTime": "09:30",
+      "status": "confirmed",
+      "tags": [
+        "book ahead",
+      ],
+      "title": "teamLab Planets",
+      "trip": "t1",
+      "type": "activity",
+    },
+    {
+      "addedBy": "Me",
+      "day": 1,
+      "duration": "1h",
+      "id": "c2",
+      "loc": {
+        "lat": 35.66,
+        "lng": 139.7,
+      },
+      "notes": "",
+      "price": 8,
+      "priority": "nice",
+      "region": "Shibuya, Tokyo",
+      "source": "",
+      "startTime": "12:30",
+      "status": "researched",
+      "tags": [
+        "solo booths",
+      ],
+      "title": "Ichiran Ramen — Shibuya",
+      "trip": "t1",
+      "type": "food",
+    },
+    {
+      "addedBy": "Me",
+      "day": 2,
+      "duration": "half day",
+      "id": "c3",
+      "loc": {
+        "lat": 35.685,
+        "lng": 139.71,
+      },
+      "notes": "",
+      "price": 3,
+      "priority": "must",
+      "region": "Shinjuku, Tokyo",
+      "source": "",
+      "startTime": "09:00",
+      "status": "confirmed",
+      "tags": [
+        "picnic",
+      ],
+      "title": "Shinjuku Gyoen — sakura",
+      "trip": "t1",
+      "type": "place",
+    },
+    {
+      "addedBy": "Me",
+      "day": 2,
+      "duration": "evening",
+      "id": "c4",
+      "notes": "",
+      "price": null,
+      "priority": "nice",
+      "region": "Shinjuku, Tokyo",
+      "source": "",
+      "startTime": "",
+      "status": "idea",
+      "tags": [],
+      "title": "Golden Gai bar crawl",
+      "trip": "t1",
+      "type": "activity",
+    },
+    {
+      "addedBy": "Me",
+      "day": 3,
+      "duration": "2h15",
+      "id": "c5",
+      "notes": "",
+      "price": 89,
+      "priority": "must",
+      "region": "Tokyo → Kyoto",
+      "source": "",
+      "startTime": "",
+      "status": "booked",
+      "tags": [
+        "reserved seat",
+      ],
+      "title": "Shinkansen to Kyoto",
+      "trip": "t1",
+      "type": "transport",
+    },
+    {
+      "addedBy": "Me",
+      "day": 3,
+      "duration": "3h",
+      "id": "c6",
+      "loc": {
+        "lat": 34.967,
+        "lng": 135.772,
+      },
+      "notes": "",
+      "price": null,
+      "priority": "must",
+      "region": "Fushimi, Kyoto",
+      "source": "",
+      "startTime": "",
+      "status": "confirmed",
+      "tags": [
+        "go early",
+      ],
+      "title": "Fushimi Inari at dawn",
+      "trip": "t1",
+      "type": "place",
+    },
+    {
+      "addedBy": "Me",
+      "day": null,
+      "duration": "2h",
+      "id": "c7",
+      "loc": {
+        "lat": 35.005,
+        "lng": 135.765,
+      },
+      "notes": "",
+      "price": null,
+      "priority": "nice",
+      "region": "Nakagyo, Kyoto",
+      "source": "",
+      "startTime": "",
+      "status": "idea",
+      "tags": [],
+      "title": "Nishiki Market crawl",
+      "trip": "t1",
+      "type": "food",
+    },
+    {
+      "addedBy": "Me",
+      "day": null,
+      "duration": "half day",
+      "id": "c8",
+      "loc": {
+        "lat": 35.017,
+        "lng": 135.671,
+      },
+      "notes": "",
+      "price": null,
+      "priority": "nice",
+      "region": "Arashiyama, Kyoto",
+      "source": "",
+      "startTime": "",
+      "status": "researched",
+      "tags": [],
+      "title": "Arashiyama bamboo grove",
+      "trip": "t1",
+      "type": "place",
+    },
+    {
+      "addedBy": "Me",
+      "day": null,
+      "duration": "",
+      "id": "c9",
+      "loc": {
+        "lat": 34.669,
+        "lng": 135.501,
+      },
+      "notes": "",
+      "price": null,
+      "priority": "must",
+      "region": "Namba, Osaka",
+      "source": "",
+      "startTime": "",
+      "status": "idea",
+      "tags": [
+        "takoyaki",
+      ],
+      "title": "Osaka Dotonbori street food",
+      "trip": "t1",
+      "type": "food",
+    },
+    {
+      "addedBy": "Me",
+      "day": null,
+      "duration": "",
+      "id": "c10",
+      "notes": "Sent by Lu — scout temples",
+      "price": null,
+      "priority": "backup",
+      "region": "",
+      "source": "https://youtube.com",
+      "startTime": "",
+      "status": "idea",
+      "tags": [],
+      "title": "Watch: Kyoto in 4 min",
+      "trip": "t1",
+      "type": "watch",
+    },
+    {
+      "addedBy": "Me",
+      "day": null,
+      "duration": "",
+      "id": "c11",
+      "notes": "Compare Ubigi eSIM vs airport wifi rental",
+      "price": null,
+      "priority": "nice",
+      "region": "",
+      "source": "",
+      "startTime": "",
+      "status": "idea",
+      "tags": [],
+      "title": "Pocket wifi vs eSIM?",
+      "trip": "t1",
+      "type": "research",
+    },
+    {
+      "addedBy": "Me",
+      "day": null,
+      "duration": "",
+      "id": "c12",
+      "notes": "",
+      "price": null,
+      "priority": "must",
+      "region": "",
+      "source": "",
+      "startTime": "",
+      "status": "idea",
+      "tags": [],
+      "title": "Buy JR Pass before flying",
+      "trip": "t1",
+      "type": "todo",
+    },
+  ],
+  "trips": [
+    {
+      "budget": 4200,
+      "companions": [
+        {
+          "color": "#e0a86b",
+          "initial": "M",
+        },
+        {
+          "color": "#6cc6c0",
+          "initial": "L",
+        },
+      ],
+      "cover": "linear-gradient(120deg,#c76b7e,#6b4b8a)",
+      "currency": "$",
+      "dayCount": 4,
+      "end": "2026-04-14",
+      "id": "t1",
+      "name": "Japan · Cherry Season",
+      "start": "2026-04-03",
+      "subtitle": "Tokyo → Kyoto → Osaka",
+    },
+  ],
+}
+`;
+
+exports[`trip model (frozen from the legacy planner) > suggests tags and explains the location field 1`] = `
+[
+  {
+    "loc": [
+      "✓ on the map",
+      "#5fb8b0",
+      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+  {
+    "loc": [
+      "✓ on the map",
+      "#5fb8b0",
+      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+    ],
+  },
+  {
+    "loc": [
+      "no coordinates yet",
+      "#d98a6a",
+      "Short Maps links hide the coordinates. Open the link, then copy the full URL — or type the place name and press Find.",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "picnic",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+  {
+    "loc": [
+      "no coordinates yet",
+      "#d98a6a",
+      "No coordinates in that URL. Press Find to search by name, or right-click the place in Maps to copy its lat/lng.",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "picnic",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+  {
+    "loc": [
+      "no coordinates yet",
+      "#d98a6a",
+      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "picnic",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+  {
+    "loc": [
+      "✓ on the map",
+      "#5fb8b0",
+      "Found: Kyoto, Japan",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "picnic",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+  {
+    "loc": [
+      "searching…",
+      "#8a9693",
+      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "…",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "picnic",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+  {
+    "loc": [
+      "✓ on the map",
+      "#5fb8b0",
+      "Nothing found for that. Try a more specific name, or paste coordinates.",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "picnic",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+  {
+    "loc": [
+      "✓ on the map",
+      "#5fb8b0",
+      "That short link has no coordinates in it. Type the place name instead, then press Find.",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "picnic",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+  {
+    "loc": [
+      "✓ on the map",
+      "#5fb8b0",
+      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Find",
+    ],
+    "tags": [
+      "book ahead",
+      "solo booths",
+      "picnic",
+      "reserved seat",
+      "go early",
+      "takoyaki",
+    ],
+  },
+]
+`;

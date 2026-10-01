@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { legacyPlanner, plain } from "@/tests/legacy-trips";
 import {
   budget, cleanCard, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
   parseLoc, quickAddCard, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
@@ -13,15 +12,10 @@ const seeded = () => {
   return s;
 };
 
-describe("trip model vs legacy", () => {
-  it("seeds the legacy example trip, priced in dollars and with coordinates", () => {
-    const L = legacyPlanner();
-    const s = plain(L.seed());
+describe("trip model (frozen from the legacy planner)", () => {
+  it("seeds the example trip, priced in dollars and with coordinates", () => {
     const ours = seedTrips();
-    expect(ours.trips).toEqual(s.trips);
-    // legacy's yen amounts, converted at roughly ¥150 = $1
-    const usd: Record<string, number> = { c1: 25, c2: 8, c3: 3, c5: 89 };
-    expect(ours.cards.map(({ loc, ...c }) => c)).toEqual(s.cards.map((c: { id: string; price: number | null }) => ({ ...c, price: usd[c.id] ?? c.price })));
+    expect(ours).toMatchSnapshot();
     expect(ours.cards.filter((c) => c.loc).map((c) => c.id)).toEqual(["c1", "c2", "c3", "c6", "c7", "c8", "c9"]);
   });
 
@@ -37,76 +31,65 @@ describe("trip model vs legacy", () => {
     "Kyoto",
     "",
   ])("parseLoc(%j)", (raw) => {
-    expect(parseLoc(raw)).toEqual(plain(legacyPlanner().parseLoc(raw)));
+    expect(parseLoc(raw)).toMatchSnapshot();
   });
 
   it("formats money, date ranges and day hints", () => {
-    const L = legacyPlanner();
-    for (const [n, c] of [[1234, "$"], [1234, "€"], [null, "$"], ["", "$"], [0, undefined]] as const) expect(money(n, c)).toBe(L.money(n, c));
-    expect(fmtRange("2026-04-03", "2026-04-14")).toBe(L.fmtRange("2026-04-03", "2026-04-14"));
-    expect(fmtRange("bad", "2026-04-14")).toBe("Dates TBD");
+    const out: unknown[] = [];
+    for (const [n, c] of [[1234, "$"], [1234, "€"], [null, "$"], ["", "$"], [0, undefined]] as const) out.push(money(n, c));
+    out.push(fmtRange("2026-04-03", "2026-04-14"));
     const t = seedTrips().trips[0];
-    for (const d of [1, 2, 12]) expect(dayHint(t, d)).toBe(L.dayHint(t, d));
+    for (const d of [1, 2, 12]) out.push(dayHint(t, d));
+    expect(out).toMatchSnapshot();
+    expect(fmtRange("bad", "2026-04-14")).toBe("Dates TBD");
     expect(dayHint({ ...t, start: "" }, 1)).toBe("unscheduled");
   });
 
-  it("moves cards between days and within a day like legacy", () => {
+  it("moves cards between days and within a day", () => {
     const { trips, cards } = seedTrips();
     const cases: [string, number, "day" | "order"][] = [
       ["c1", 1, "day"], ["c1", -1, "day"], ["c7", -1, "day"], ["c7", 1, "day"], ["c5", 1, "day"], ["c6", 1, "day"],
       ["c2", -1, "order"], ["c1", -1, "order"], ["c1", 1, "order"], ["c9", -1, "order"], ["c12", 1, "order"],
     ];
-    for (const [id, dir, kind] of cases) {
-      const L = legacyPlanner({ trips, cards, tripId: "t1" });
-      if (kind === "day") L.moveCardDay(id, dir); else L.moveCardOrder(id, dir);
-      const ours = kind === "day" ? moveCardDay(cards, id, dir, trips[0].dayCount!) : moveCardOrder(cards, id, dir);
-      expect(ours?.cards ?? cards, `${kind} ${id} ${dir}`).toEqual(plain(L.state.cards));
-      if (ours) expect(ours.message).toBe(L.state.liveMsg);
-    }
+    const out = cases.map(([id, dir, kind]) => {
+      const r = kind === "day" ? moveCardDay(cards, id, dir, trips[0].dayCount!) : moveCardOrder(cards, id, dir);
+      // only what moved: id, day and order of every card, plus the announcement
+      return { move: `${kind} ${id} ${dir}`, message: r?.message ?? null, cards: (r?.cards ?? cards).map((c) => [c.id, c.day, c.order]) };
+    });
+    expect(out).toMatchSnapshot();
   });
 
   it("quick add turns links into research cards", () => {
-    for (const raw of ["Senso-ji", "  https://example.com/x  ", "   "]) {
-      const L = legacyPlanner({ ...seedTrips(), tripId: "t1", quickText: raw });
-      L.onQuickKey({ key: "Enter" });
-      const legacyNew = plain<TripCard[]>(L.state.cards).slice(12);
-      const ours = quickAddCard(raw, "t1");
-      expect(ours ? [{ ...ours, id: "x" }] : []).toEqual(legacyNew.map((c) => ({ ...c, id: "x" })));
-    }
+    expect(["Senso-ji", "  https://example.com/x  ", "   "].map((raw) => {
+      const c = quickAddCard(raw, "t1");
+      return c ? { ...c, id: "x" } : null;
+    })).toMatchSnapshot();
   });
 
-  it("builds the same map plan and bounding box", () => {
-    const { trips, cards } = seeded();
-    for (const day of ["all", "none", 1, 3, 4] as const) {
-      const L = legacyPlanner({ trips, cards, tripId: "t1", mapDay: day === "all" ? null : day });
-      const lp = L.mapPlan();
-      const ours = mapPlan(tripCards(cards, "t1"), day);
-      expect(ours.numbered.map((o) => [o.c.id, o.n])).toEqual(lp.numbered.map((o: { c: TripCard; n: number }) => [o.c.id, o.n]));
-      expect(ours.ghosts.map((c) => c.id)).toEqual(lp.ghosts.map((c: TripCard) => c.id));
-    }
-    const L = legacyPlanner({ trips, cards, tripId: "t1" });
+  it("builds the map plan and bounding box", () => {
+    const { cards } = seeded();
+    const plans = (["all", "none", 1, 3, 4] as const).map((day) => {
+      const p = mapPlan(tripCards(cards, "t1"), day);
+      return { day, numbered: p.numbered.map((o) => [o.c.id, o.n]), ghosts: p.ghosts.map((c) => c.id) };
+    });
     const loc = cards.filter((c) => c.loc) as (TripCard & { loc: { lat: number; lng: number } })[];
-    expect(mapBBox(loc)).toEqual(plain(L._mapBBox(loc)));
+    expect({ plans, bbox: mapBBox(loc) }).toMatchSnapshot();
   });
 
-  it("derives home and board values like renderVals", () => {
+  it("derives budget and filter values", () => {
     const { trips, cards } = seeded();
-    const L = legacyPlanner({ trips, cards, tripId: "t1", view: "board", poolFilter: "food", searchText: "kyoto" });
-    const v = L.renderVals();
-    const t = trips[0];
-    const b = budget(t, tripCards(cards, "t1"));
-    expect(v.trips[0].budgetLabel).toBe(`${b.spentDisp} of ${b.budgetDisp}`);
-    expect(v.trips[0].budgetPct).toBe(b.pct);
-    expect(v.trip.budgetColor).toBe(b.color);
-    expect(v.gridFilters.map((f: { label: string }) => f.label)).toEqual(typeFilterOptions(tripCards(cards, "t1")).map((f) => f.label));
-    expect(v.typeFilters.map((f: { label: string }) => f.label)).toEqual(typeFilterOptions(tripCards(cards, "t1").filter((c) => c.day == null)).map((f) => f.label));
-    const grid = tripCards(cards, "t1").filter((c) => c.type === "food" && matchesSearch(c, "kyoto"));
-    expect(v.gridCards.map((c: { id: string }) => c.id)).toEqual(grid.map((c) => c.id));
+    const tc = tripCards(cards, "t1");
+    expect({
+      budget: budget(trips[0], tc),
+      gridFilters: typeFilterOptions(tc).map((f) => f.label),
+      typeFilters: typeFilterOptions(tc.filter((c) => c.day == null)).map((f) => f.label),
+      grid: tc.filter((c) => c.type === "food" && matchesSearch(c, "kyoto")).map((c) => c.id),
+    }).toMatchSnapshot();
   });
 
-  it("suggests tags and explains the location field like the editor", () => {
-    const { trips, cards } = seeded();
-    for (const draft of [
+  it("suggests tags and explains the location field", () => {
+    const { cards } = seeded();
+    const out = [
       { tags: ["picnic"], tagInput: "" },
       { tags: [], tagInput: "BOOK" },
       { tags: [], tagInput: "", locText: "https://maps.app.goo.gl/abc" },
@@ -117,24 +100,21 @@ describe("trip model vs legacy", () => {
       { tags: [], tagInput: "", locErr: "none" as const },
       { tags: [], tagInput: "", locErr: "noquery" as const },
       { tags: [], tagInput: "", loc: { lat: 1, lng: 2 } },
-    ]) {
-      const L = legacyPlanner({ trips, cards, tripId: "t1", view: "board", modal: { ...cards[0], ...draft } });
-      const m = L.renderVals().m;
-      expect(tagSuggestions(cards, draft.tags, draft.tagInput)).toEqual(m.tagSuggest.map((t: { tag: string }) => t.tag));
+    ].map((draft) => {
       const st = locStatus({ loc: cards[0].loc, ...draft });
-      expect([st.hint, st.color, st.note, st.button]).toEqual([m.locHint, m.locColor, m.locNote, m.locBtn]);
-    }
+      return { tags: tagSuggestions(cards, draft.tags, draft.tagInput), loc: [st.hint, st.color, st.note, st.button] };
+    });
+    expect(out).toMatchSnapshot();
   });
 });
 
 describe("trip model", () => {
-  it("caps tag suggestions at eight, most used first (legacy)", () => {
-    const { trips, cards } = seedTrips();
+  it("caps tag suggestions at eight, most used first", () => {
+    const { cards } = seedTrips();
     const many = cards.map((c, i) => ({ ...c, tags: ["t" + (i % 10), "t" + (i % 3)] }));
-    const L = legacyPlanner({ trips, cards: many, tripId: "t1", view: "board", modal: { ...many[0], tags: [], tagInput: "" } });
-    const legacy = L.renderVals().m.tagSuggest.map((t: { tag: string }) => t.tag);
-    expect(legacy).toHaveLength(8);
-    expect(tagSuggestions(many, [], "")).toEqual(legacy);
+    const tags = tagSuggestions(many, [], "");
+    expect(tags).toHaveLength(8);
+    expect(tags.slice(0, 3).sort()).toEqual(["t0", "t1", "t2"]);
   });
 
   it("cleans drafts for storage", () => {

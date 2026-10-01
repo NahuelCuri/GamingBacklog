@@ -9,7 +9,7 @@ import { DEFAULT_URL_STATE, hasView, readUrlState, writeUrlState, type UrlState 
 import { initialCollectionState } from "@/lib/data/collection-state";
 import { currencyMoney, fetchRate, useCurrency } from "@/lib/hooks/useCurrency";
 import { usd } from "@/lib/spending";
-import { seed } from "@/tests/legacy";
+import { seed } from "@/tests/seeds";
 import { CollectionContext, type CollectionCtx } from "./CollectionContext";
 import { ItemModal, type ModalState } from "./ItemModal";
 import { LibraryView } from "./LibraryView";
