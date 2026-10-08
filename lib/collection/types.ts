@@ -390,7 +390,7 @@ export interface CollectionConfig {
 
   // optional features
   libraryLabel?: string;
-  /** Library shows only the latest month until a filter or "Load all" lifts it. */
+  /** Library shows one month at a time (the current one by default), chosen in the toolbar. */
   ledgerMonth?: boolean;
   defaultSort?: { key: string; dir: "asc" | "desc" };
   categoryField?: string;

@@ -12,6 +12,8 @@ export interface ActionDeps {
   backup(items: Item[]): void;
   /** Fetches the collection's starter seed. */
   loadSeed(): Promise<Item[]>;
+  /** Start with only this month ("YYYY-MM") when the store can read by month. */
+  firstMonth?: () => string;
 }
 
 export function collectionActions(
@@ -20,13 +22,56 @@ export function collectionActions(
   getState: () => CollectionState,
   deps: ActionDeps,
 ) {
-  const refresh = async () => {
-    dispatch({ type: "load" });
-    try {
-      dispatch({ type: "loaded", items: await store.load() });
-    } catch (e) {
-      dispatch({ type: "loadFailed", error: errorMessage(e, "Could not load your data.") });
+  const byMonth = !!(deps.firstMonth && store.loadMonth);
+  // Requests in flight, so repeated asks (effects, StrictMode) share one read.
+  const pending = new Map<string, Promise<void>>();
+  const once = (key: string, run: () => Promise<void>) => {
+    let p = pending.get(key);
+    if (!p) {
+      p = run().finally(() => pending.delete(key));
+      pending.set(key, p);
     }
+    return p;
+  };
+
+  /** Re-reads from the server: everything, or just the first month until more was asked for. */
+  const refresh = () =>
+    once("refresh", async () => {
+      dispatch({ type: "load" });
+      try {
+        if (byMonth && !getState().full) {
+          const month = deps.firstMonth!();
+          dispatch({ type: "loaded", items: await store.loadMonth!(month), month });
+        } else dispatch({ type: "loaded", items: await store.load() });
+      } catch (e) {
+        dispatch({ type: "loadFailed", error: errorMessage(e, "Could not load your data.") });
+      }
+    });
+
+  /** Reads every row (stats, months, export, import). No-op once they are in memory. */
+  const loadAll = () => {
+    if (getState().full) return Promise.resolve();
+    return once("all", async () => {
+      try {
+        dispatch({ type: "loaded", items: await store.load() });
+      } catch (e) {
+        dispatch({ type: "loadFailed", error: errorMessage(e, "Could not load your data.") });
+        throw e;
+      }
+    });
+  };
+
+  /** Reads one more month ("YYYY-MM") on demand. */
+  const loadMonth = (month: string) => {
+    const s = getState();
+    if (!byMonth || s.status !== "ready" || s.full || s.months.includes(month)) return Promise.resolve();
+    return once("m:" + month, async () => {
+      try {
+        dispatch({ type: "monthLoaded", month, items: await store.loadMonth!(month) });
+      } catch (e) {
+        dispatch({ type: "syncFailed", error: errorMessage(e, "Could not load that month.") });
+      }
+    });
   };
 
   const write = async (op: () => Promise<void>) => {
@@ -46,6 +91,8 @@ export function collectionActions(
 
   return {
     refresh,
+    loadAll,
+    loadMonth,
 
     dismissSyncError: () => dispatch({ type: "dismissSyncError" }),
 

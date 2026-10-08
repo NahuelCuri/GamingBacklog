@@ -1,7 +1,7 @@
 // Library (table) logic: status/score styling, tags, filtering, sorting, the
-// ledger-month cap, paging and per-cell display values.
+// ledger month, paging and per-cell display values.
 import { usd, type MoneyFormat } from "@/lib/spending";
-import { ACC, condMatch, isEmpty, linkUrl, monthKey, monthLabel, primaryKey } from "./format";
+import { ACC, condMatch, isEmpty, linkUrl, monthKey, primaryKey } from "./format";
 import type { CollectionConfig, FilterChip, Item, StatusDef, TableColumn } from "./types";
 
 export interface LibraryFilters {
@@ -123,39 +123,44 @@ export function nextSort(cur: Pick<LibraryFilters, "sortKey" | "sortDir">, key: 
     : { sortKey: key, sortDir: "asc" as const };
 }
 
-export function hasActiveFilter(st: LibraryFilters): boolean {
-  return !!((st.q || "").trim() || (st.catFilter && st.catFilter !== "all") || st.status !== "all" || st.tagFilters.length);
-}
-
 export interface VisibleRows {
   rows: Item[];
-  /** Ledger collections show only the latest month until lifted. */
-  ledger: { limited: false } | { limited: true; hidden: number; total: number; label: string };
   more: { show: false } | { show: true; shown: number; total: number; remaining: number };
 }
 
-/** Filter → sort → ledger-month cap → paging. */
+/** "YYYY-MM" of a local date (today by default). */
+export const currentMonthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+/** "2026-01" shifted by `n` months: shiftMonth("2026-01", -1) → "2025-12". */
+export function shiftMonth(k: string, n: number): string {
+  const [y, m] = k.split("-").map(Number);
+  return currentMonthKey(new Date(y, m - 1 + n, 1));
+}
+
+/**
+ * Months the ledger picker offers, newest first: the last `span` months up to
+ * `current`, plus any month with rows in memory and the one being shown.
+ */
+export function ledgerMonths(items: Item[], current = currentMonthKey(), shown = current, span = 24): string[] {
+  const s = new Set<string>([shown]);
+  for (let i = 0; i < span; i++) s.add(shiftMonth(current, -i));
+  items.forEach((g) => {
+    const k = monthKey(g.date);
+    if (k) s.add(k);
+  });
+  return [...s].sort().reverse();
+}
+
+/** Filter → sort → ledger month → paging. Ledger collections only ever show one month. */
 export function visibleRows(
   cfg: CollectionConfig,
   items: Item[],
   st: LibraryFilters,
-  opts: { showAllLedger?: boolean; rowLimit?: number } = {},
+  opts: { month?: string; rowLimit?: number } = {},
 ): VisibleRows {
-  const filtered = sorted(cfg, items.filter((g) => matches(cfg, g, st)), st);
-
-  let rows = filtered;
-  let ledger: VisibleRows["ledger"] = { limited: false };
-  if (cfg.ledgerMonth && !opts.showAllLedger && !hasActiveFilter(st)) {
-    const months = filtered.map((g) => monthKey(g.date)).filter(Boolean);
-    if (months.length) {
-      const latest = months.sort().reverse()[0];
-      const monthRows = filtered.filter((g) => monthKey(g.date) === latest);
-      if (monthRows.length < filtered.length) {
-        ledger = { limited: true, hidden: filtered.length - monthRows.length, total: filtered.length, label: monthLabel(latest) };
-        rows = monthRows;
-      }
-    }
-  }
+  const month = cfg.ledgerMonth ? opts.month || currentMonthKey() : null;
+  const pool = month ? items.filter((g) => monthKey(g.date) === month) : items;
+  let rows = sorted(cfg, pool.filter((g) => matches(cfg, g, st)), st);
 
   const limit = opts.rowLimit || ROW_PAGE;
   let more: VisibleRows["more"] = { show: false };
@@ -163,7 +168,7 @@ export function visibleRows(
     more = { show: true, shown: limit, total: rows.length, remaining: rows.length - limit };
     rows = rows.slice(0, limit);
   }
-  return { rows, ledger, more };
+  return { rows, more };
 }
 
 // ---------------------------------------------------------------- cells

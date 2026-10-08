@@ -26,7 +26,17 @@ export function CollectionHeader() {
   const [pendingImport, setPendingImport] = useState<Item[] | null>(null);
   const [exporting, setExporting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
-  const ready = canTransfer(data);
+  // Month-loaded libraries (expenses) read the rest of their rows before export or import.
+  const ready = data.status === "ready";
+  const onExport = () => {
+    if (canTransfer(data)) return setExporting(true);
+    actions?.loadAll().then(() => setExporting(true), () => setNotice("Could not load all your data."));
+  };
+  const onPickImport = () => {
+    // The file picker needs the click itself; the rows load while the user picks.
+    actions?.loadAll().catch(() => {});
+    fileInput.current?.click();
+  };
 
   const tabs: { view: CollectionView; label: string }[] = [
     { view: "library", label: cfg.libraryLabel || "Library" },
@@ -39,7 +49,13 @@ export function CollectionHeader() {
   const onImport = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !actions || !ready) return;
+    if (!file || !actions) return;
+    try {
+      await actions.loadAll();
+    } catch {
+      setNotice("Could not load all your data.");
+      return;
+    }
     const parsed = parseImport(await file.text(), cfg);
     if (!parsed.ok) {
       setNotice(parsed.error);
@@ -57,8 +73,8 @@ export function CollectionHeader() {
   };
 
   const menu: MenuEntry[] = [
-    { label: "Export", title: "Export backup (JSON)", disabled: !ready, onSelect: () => setExporting(true) },
-    { label: "Import", title: "Import JSON", disabled: !ready, onSelect: () => fileInput.current?.click() },
+    { label: "Export", title: "Export backup (JSON)", disabled: !ready, onSelect: onExport },
+    { label: "Import", title: "Import JSON", disabled: !ready, onSelect: onPickImport },
     ...(isMobile ? [{ label: "Settings", onSelect: openSettings }] : []),
     { label: "Sign out", separated: true, onSelect: signOut },
   ];

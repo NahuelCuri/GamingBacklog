@@ -2,10 +2,12 @@
 
 // Library tab: metric strip, search + filters, table or card layout, and the
 // empty states.
-import { useMemo, useState } from "react";
-import { CloseIcon, GridIcon, ResetIcon, RowsIcon, SearchIcon } from "@/components/icons";
+import { useEffect, useMemo, useState } from "react";
+import { CaretLeftIcon, CaretRightIcon, CloseIcon, GridIcon, ResetIcon, RowsIcon, SearchIcon } from "@/components/icons";
 import { Pill, PillGroup, accentButton, secondaryButton } from "@/components/ui/Pills";
-import { buildStrip, categoryValues, nextSort, visibleRows, type LibraryFilters } from "@/lib/collection";
+import { buildStrip, categoryValues, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
+import { monthKey, monthLabel } from "@/lib/collection/format";
+import { hasMonth } from "@/lib/data/collection-state";
 import type { Item } from "@/lib/collection/types";
 import { useCollectionCtx } from "./CollectionContext";
 import { ItemCards, ItemCardsSkeleton } from "./ItemCards";
@@ -19,25 +21,34 @@ export function LibraryView() {
   const [layout, setLayout] = useState<Layout>("table");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [showAllLedger, setShowAllLedger] = useState(false);
+  // Ledger collections (expenses) show one month at a time, the current one first.
+  const [month, setMonth] = useState(currentMonthKey);
+  // Expenses read one month from the server at a time; this asks for the one picked.
+  useEffect(() => {
+    if (cfg.ledgerMonth) actions?.loadMonth(month);
+  }, [cfg.ledgerMonth, actions, month, data.status, data.months]);
+  // What the strip, the category chips and the table work on: the month shown, for ledgers.
+  const scoped = useMemo(() => (cfg.ledgerMonth ? items.filter((g) => monthKey(g.date) === month) : items), [cfg.ledgerMonth, items, month]);
   const [rowLimit, setRowLimit] = useState<number | undefined>(undefined);
 
   const filters: LibraryFilters = { q: url.q, status: url.status, catFilter: url.catFilter, tagFilters: url.tagFilters, ...sort };
   const view = useMemo(
-    // Cards show every match: no paging and no ledger-month cap (legacy behaviour).
-    () =>
-      visibleRows(cfg, items, filters, {
-        showAllLedger: showAllLedger || layout === "cards",
-        rowLimit: layout === "cards" ? Infinity : rowLimit,
-      }),
+    // Cards show every match: no paging (legacy behaviour).
+    () => visibleRows(cfg, items, filters, { month, rowLimit: layout === "cards" ? Infinity : rowLimit }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cfg, items, url.q, url.status, url.catFilter, url.tagFilters, sort, showAllLedger, rowLimit, layout],
+    [cfg, items, url.q, url.status, url.catFilter, url.tagFilters, sort, month, rowLimit, layout],
   );
-  const strip = useMemo(() => buildStrip(cfg, items, money), [cfg, items, money]);
+  const months = useMemo(() => (cfg.ledgerMonth ? ledgerMonths(items, currentMonthKey(), month) : []), [cfg, items, month]);
+  const pickMonth = (k: string) => {
+    setMonth(k);
+    setRowLimit(undefined);
+    setExpandedId(null);
+  };
+  const strip = useMemo(() => buildStrip(cfg, scoped, money), [cfg, scoped, money]);
   const categories = useMemo(() => {
-    if (cfg.dynamicCategories) return [{ value: "all", label: "All" }, ...categoryValues(cfg, items).map((v) => ({ value: v, label: v }))];
+    if (cfg.dynamicCategories) return [{ value: "all", label: "All" }, ...categoryValues(cfg, scoped).map((v) => ({ value: v, label: v }))];
     return cfg.categoryFilters || [];
-  }, [cfg, items]);
+  }, [cfg, scoped]);
 
   const addTag = (t: string) => setUrl((s) => (s.tagFilters.includes(t) ? {} : { tagFilters: [...s.tagFilters, t] }));
   const onDelete = (g: Item) => {
@@ -48,7 +59,9 @@ export function LibraryView() {
     } else setPendingDelete(g.id);
   };
   const isDefaultSort = sort.sortKey === "default";
-  const loaded = data.status === "ready";
+  const loaded = cfg.ledgerMonth ? hasMonth(data, month) : data.status === "ready";
+  // A ledger holding one month can't tell "empty library" from "empty month".
+  const empty = loaded && items.length === 0 && (!cfg.ledgerMonth || data.full);
   const rows = view.rows;
 
   return (
@@ -139,6 +152,49 @@ export function LibraryView() {
         {`${rows.length} ${cfg.nounPlural} shown`}
       </div>
 
+      {cfg.ledgerMonth && months.length > 0 && (
+        <div className="mb-[14px] flex items-center gap-2">
+          <PillGroup label="Month">
+            <Pill
+              active={false}
+              onClick={() => pickMonth(shiftMonth(month, -1))}
+              aria-label="Previous month"
+              title="Previous month"
+              className={"px-2.5 disabled:cursor-default disabled:opacity-40 " + (isMobile ? "py-2.5" : "py-[7px]")}
+            >
+              <CaretLeftIcon size={13} />
+            </Pill>
+            <select
+              value={month}
+              onChange={(e) => pickMonth(e.target.value)}
+              aria-label="Month"
+              className="cursor-pointer rounded-md border-none bg-transparent px-2 text-[12.5px] font-semibold text-text2 tabular-nums outline-none hover:text-text"
+            >
+              {months.map((k) => (
+                <option key={k} value={k} className="bg-surface text-text">
+                  {monthLabel(k)}
+                </option>
+              ))}
+            </select>
+            <Pill
+              active={false}
+              disabled={month >= currentMonthKey()}
+              onClick={() => pickMonth(shiftMonth(month, 1))}
+              aria-label="Next month"
+              title="Next month"
+              className={"px-2.5 disabled:cursor-default disabled:opacity-40 " + (isMobile ? "py-2.5" : "py-[7px]")}
+            >
+              <CaretRightIcon size={13} />
+            </Pill>
+          </PillGroup>
+          {month !== currentMonthKey() && (
+            <button type="button" onClick={() => pickMonth(currentMonthKey())} className="cursor-pointer border-none bg-transparent p-0 text-[12.5px] text-accent underline-offset-2 hover:underline">
+              This month
+            </button>
+          )}
+        </div>
+      )}
+
       {categories.length > 1 && (
         <PillGroup label="Category" className={"mb-[14px] " + (isMobile ? "g-noscroll w-full overflow-x-auto" : "w-fit flex-wrap")}>
           {categories.map((c) => (
@@ -175,7 +231,7 @@ export function LibraryView() {
         </div>
       )}
 
-      {data.status === "loading" && (layout === "table" ? <ItemTableSkeleton /> : <ItemCardsSkeleton />)}
+      {!loaded && data.status !== "error" && (layout === "table" ? <ItemTableSkeleton /> : <ItemCardsSkeleton />)}
 
       {loaded && rows.length > 0 && layout === "table" && (
         <ItemTable
@@ -191,12 +247,11 @@ export function LibraryView() {
           onDelete={onDelete}
           onTag={addTag}
           onMore={() => setRowLimit((n) => (n || 150) + 150)}
-          onLoadAll={() => setShowAllLedger(true)}
         />
       )}
       {loaded && rows.length > 0 && layout === "cards" && <ItemCards rows={rows} />}
 
-      {loaded && items.length === 0 && (
+      {empty && (
         <div className="px-5 py-[70px] text-center">
           <div className="mb-2 text-[17px] font-semibold text-text2">{cfg.emptyTitle}</div>
           <div className="mx-auto mb-[22px] max-w-[52ch] text-[13px] text-pretty text-dim">{cfg.emptySub}</div>
@@ -214,11 +269,13 @@ export function LibraryView() {
           </div>
         </div>
       )}
-      {loaded && items.length > 0 && rows.length === 0 && (
+      {loaded && !empty && rows.length === 0 && (
         <div className="px-5 py-[70px] text-center text-dim">
-          <div className="mb-1.5 text-[15px]">No {cfg.nounPlural} match.</div>
+          <div className="mb-1.5 text-[15px]">
+            {cfg.ledgerMonth ? `No ${cfg.nounPlural} in ${monthLabel(month)}.` : `No ${cfg.nounPlural} match.`}
+          </div>
           <div className="text-[13px]">
-            Try clearing filters or{" "}
+            {cfg.ledgerMonth ? "Pick another month, clear filters or" : "Try clearing filters or"}{" "}
             <button type="button" onClick={openAdd} className="cursor-pointer border-none bg-transparent p-0 text-accent underline-offset-2 hover:underline">
               add a new {cfg.noun}
             </button>

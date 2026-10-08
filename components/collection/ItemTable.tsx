@@ -1,7 +1,7 @@
 "use client";
 
 // Library table: sortable header, collapsible rows with a detail panel
-// (review, actions, metadata, search links), paging and the ledger cap.
+// (review, actions, metadata, search links), and paging.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowDownIcon, ArrowUpIcon, CaretRightIcon, GlobeIcon } from "@/components/icons";
 import { cellValue, cornerLink, detailRows, reviewOf, type LibraryFilters, type VisibleRows } from "@/lib/collection";
@@ -19,7 +19,6 @@ interface Props {
   onDelete(item: Item): void;
   onTag(tag: string): void;
   onMore(): void;
-  onLoadAll(): void;
 }
 
 /** Grid template for the header, rows and skeleton: visible columns plus the chevron. */
@@ -41,7 +40,7 @@ const ENTER_STEPS = 12;
 /** More simultaneous changes than this is a reload or sync, not an edit: no flash. */
 const MAX_FLASH = 3;
 
-export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDelete, onDelete, onTag, onMore, onLoadAll }: Props) {
+export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDelete, onDelete, onTag, onMore }: Props) {
   const { cfg, isMobile, money, openEdit, openShare } = useCollectionCtx();
   const { visible, gridCols } = tableGrid(cfg, isMobile);
   const body = useRef<HTMLDivElement>(null);
@@ -336,16 +335,6 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
           className={moreButton + " mt-2 p-3 tabular-nums"}
         >
           Showing {view.more.shown} of {view.more.total} · load {view.more.remaining} more
-        </button>
-      )}
-      {view.ledger.limited && (
-        <button
-          type="button"
-          onClick={onLoadAll}
-          className={moreButton + " mt-1.5 flex items-center justify-center gap-2 p-[13px]"}
-        >
-          Showing {view.ledger.label} · <span className="text-accent">Load all {view.ledger.total} {cfg.nounPlural}</span>{" "}
-          <span className="text-dim">({view.ledger.hidden} more)</span> →
         </button>
       )}
     </div>
