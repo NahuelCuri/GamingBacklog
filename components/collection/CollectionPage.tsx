@@ -48,7 +48,8 @@ const alertClass = "mt-6 rounded-xl border border-neg/25 bg-neg/8 px-4 py-3 text
 export function CollectionBody({ collection, store }: { collection: CollectionKey; store?: CollectionStore | null }) {
   const cfg = COLLECTIONS[collection];
   const userStore = useStore(collection);
-  const { state: data, actions } = useCollection(collection, store === undefined ? userStore : store);
+  // Ledgers (expenses) read one month at a time; every other library reads everything.
+  const { state: data, actions } = useCollection(collection, store === undefined ? userStore : store, { byMonth: !!cfg.ledgerMonth });
   const isMobile = useIsMobile();
   const { money, toggle: currency } = useCurrency(cfg.currency);
   const [rawUrl, setUrl] = useUrlState();
@@ -63,6 +64,13 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
   useEffect(() => {
     if (own && data.status === "ready") rememberSummary(user?.id, collection, collectionSummary(collection, cfg, data.items, money));
   }, [own, data.status, data.items, user?.id, collection, cfg, money]);
+
+  // Stats, months and the rest summarise the whole history, so they read it all.
+  const needsAll = url.view !== "library";
+  useEffect(() => {
+    if (needsAll && data.status === "ready") actions?.loadAll().catch(() => {});
+  }, [needsAll, data.status, actions]);
+  const all = data.status === "ready" && data.full;
 
   const openAdd = useCallback(() => setModal({ mode: "add", draft: blankDraft(cfg) }), [cfg]);
   const openEdit = useCallback((g: Item) => setModal({ mode: "edit", draft: draftFromItem(cfg, g) }), [cfg]);
@@ -99,10 +107,15 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
             </div>
           )}
           {data.status !== "error" && url.view === "library" && <LibraryView />}
-          {data.status === "ready" && url.view === "stats" && <StatsView />}
-          {data.status === "ready" && url.view === "months" && <MonthsView />}
-          {data.status === "ready" && url.view === "roulette" && <RouletteView />}
-          {data.status === "ready" && url.view === "map" && <GeoMapView />}
+          {needsAll && data.status !== "error" && !all && (
+            <div aria-busy="true" className="py-16 text-center font-mono text-xs text-dim motion-safe:animate-pulse">
+              loading…
+            </div>
+          )}
+          {all && url.view === "stats" && <StatsView />}
+          {all && url.view === "months" && <MonthsView />}
+          {all && url.view === "roulette" && <RouletteView />}
+          {all && url.view === "map" && <GeoMapView />}
         </main>
         {modal && <ItemModal modal={modal} setModal={setModal} onClose={closeModal} />}
         {statsImage && <ShareImageDialog onClose={() => setStatsImage(false)} />}

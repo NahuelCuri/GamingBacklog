@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { COLLECTIONS } from "@/config/collections";
-import { blankDraft, draftFromItem, monthCards, monthDetail } from "@/lib/collection";
+import { blankDraft, currentMonthKey, draftFromItem, groupByMonth, monthCards, monthDetail } from "@/lib/collection";
 import type { CollectionKey, Item } from "@/lib/collection/types";
 import { DEFAULT_URL_STATE, hasView, readUrlState, writeUrlState, type UrlState } from "@/lib/collection/url-state";
 import { initialCollectionState } from "@/lib/data/collection-state";
@@ -18,9 +18,9 @@ import { MonthsView } from "./MonthsView";
 afterEach(cleanup);
 
 function makeCtx(key: CollectionKey, items: Item[], over: Partial<CollectionCtx> = {}) {
-  const actions = { save: vi.fn(), remove: vi.fn(), loadStarter: vi.fn(), refresh: vi.fn() };
+  const actions = { save: vi.fn(), remove: vi.fn(), loadStarter: vi.fn(), refresh: vi.fn(), loadAll: vi.fn(async () => {}), loadMonth: vi.fn(async () => {}) };
   const ctx: CollectionCtx = {
-    collection: key, cfg: COLLECTIONS[key], data: { ...initialCollectionState, status: "ready", items }, items,
+    collection: key, cfg: COLLECTIONS[key], data: { ...initialCollectionState, status: "ready", items, full: true }, items,
     actions: actions as never, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
     openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), ...over,
   };
@@ -105,14 +105,16 @@ describe("library view (games seed)", () => {
 });
 
 describe("library view (expenses seed)", () => {
-  it("caps the ledger to the latest month until 'Load all'", () => {
+  it("shows one month at a time, the current one first", () => {
     const tx = seed("expenses");
     renderLibrary("expenses", tx);
-    const loadAll = screen.getByRole("button", { name: /Load all \d+ transactions/ });
-    const before = rowButtons().length;
-    expect(before).toBeLessThan(tx.length);
-    fireEvent.click(loadAll);
-    expect(rowButtons().length).toBe(Math.min(150, tx.length));
+    const picker = screen.getByRole("combobox", { name: "Month" }) as HTMLSelectElement;
+    expect(picker.value).toBe(currentMonthKey());
+    const byMonth = groupByMonth(tx);
+    const k = Object.keys(byMonth).sort()[0];
+    fireEvent.change(picker, { target: { value: k } });
+    expect(rowButtons().length).toBe(Math.min(150, byMonth[k].length));
+    expect(rowButtons().length).toBeLessThan(tx.length);
   });
 });
 

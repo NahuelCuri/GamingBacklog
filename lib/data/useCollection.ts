@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useRef } from "react";
+import { currentMonthKey } from "@/lib/collection/library";
 import type { CollectionKey, Item } from "@/lib/collection/types";
 import { withBase } from "@/lib/paths";
 import { collectionActions } from "./collection-actions";
@@ -17,9 +18,10 @@ function reducer(s: CollectionState, a: Tagged): CollectionState {
 /**
  * Loads one collection from `store` and exposes its state plus actions. Passing
  * a new store (another collection or user) resets and reloads; late results
- * from a previous store are ignored.
+ * from a previous store are ignored. `byMonth` starts with the current month
+ * only; the rest is read with `loadMonth` / `loadAll` when a view needs it.
  */
-export function useCollection(key: CollectionKey, store: CollectionStore | null) {
+export function useCollection(key: CollectionKey, store: CollectionStore | null, { byMonth = false } = {}) {
   const [state, rawDispatch] = useReducer(reducer, initialCollectionState);
   const stateRef = useRef(state);
   const storeRef = useRef(store);
@@ -45,8 +47,9 @@ export function useCollection(key: CollectionKey, store: CollectionStore | null)
         if (!res.ok) throw new Error("Could not load the starter data.");
         return res.json();
       },
+      firstMonth: byMonth ? () => currentMonthKey() : undefined,
     });
-  }, [key, store]);
+  }, [key, store, byMonth]);
 
   useEffect(() => {
     if (!actions) return;

@@ -29,7 +29,7 @@ afterEach(() => {
 function renderMap(items: Item[]) {
   const noop = vi.fn();
   const ctx: CollectionCtx = {
-    collection: "wines", cfg: COLLECTIONS.wines, data: { ...initialCollectionState, status: "ready", items }, items,
+    collection: "wines", cfg: COLLECTIONS.wines, data: { ...initialCollectionState, status: "ready", items, full: true }, items,
     actions: null, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: noop,
     openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop,
   };

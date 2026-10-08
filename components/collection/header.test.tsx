@@ -23,11 +23,11 @@ afterEach(() => {
 
 function renderHeader(status: "ready" | "loading" = "ready") {
   const items = seed("games");
-  const actions = { exportNow: vi.fn(), importReplace: vi.fn(async () => {}), importMerge: vi.fn(async () => {}) };
+  const actions = { loadAll: vi.fn(async () => {}), exportNow: vi.fn(), importReplace: vi.fn(async () => {}), importMerge: vi.fn(async () => {}) };
   render(
     <CollectionContext.Provider
       value={{
-        collection: "games", cfg: COLLECTIONS.games, data: { ...initialCollectionState, status, items }, items,
+        collection: "games", cfg: COLLECTIONS.games, data: { ...initialCollectionState, status, items, full: status === "ready" }, items,
         actions: actions as never, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
         openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(),
       }}

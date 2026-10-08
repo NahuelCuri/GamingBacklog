@@ -159,6 +159,57 @@ describe("collectionActions", () => {
   });
 });
 
+describe("month-by-month loading (expenses)", () => {
+  const tx = (id: string, date: string): Item => ({ id, title: id, date });
+  const rows = [tx("sep", "2026-09-30"), tx("oct1", "2026-10-01"), tx("oct2", "2026-10-07"), tx("old", "2025-01-15")];
+
+  function monthHarness() {
+    const inner = memoryStore(rows);
+    const load = vi.spyOn(inner, "load");
+    const loadMonth = vi.spyOn(inner as Required<CollectionStore>, "loadMonth");
+    let state = initialCollectionState;
+    const dispatch = (x: CollectionAction) => (state = collectionReducer(state, x));
+    const act = collectionActions(inner, dispatch, () => state, { backup: vi.fn(), loadSeed: async () => [], firstMonth: () => "2026-10" });
+    return { act, load, loadMonth, get state() { return state; } };
+  }
+
+  it("starts with only the current month and never reads the whole table", async () => {
+    const h = monthHarness();
+    await h.act.refresh();
+    expect(h.state.items.map((x) => x.id).sort()).toEqual(["oct1", "oct2"]);
+    expect(h.state.full).toBe(false);
+    expect(canTransfer(h.state)).toBe(false);
+    expect(h.load).not.toHaveBeenCalled();
+  });
+
+  it("reads another month once, on demand", async () => {
+    const h = monthHarness();
+    await h.act.refresh();
+    await Promise.all([h.act.loadMonth("2026-09"), h.act.loadMonth("2026-09")]);
+    await h.act.loadMonth("2026-10");
+    expect(h.loadMonth.mock.calls.map((c) => c[0])).toEqual(["2026-10", "2026-09"]);
+    expect(h.state.items.map((x) => x.id).sort()).toEqual(["oct1", "oct2", "sep"]);
+  });
+
+  it("loadAll reads everything once and unlocks export", async () => {
+    const h = monthHarness();
+    await h.act.refresh();
+    await h.act.loadAll();
+    await h.act.loadAll();
+    expect(h.load).toHaveBeenCalledTimes(1);
+    expect(h.state.items).toHaveLength(4);
+    expect(canTransfer(h.state)).toBe(true);
+    await h.act.loadMonth("2025-01");
+    expect(h.loadMonth).toHaveBeenCalledTimes(1);
+  });
+
+  it("supabase reads a month as a date range on the jsonb", async () => {
+    const { sb, log } = fakeSupabase();
+    await supabaseStore(sb, "expenses", "u1").loadMonth!("2026-12");
+    expect(log).toEqual([["from", "expenses"], ["select", "data"], ["gte", "data->>date", "2026-12-01"], ["lt", "data->>date", "2027-01-01"]]);
+  });
+});
+
 // ---------------------------------------------------------------- supabase store
 
 /** Chainable fake of the supabase query builder that records every call. */
