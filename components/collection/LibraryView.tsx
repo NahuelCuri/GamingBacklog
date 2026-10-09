@@ -4,6 +4,7 @@
 // empty states.
 import { useEffect, useMemo, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon, CloseIcon, GridIcon, ResetIcon, RowsIcon, SearchIcon } from "@/components/icons";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { Pill, PillGroup, accentButton, secondaryButton } from "@/components/ui/Pills";
 import { buildStrip, categoryValues, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
 import { monthKey, monthLabel } from "@/lib/collection/format";
@@ -63,6 +64,7 @@ export function LibraryView() {
   // A ledger holding one month can't tell "empty library" from "empty month".
   const empty = loaded && items.length === 0 && (!cfg.ledgerMonth || data.full);
   const rows = view.rows;
+  const showMonth = !!cfg.ledgerMonth && months.length > 0;
 
   return (
     <div>
@@ -152,62 +154,56 @@ export function LibraryView() {
         {`${rows.length} ${cfg.nounPlural} shown`}
       </div>
 
-      {cfg.ledgerMonth && months.length > 0 && (
-        <div className="mb-[14px] flex items-center gap-2">
-          <PillGroup label="Month">
-            <Pill
-              active={false}
-              onClick={() => pickMonth(shiftMonth(month, -1))}
-              aria-label="Previous month"
-              title="Previous month"
-              className={"px-2.5 disabled:cursor-default disabled:opacity-40 " + (isMobile ? "py-2.5" : "py-[7px]")}
-            >
-              <CaretLeftIcon size={13} />
-            </Pill>
-            <select
-              value={month}
-              onChange={(e) => pickMonth(e.target.value)}
-              aria-label="Month"
-              className="cursor-pointer rounded-md border-none bg-transparent px-2 text-[12.5px] font-semibold text-text2 tabular-nums outline-none hover:text-text"
-            >
-              {months.map((k) => (
-                <option key={k} value={k} className="bg-surface text-text">
-                  {monthLabel(k)}
-                </option>
+      {/* Month and category share one line on desktop; they stack on phones, where the category pills already take the full width. */}
+      {(showMonth || categories.length > 1) && (
+        <div className={"mb-[14px] flex gap-2 " + (isMobile ? "flex-col items-stretch" : "flex-wrap items-center")}>
+          {showMonth && (
+            <div className="flex flex-none items-center gap-2">
+              <PillGroup label="Month">
+                <Pill
+                  active={false}
+                  onClick={() => pickMonth(shiftMonth(month, -1))}
+                  aria-label="Previous month"
+                  title="Previous month"
+                  className={"px-2.5 disabled:cursor-default disabled:opacity-40 " + (isMobile ? "py-2.5" : "py-[7px]")}
+                >
+                  <CaretLeftIcon size={13} />
+                </Pill>
+                <MonthPicker value={month} onChange={pickMonth} max={currentMonthKey()} className={isMobile ? "py-2.5" : "py-[7px]"} />
+                <Pill
+                  active={false}
+                  disabled={month >= currentMonthKey()}
+                  onClick={() => pickMonth(shiftMonth(month, 1))}
+                  aria-label="Next month"
+                  title="Next month"
+                  className={"px-2.5 disabled:cursor-default disabled:opacity-40 " + (isMobile ? "py-2.5" : "py-[7px]")}
+                >
+                  <CaretRightIcon size={13} />
+                </Pill>
+              </PillGroup>
+              {month !== currentMonthKey() && (
+                <button type="button" onClick={() => pickMonth(currentMonthKey())} className="cursor-pointer border-none bg-transparent p-0 text-[12.5px] text-accent underline-offset-2 hover:underline">
+                  This month
+                </button>
+              )}
+            </div>
+          )}
+
+          {categories.length > 1 && (
+            <PillGroup label="Category" className={isMobile ? "g-noscroll w-full overflow-x-auto" : "min-w-0 flex-wrap"}>
+              {categories.map((c) => (
+                <Pill
+                  key={c.value}
+                  active={url.catFilter === c.value}
+                  onClick={() => setUrl({ catFilter: c.value })}
+                  className={"text-[12.5px] font-medium " + (isMobile ? "flex-[1_0_auto] px-2.5 py-2.5 whitespace-nowrap" : "px-3 py-1.5")}
+                >
+                  {c.label}
+                </Pill>
               ))}
-            </select>
-            <Pill
-              active={false}
-              disabled={month >= currentMonthKey()}
-              onClick={() => pickMonth(shiftMonth(month, 1))}
-              aria-label="Next month"
-              title="Next month"
-              className={"px-2.5 disabled:cursor-default disabled:opacity-40 " + (isMobile ? "py-2.5" : "py-[7px]")}
-            >
-              <CaretRightIcon size={13} />
-            </Pill>
-          </PillGroup>
-          {month !== currentMonthKey() && (
-            <button type="button" onClick={() => pickMonth(currentMonthKey())} className="cursor-pointer border-none bg-transparent p-0 text-[12.5px] text-accent underline-offset-2 hover:underline">
-              This month
-            </button>
+            </PillGroup>
           )}
         </div>
-      )}
-
-      {categories.length > 1 && (
-        <PillGroup label="Category" className={"mb-[14px] " + (isMobile ? "g-noscroll w-full overflow-x-auto" : "w-fit flex-wrap")}>
-          {categories.map((c) => (
-            <Pill
-              key={c.value}
-              active={url.catFilter === c.value}
-              onClick={() => setUrl({ catFilter: c.value })}
-              className={"text-[12.5px] font-medium " + (isMobile ? "flex-[1_0_auto] px-2.5 py-2.5 whitespace-nowrap" : "px-3 py-1.5")}
-            >
-              {c.label}
-            </Pill>
-          ))}
-        </PillGroup>
       )}
 
       {url.tagFilters.length > 0 && (
