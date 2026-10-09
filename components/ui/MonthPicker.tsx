@@ -14,8 +14,8 @@ const parse = (k: string) => {
 };
 const keyOf = (y: number, mo: number) => `${y + Math.floor(mo / 12)}-${String((((mo % 12) + 12) % 12) + 1).padStart(2, "0")}`;
 
-/** `max` is the newest selectable month ("YYYY-MM"); later months are disabled. */
-export function MonthPicker({ value, onChange, max, className = "" }: { value: string; onChange(key: string): void; max: string; className?: string }) {
+/** `max` is the newest selectable month ("YYYY-MM"); later months are disabled. `large` makes the trigger a heading-sized title. */
+export function MonthPicker({ value, onChange, max, large, className = "" }: { value: string; onChange(key: string): void; max: string; large?: boolean; className?: string }) {
   const [open, setOpen] = useState(false);
   const [vy, setVy] = useState(() => parse(value).y);
   const [focusKey, setFocusKey] = useState(value);
@@ -85,13 +85,14 @@ export function MonthPicker({ value, onChange, max, className = "" }: { value: s
         aria-expanded={open}
         aria-label={`Month: ${monthLabel(value)}`}
         className={
-          "flex cursor-pointer items-center gap-1.5 rounded-md border-none bg-transparent px-2 text-[12.5px] font-semibold text-text2 tabular-nums transition-colors duration-150 hover:text-text " +
-          (open ? "text-text " : "") +
+          "flex cursor-pointer items-center gap-1.5 rounded-md border-none bg-transparent px-2 font-semibold tabular-nums transition-colors duration-150 hover:text-text " +
+          (large ? "text-[22px] tracking-[-.01em] max-[720px]:text-[19px] " : "text-[12.5px] ") +
+          (open || large ? "text-text " : "text-text2 ") +
           className
         }
       >
         {monthLabel(value)}
-        <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" className="flex-none opacity-70">
+        <svg width={large ? 15 : 11} height={large ? 15 : 11} viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" className="flex-none opacity-70">
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>

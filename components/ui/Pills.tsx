@@ -1,36 +1,86 @@
 "use client";
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 
-/** Segmented control container (legacy: topchip bg, 9px radius, 3px inset). */
+/** Segmented control container (legacy: topchip bg, 9px radius, 3px inset). The selection is one highlight that
+ *  slides between pills: accent in the box, a neutral chip when `bare` (filter rows, holding `quiet` pills).
+ *  Until it has been measured (`data-slid` unset) the active pill paints its own fill, so it never goes blank. */
 export function PillGroup({
   children,
   label,
   role = "group",
+  bare,
   className = "",
   style,
 }: {
   children: ReactNode;
   label?: string;
   role?: "group" | "tablist";
+  bare?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const box = useRef<HTMLDivElement>(null);
+  const mark = useSlidingMark(box);
   return (
-    <div role={role} aria-label={label} className={"flex gap-[3px] rounded-[9px] border border-wd bg-topchip p-[3px] " + className} style={style}>
+    <div
+      ref={box}
+      role={role}
+      data-slid={mark ? "" : undefined}
+      aria-label={label}
+      className={"group/pills relative flex gap-[3px] " + (bare ? "" : "rounded-[9px] border border-wd bg-topchip p-[3px] ") + className}
+      style={style}
+    >
+      {mark && (
+        <span
+          aria-hidden
+          className={"pointer-events-none absolute top-0 left-0 rounded-md " + (bare ? "bg-chip " : "bg-accent ") + (mark.animate ? "motion-safe:transition-[transform,width,height] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(.3,1.2,.4,1)]" : "")}
+          style={{ width: mark.w, height: mark.h, transform: `translate(${mark.x}px, ${mark.y}px)` }}
+        />
+      )}
       {children}
     </div>
   );
 }
 
-/** One segment: accent fill when active. Uses aria-pressed, or aria-selected in a tablist. */
+type Mark = { x: number; y: number; w: number; h: number; animate: boolean };
+
+/** Tracks the selected child's box inside `box`; the first placement doesn't animate. */
+function useSlidingMark(box: React.RefObject<HTMLDivElement | null>) {
+  const [mark, setMark] = useState<Mark | null>(null);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const place = () => {
+      const sel = el.querySelector<HTMLElement>(':scope > [aria-pressed="true"], :scope > [aria-selected="true"]');
+      if (!sel || !sel.offsetWidth) return setMark(null);
+      const next = { x: sel.offsetLeft, y: sel.offsetTop, w: sel.offsetWidth, h: sel.offsetHeight };
+      setMark((m) => (m && m.x === next.x && m.y === next.y && m.w === next.w && m.h === next.h ? m : { ...next, animate: !!m }));
+    };
+    place();
+    const watch = new MutationObserver(place);
+    watch.observe(el, { subtree: true, childList: true, attributes: true, attributeFilter: ["aria-pressed", "aria-selected"] });
+    // Pills can change width without the group doing so (fonts loading, translations). Absent in jsdom.
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
+    for (const n of [el, ...el.children]) resize?.observe(n);
+    return () => {
+      watch.disconnect();
+      resize?.disconnect();
+    };
+  }, [box]);
+  return mark;
+}
+
+/** One segment: accent fill when active (`quiet`: neutral, for a bare group). Inside a measured group the fill
+ *  moves to the group's sliding highlight. Uses aria-pressed, or aria-selected in a tablist. */
 export function Pill({
   active,
   tab,
+  quiet,
   className = "",
   children,
   ...rest
-}: { active: boolean; tab?: boolean } & ButtonHTMLAttributes<HTMLButtonElement>) {
+}: { active: boolean; tab?: boolean; quiet?: boolean } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
@@ -38,8 +88,10 @@ export function Pill({
       aria-selected={tab ? active : undefined}
       aria-pressed={tab ? undefined : active}
       className={
-        "cursor-pointer rounded-md border-none transition-[color,background-color,transform] duration-200 active:scale-[.97] " +
-        (active ? "bg-accent text-on-accent " : "bg-transparent text-muted hover:bg-wc hover:text-text ") +
+        "relative cursor-pointer rounded-md border-none transition-[color,background-color,transform] duration-200 active:scale-[.97] " +
+        (active
+          ? (quiet ? "bg-chip text-text " : "bg-accent text-on-accent ") + "group-data-slid/pills:bg-transparent "
+          : "bg-transparent text-muted hover:bg-wc hover:text-text ") +
         className
       }
       {...rest}

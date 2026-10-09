@@ -61,12 +61,42 @@ export function LibraryView() {
   const rows = view.rows;
   const showMonth = !!cfg.ledgerMonth && months.length > 0;
 
+  const pillSize = "text-[12.5px] font-medium " + (isMobile ? "flex-[1_0_auto] px-2.5 py-2.5 whitespace-nowrap" : "px-3 py-1.5");
+  const arrow =
+    "flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-muted transition-[color,background-color,transform] duration-150 not-disabled:hover:bg-wc not-disabled:hover:text-text not-disabled:active:scale-[.94] disabled:cursor-default disabled:opacity-30";
+
   return (
     <div>
+      {/* Ledgers: the month heads the page; the strip below is that month's summary. */}
+      {showMonth && (
+        <div className="-ml-2 flex items-center gap-0.5 pt-[22px]">
+          <button type="button" onClick={() => pickMonth(shiftMonth(month, -1))} aria-label="Previous month" title="Previous month" className={arrow}>
+            <CaretLeftIcon size={15} />
+          </button>
+          <MonthPicker value={month} onChange={pickMonth} max={currentMonthKey()} large className="py-1" />
+          <button
+            type="button"
+            disabled={month >= currentMonthKey()}
+            onClick={() => pickMonth(shiftMonth(month, 1))}
+            aria-label="Next month"
+            title="Next month"
+            className={arrow}
+          >
+            <CaretRightIcon size={15} />
+          </button>
+          {month !== currentMonthKey() && (
+            <button type="button" onClick={() => pickMonth(currentMonthKey())} className="ml-2 cursor-pointer border-none bg-transparent p-0 text-[12.5px] text-accent underline-offset-2 hover:underline">
+              This month
+            </button>
+          )}
+        </div>
+      )}
+
       {/* One scrollable line on mobile instead of a ragged 4-line wrap. */}
       <div
         className={
-          "flex pt-[22px] pb-5 font-mono text-[12.5px] tabular-nums " +
+          "flex pb-5 font-mono text-[12.5px] tabular-nums " +
+          (showMonth ? "pt-2.5 " : "pt-[22px] ") +
           (isMobile ? "g-noscroll -mx-[14px] overflow-x-auto px-[14px] whitespace-nowrap" : "flex-wrap px-1")
         }
         style={{
@@ -113,84 +143,39 @@ export function LibraryView() {
           )}
         </div>
         {/* Mobile: one row that fills the width, and scrolls sideways when the labels (or their translation) don't fit. */}
-        <PillGroup label="Status" className={isMobile ? "g-noscroll w-full overflow-x-auto" : "flex-wrap"}>
+        <PillGroup label="Status" bare className={isMobile ? "g-noscroll w-full overflow-x-auto" : "flex-wrap"}>
           {cfg.statusFilters.map((c) => (
-            <Pill
-              key={c.value}
-              active={url.status === c.value}
-              onClick={() => setUrl({ status: c.value })}
-              className={"text-[12.5px] font-medium " + (isMobile ? "flex-[1_0_auto] px-2.5 py-2.5 whitespace-nowrap" : "px-3 py-1.5")}
-            >
+            <Pill key={c.value} quiet active={url.status === c.value} onClick={() => setUrl({ status: c.value })} className={pillSize}>
               {c.label}
             </Pill>
           ))}
         </PillGroup>
-        <button
-          type="button"
-          onClick={() => setSort({ sortKey: "default", sortDir: "asc" })}
-          title="Reset sort order"
-          aria-label="Reset sort order"
-          disabled={isDefaultSort}
-          className="flex cursor-pointer items-center self-stretch rounded-[9px] border border-wd bg-topchip px-[11px] text-text2 transition-[color,border-color,opacity,transform] duration-200 not-disabled:hover:border-wi not-disabled:hover:text-text not-disabled:active:translate-y-px disabled:cursor-default disabled:opacity-40"
-        >
-          <ResetIcon size={15} />
-        </button>
+        {/* Only there once the table has been re-sorted. */}
+        {!isDefaultSort && (
+          <button
+            type="button"
+            onClick={() => setSort({ sortKey: "default", sortDir: "asc" })}
+            title="Reset sort order"
+            aria-label="Reset sort order"
+            className="flex cursor-pointer items-center self-stretch rounded-[9px] border border-wd bg-topchip px-[11px] text-text2 transition-[color,border-color,transform] duration-200 hover:border-wi hover:text-text active:translate-y-px"
+          >
+            <ResetIcon size={15} />
+          </button>
+        )}
       </div>
 
       <div aria-live="polite" className="sr-only">
         {`${rows.length} ${cfg.nounPlural} shown`}
       </div>
 
-      {/* Month and category share one line on desktop; they stack on phones, where the category pills already take the full width. */}
-      {(showMonth || categories.length > 1) && (
-        <div className={"mb-[14px] flex gap-2 " + (isMobile ? "flex-col items-stretch" : "flex-wrap items-center")}>
-          {showMonth && (
-            <div className="flex flex-none items-center gap-2">
-              <PillGroup label="Month">
-                <Pill
-                  active={false}
-                  onClick={() => pickMonth(shiftMonth(month, -1))}
-                  aria-label="Previous month"
-                  title="Previous month"
-                  className={"px-2.5 disabled:cursor-default disabled:opacity-40 " + (isMobile ? "py-2.5" : "py-[7px]")}
-                >
-                  <CaretLeftIcon size={13} />
-                </Pill>
-                <MonthPicker value={month} onChange={pickMonth} max={currentMonthKey()} className={isMobile ? "py-2.5" : "py-[7px]"} />
-                <Pill
-                  active={false}
-                  disabled={month >= currentMonthKey()}
-                  onClick={() => pickMonth(shiftMonth(month, 1))}
-                  aria-label="Next month"
-                  title="Next month"
-                  className={"px-2.5 disabled:cursor-default disabled:opacity-40 " + (isMobile ? "py-2.5" : "py-[7px]")}
-                >
-                  <CaretRightIcon size={13} />
-                </Pill>
-              </PillGroup>
-              {month !== currentMonthKey() && (
-                <button type="button" onClick={() => pickMonth(currentMonthKey())} className="cursor-pointer border-none bg-transparent p-0 text-[12.5px] text-accent underline-offset-2 hover:underline">
-                  This month
-                </button>
-              )}
-            </div>
-          )}
-
-          {categories.length > 1 && (
-            <PillGroup label="Category" className={isMobile ? "g-noscroll w-full overflow-x-auto" : "min-w-0 flex-wrap"}>
-              {categories.map((c) => (
-                <Pill
-                  key={c.value}
-                  active={url.catFilter === c.value}
-                  onClick={() => setUrl({ catFilter: c.value })}
-                  className={"text-[12.5px] font-medium " + (isMobile ? "flex-[1_0_auto] px-2.5 py-2.5 whitespace-nowrap" : "px-3 py-1.5")}
-                >
-                  {c.label}
-                </Pill>
-              ))}
-            </PillGroup>
-          )}
-        </div>
+      {categories.length > 1 && (
+        <PillGroup label="Category" bare className={"mb-[14px] " + (isMobile ? "g-noscroll w-full overflow-x-auto" : "flex-wrap")}>
+          {categories.map((c) => (
+            <Pill key={c.value} quiet active={url.catFilter === c.value} onClick={() => setUrl({ catFilter: c.value })} className={pillSize}>
+              {c.label}
+            </Pill>
+          ))}
+        </PillGroup>
       )}
 
       {url.tagFilters.length > 0 && (

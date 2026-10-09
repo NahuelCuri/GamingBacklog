@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CloseIcon, PlusIcon } from "@/components/icons";
 import { CountUp } from "@/components/ui/CountUp";
-import { accentButton, neutralButton, toggleChip } from "@/components/ui/Pills";
+import { Pill, PillGroup, accentButton, neutralButton } from "@/components/ui/Pills";
 import {
   REEL, defaultRouletteState, pickRandom, pickSuggestions, pool as buildPool, primaryKey, pushRecent, reelCard, reelStrip, reelTarget,
   tagCloud, winnerActive, type RouletteState,
@@ -30,7 +30,10 @@ function reelX(target: number, t: number) {
 }
 const eyebrow = "text-[10px] font-semibold tracking-[.09em] text-dim uppercase";
 
-const chip = (on: boolean) => toggleChip(on, "border-wf bg-inset text-text2");
+/** Tag filter chip: a neutral fill when on, so the accent stays on Spin. */
+const tagChip = (on: boolean) =>
+  "cursor-pointer border transition-[color,background-color,border-color,transform] duration-200 active:scale-[.97] " +
+  (on ? "border-muted bg-chip text-text" : "border-we bg-chip2 text-muted2 hover:border-wi hover:text-text");
 /** Stagger step for the winner panel's parts (see .g-rise). */
 const rise = (i: number) => ({ "--i": i }) as CSSProperties;
 
@@ -110,61 +113,46 @@ export function RouletteView() {
         <div className="mb-[3px] text-[15px] font-bold">Build your pool</div>
         <div className="mb-[18px] text-[12.5px] text-muted">Narrow it down, then let fate pick.</div>
 
-        <div className="relative mb-[18px] flex gap-1 rounded-[9px] border border-wd bg-inset p-[3px]">
-          {/* one accent pill slides between the two options */}
-          <span
-            aria-hidden
-            className="absolute inset-y-[3px] left-[3px] rounded-md bg-accent transition-transform duration-[320ms] ease-[var(--ease-out)]"
-            style={{ width: "calc(50% - 5px)", transform: st.rmode === "picked" ? "translateX(calc(100% + 4px))" : "none" }}
-          />
+        <PillGroup label="Pick from" className="mb-[18px]">
           {(["filters", "picked"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={st.rmode === m}
-              onClick={() => setSt((s) => ({ ...s, rmode: m }))}
-              className={
-                "relative flex-1 cursor-pointer rounded-md border-none bg-transparent p-[7px] text-center text-[12.5px] font-semibold transition-[color,background-color] duration-200 " +
-                (st.rmode === m ? "text-on-accent" : "text-muted hover:bg-wc hover:text-text")
-              }
-            >
+            <Pill key={m} active={st.rmode === m} onClick={() => setSt((s) => ({ ...s, rmode: m }))} className="flex-1 p-[7px] text-center text-[12.5px] font-semibold">
               {m === "filters" ? "By filters" : "Hand-pick"}
-            </button>
+            </Pill>
           ))}
-        </div>
+        </PillGroup>
 
         {st.rmode === "filters" ? (
           <div>
             <div className={eyebrow + " mb-2"}>Status</div>
-            <div className="mb-[18px] flex gap-[5px]">
+            <PillGroup label="Status" bare className="mb-[18px]">
               {r.statusFilters.map((c) => (
-                <button
+                <Pill
                   key={c.value}
-                  type="button"
-                  aria-pressed={st.rStatus === c.value}
+                  quiet
+                  active={st.rStatus === c.value}
                   onClick={() => setSt((s) => ({ ...s, rStatus: c.value }))}
-                  className={chip(st.rStatus === c.value) + " flex-1 rounded-lg px-1 text-center text-xs font-medium " + (isMobile ? "py-2.5" : "py-[7px]")}
+                  className={"flex-1 px-1 text-center text-xs font-medium " + (isMobile ? "py-2.5" : "py-[7px]")}
                 >
                   {c.label}
-                </button>
+                </Pill>
               ))}
-            </div>
+            </PillGroup>
             {r.band && (
               <>
                 <div className={eyebrow + " mb-2"}>{r.band.label}</div>
-                <div className="mb-[18px] flex flex-wrap gap-[5px]">
+                <PillGroup label={r.band.label} bare className="mb-[18px] flex-wrap">
                   {r.band.options.map((o) => (
-                    <button
+                    <Pill
                       key={o.value}
-                      type="button"
-                      aria-pressed={st.rLength === o.value}
+                      quiet
+                      active={st.rLength === o.value}
                       onClick={() => setSt((s) => ({ ...s, rLength: o.value }))}
-                      className={chip(st.rLength === o.value) + " rounded-lg px-[11px] text-xs font-medium " + (isMobile ? "flex-1 py-2.5" : "py-[7px]")}
+                      className={"px-[11px] text-xs font-medium " + (isMobile ? "flex-1 py-2.5" : "py-[7px]")}
                     >
                       {o.label}
-                    </button>
+                    </Pill>
                   ))}
-                </div>
+                </PillGroup>
               </>
             )}
             <div className="mb-[9px] flex items-center justify-between">
@@ -185,7 +173,7 @@ export function RouletteView() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => setSt((s) => ({ ...s, rTags: on ? s.rTags.filter((x) => x !== tag) : [...s.rTags, tag] }))}
-                    className={toggleChip(on, "border-we bg-chip2 text-muted2") + " rounded-[20px] px-2.5 text-[11.5px] " + (isMobile ? "py-2" : "py-[5px]")}
+                    className={tagChip(on) + " rounded-[20px] px-2.5 text-[11.5px] " + (isMobile ? "py-2" : "py-[5px]")}
                   >
                     {tag} <span className="font-mono text-[10px] tabular-nums opacity-70">{count}</span>
                   </button>
