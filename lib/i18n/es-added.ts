@@ -18,7 +18,6 @@ export const ES_ADDED: Readonly<Record<string, string>> = {
   // collection header menu and import confirmation
   "More actions": "Más acciones",
   Settings: "Ajustes",
-  "Cards view": "Vista de tarjetas",
   "A backup of the current data downloads first.": "Antes se descarga una copia de los datos actuales.",
   "This library is shared: everyone's copy is replaced.": "Esta biblioteca es compartida: se reemplaza la copia de todos.",
   Replace: "Reemplazar",

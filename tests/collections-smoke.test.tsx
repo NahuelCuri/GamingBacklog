@@ -52,9 +52,8 @@ describe.each(KEYS)("%s", (key) => {
   const items = seed(key);
   const wrap = (ui: React.ReactNode) => render(<CollectionContext.Provider value={ctxFor(key, items)}>{ui}</CollectionContext.Provider>);
 
-  it("library renders as table and cards", () => {
+  it("library renders", () => {
     wrap(<LibraryView />);
-    fireEvent.click(screen.getByRole("button", { name: "Card view" }));
     expect(errors).toEqual([]);
   });
 
@@ -120,7 +119,6 @@ describe.each(KEYS)("%s", (key) => {
     const ctx = ctxFor(key, messy);
     const r = (ui: React.ReactNode) => render(<CollectionContext.Provider value={ctx}>{ui}</CollectionContext.Provider>);
     r(<LibraryView />);
-    fireEvent.click(screen.getByRole("button", { name: "Card view" }));
     cleanup();
     r(<StatsView />);
     cleanup();

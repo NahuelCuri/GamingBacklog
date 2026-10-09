@@ -52,8 +52,6 @@ export const ES: Readonly<Record<string, string>> = {
   "Could not export.": "No se pudo exportar.",
   "Import JSON": "Importar JSON",
   "Reset sort order": "Restablecer orden",
-  "Table view": "Vista de tabla",
-  "Cards view": "Vista de tarjetas",
   "Switch library": "Cambiar biblioteca",
   "All": "Todos",
   "Reading": "Leyendo",
