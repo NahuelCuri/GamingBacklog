@@ -1,9 +1,9 @@
 "use client";
 
-// Library tab: metric strip, search + filters, table or card layout, and the
-// empty states.
+// Library tab: metric strip, search + filters, the item table, and the empty
+// states.
 import { useEffect, useMemo, useState } from "react";
-import { CaretLeftIcon, CaretRightIcon, CloseIcon, GridIcon, ResetIcon, RowsIcon, SearchIcon } from "@/components/icons";
+import { CaretLeftIcon, CaretRightIcon, CloseIcon, ResetIcon, SearchIcon } from "@/components/icons";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { Pill, PillGroup, accentButton, secondaryButton } from "@/components/ui/Pills";
 import { buildStrip, categoryValues, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
@@ -11,15 +11,11 @@ import { monthKey, monthLabel } from "@/lib/collection/format";
 import { hasMonth } from "@/lib/data/collection-state";
 import type { Item } from "@/lib/collection/types";
 import { useCollectionCtx } from "./CollectionContext";
-import { ItemCards, ItemCardsSkeleton } from "./ItemCards";
 import { ItemTable, ItemTableSkeleton } from "./ItemTable";
-
-type Layout = "table" | "cards";
 
 export function LibraryView() {
   const { cfg, data, items, actions, money, isMobile, url, setUrl, openAdd } = useCollectionCtx();
   const [sort, setSort] = useState<Pick<LibraryFilters, "sortKey" | "sortDir">>({ sortKey: "default", sortDir: "asc" });
-  const [layout, setLayout] = useState<Layout>("table");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   // Ledger collections (expenses) show one month at a time, the current one first.
@@ -34,10 +30,9 @@ export function LibraryView() {
 
   const filters: LibraryFilters = { q: url.q, status: url.status, catFilter: url.catFilter, tagFilters: url.tagFilters, ...sort };
   const view = useMemo(
-    // Cards show every match: no paging (legacy behaviour).
-    () => visibleRows(cfg, items, filters, { month, rowLimit: layout === "cards" ? Infinity : rowLimit }),
+    () => visibleRows(cfg, items, filters, { month, rowLimit }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cfg, items, url.q, url.status, url.catFilter, url.tagFilters, sort, month, rowLimit, layout],
+    [cfg, items, url.q, url.status, url.catFilter, url.tagFilters, sort, month, rowLimit],
   );
   const months = useMemo(() => (cfg.ledgerMonth ? ledgerMonths(items, currentMonthKey(), month) : []), [cfg, items, month]);
   const pickMonth = (k: string) => {
@@ -140,14 +135,6 @@ export function LibraryView() {
         >
           <ResetIcon size={15} />
         </button>
-        <PillGroup label="Layout">
-          <Pill active={layout === "table"} onClick={() => setLayout("table")} title="Table view" aria-label="Table view" className={"px-2.5 " + (isMobile ? "py-2.5" : "py-[7px]")}>
-            <RowsIcon size={15} />
-          </Pill>
-          <Pill active={layout === "cards"} onClick={() => setLayout("cards")} title="Cards view" aria-label="Card view" className={"px-2.5 " + (isMobile ? "py-2.5" : "py-[7px]")}>
-            <GridIcon size={15} />
-          </Pill>
-        </PillGroup>
       </div>
 
       <div aria-live="polite" className="sr-only">
@@ -227,9 +214,9 @@ export function LibraryView() {
         </div>
       )}
 
-      {!loaded && data.status !== "error" && (layout === "table" ? <ItemTableSkeleton /> : <ItemCardsSkeleton />)}
+      {!loaded && data.status !== "error" && <ItemTableSkeleton />}
 
-      {loaded && rows.length > 0 && layout === "table" && (
+      {loaded && rows.length > 0 && (
         <ItemTable
           view={view}
           sort={sort}
@@ -245,7 +232,6 @@ export function LibraryView() {
           onMore={() => setRowLimit((n) => (n || 150) + 150)}
         />
       )}
-      {loaded && rows.length > 0 && layout === "cards" && <ItemCards rows={rows} />}
 
       {empty && (
         <div className="px-5 py-[70px] text-center">

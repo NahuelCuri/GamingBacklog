@@ -145,24 +145,6 @@ export const ResetIcon = (p: IconProps) => (
   </Glyph>
 );
 
-/** Table layout. */
-export const RowsIcon = (p: IconProps) => (
-  <Glyph {...p}>
-    <rect x="3.8" y="4.8" width="16.4" height="14.4" rx="2" {...stroke} />
-    <path d="M3.8 9.6h16.4M3.8 14.4h16.4" {...stroke} />
-  </Glyph>
-);
-
-/** Card layout. */
-export const GridIcon = (p: IconProps) => (
-  <Glyph {...p}>
-    <rect x="4" y="4" width="6.6" height="6.6" rx="1.6" {...stroke} />
-    <rect x="13.4" y="4" width="6.6" height="6.6" rx="1.6" {...stroke} />
-    <rect x="4" y="13.4" width="6.6" height="6.6" rx="1.6" {...stroke} />
-    <rect x="13.4" y="13.4" width="6.6" height="6.6" rx="1.6" {...stroke} />
-  </Glyph>
-);
-
 export const CaretRightIcon = (p: IconProps) => (
   <Glyph {...p}>
     <path d="m9.5 5.5 6.5 6.5-6.5 6.5" {...stroke} />
