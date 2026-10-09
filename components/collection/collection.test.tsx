@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { COLLECTIONS } from "@/config/collections";
-import { blankDraft, currentMonthKey, draftFromItem, groupByMonth, monthCards, monthDetail } from "@/lib/collection";
+import { blankDraft, currentMonthKey, draftFromItem, groupByMonth, monthCards, monthDetail, monthLabel } from "@/lib/collection";
 import type { CollectionKey, Item } from "@/lib/collection/types";
 import { DEFAULT_URL_STATE, hasView, readUrlState, writeUrlState, type UrlState } from "@/lib/collection/url-state";
 import { initialCollectionState } from "@/lib/data/collection-state";
@@ -108,11 +108,16 @@ describe("library view (expenses seed)", () => {
   it("shows one month at a time, the current one first", () => {
     const tx = seed("expenses");
     renderLibrary("expenses", tx);
-    const picker = screen.getByRole("combobox", { name: "Month" }) as HTMLSelectElement;
-    expect(picker.value).toBe(currentMonthKey());
+    const trigger = () => screen.getByRole("button", { name: /^Month: / });
+    expect(trigger().getAttribute("aria-label")).toBe("Month: " + monthLabel(currentMonthKey()));
     const byMonth = groupByMonth(tx);
     const k = Object.keys(byMonth).sort()[0];
-    fireEvent.change(picker, { target: { value: k } });
+    // Open the picker, walk back to the target year, then click the month cell.
+    fireEvent.click(trigger());
+    const [y, m] = k.split("-").map(Number);
+    for (let year = new Date().getFullYear(); year > y; year--) fireEvent.click(screen.getByRole("button", { name: "Previous year" }));
+    fireEvent.click(screen.getByRole("gridcell", { name: new Date(y, m - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" }) }));
+    expect(trigger().getAttribute("aria-label")).toBe("Month: " + monthLabel(k));
     expect(rowButtons().length).toBe(Math.min(150, byMonth[k].length));
     expect(rowButtons().length).toBeLessThan(tx.length);
   });
