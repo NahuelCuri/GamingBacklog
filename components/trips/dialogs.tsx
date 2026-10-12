@@ -7,7 +7,7 @@ import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
-  PRIOS, STATUSES, TYPES, addTag, areaQuery, locQuery, locStatus, locStr, money, nominatimUrl, parseLoc, pickArea, tagSuggestions, typeMeta, type TripCard,
+  PRIOS, STATUSES, TYPES, addTag, areaQuery, locQuery, locStatus, locStr, money, nominatimUrl, parseLoc, pickArea, regionSuggestions, tagSuggestions, typeMeta, type TripCard,
 } from "@/lib/trips/model";
 import { Fact, StatusPrio, sourceShort } from "./CompareDrawer";
 import { T, btnGhost, btnPrimary, chip, frame, closeX, dialogFoot, dialogHead, dialogPanel, fieldLabel, input, kicker, overlay, tagChip, typeTag } from "./styles";
@@ -92,7 +92,77 @@ export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; o
 
 // ---------------------------------------------------------------- card editor
 
-const optBtn: CSSProperties = { font: "inherit", cursor: "pointer", fontSize: 11.5, fontWeight: 600, padding: "6px 10px", borderRadius: 7 };
+/** Region field that offers the regions already used on other cards while typing (arrows + Enter, or click). */
+function RegionInput({ value, onChange, options }: { value: string; onChange(v: string): void; options(typed: string): string[] }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const list = open ? options(value) : [];
+  const pick = (v: string) => {
+    onChange(v);
+    setOpen(false);
+  };
+  return (
+    <div style={{ position: "relative", marginBottom: 14 }}>
+      <input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+          setActive(-1);
+        }}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (!list.length) return;
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            // Cycles through the options and back to the typed text (-1).
+            const step = e.key === "ArrowDown" ? 1 : -1, n = list.length + 1;
+            setActive((i) => ((i + 1 + step + n) % n) - 1);
+          } else if (e.key === "Enter" && active >= 0 && active < list.length) {
+            e.preventDefault();
+            pick(list[active]);
+          } else if (e.key === "Escape") {
+            // Close the list, not the dialog.
+            e.stopPropagation();
+            setOpen(false);
+          }
+        }}
+        role="combobox"
+        aria-expanded={list.length > 0}
+        aria-controls="region-options"
+        aria-autocomplete="list"
+        aria-activedescendant={active >= 0 && active < list.length ? "region-opt-" + active : undefined}
+        aria-label="Region or place"
+        autoComplete="off"
+        placeholder="Neighborhood, City"
+        style={input}
+      />
+      {list.length > 0 && (
+        <div id="region-options" role="listbox" aria-label="Regions used before" style={{ position: "absolute", left: 0, right: 0, top: "calc(100% + 4px)", zIndex: 5, background: T.card, border: `1px solid ${T.border2}`, borderRadius: 9, padding: 4, boxShadow: "0 10px 30px rgba(0,0,0,.5)", animation: "gfade 120ms ease-out" }}>
+          {list.map((r, i) => (
+            <div
+              key={r}
+              id={"region-opt-" + i}
+              role="option"
+              aria-selected={i === active}
+              // mousedown, so the input keeps focus and the blur doesn't close the list first.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                pick(r);
+              }}
+              onMouseEnter={() => setActive(i)}
+              style={{ cursor: "pointer", fontSize: 13, color: T.text2, padding: "7px 10px", borderRadius: 6, background: i === active ? "rgba(95,184,176,.12)" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            >
+              {r}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const optBtn: CSSProperties ={ font: "inherit", cursor: "pointer", fontSize: 11.5, fontWeight: 600, padding: "6px 10px", borderRadius: 7 };
 
 export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDelete, onClose }: {
   modal: CardModal;
@@ -198,7 +268,7 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
         </div>
 
         <div style={fieldLabel}>Region / place</div>
-        <input value={m.region || ""} onChange={(e) => set({ region: e.target.value })} aria-label="Region or place" autoComplete="off" placeholder="Neighborhood, City" style={{ ...input, marginBottom: 14 }} />
+        <RegionInput value={m.region || ""} onChange={(region) => set({ region })} options={(typed) => regionSuggestions(data.cards, typed)} />
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
           <div style={{ ...fieldLabel, marginBottom: 0 }}>Location</div>
@@ -260,8 +330,8 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
         {(m.tags || []).length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 7 }}>
             {(m.tags || []).map((t, i) => (
-              <button key={i} type="button" onClick={() => set({ tags: (m.tags || []).filter((x) => x !== t) })} aria-label={"Remove tag " + t} style={{ ...tagChip, font: "inherit", fontSize: 11.5, cursor: "pointer" }}>
-                {t} <CloseIcon size={9} className="inline text-[#6b8f8a]" />
+              <button key={i} type="button" onClick={() => set({ tags: (m.tags || []).filter((x) => x !== t) })} aria-label={"Remove tag " + t} style={{ ...tagChip, font: "inherit", fontSize: 11.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                {t} <CloseIcon size={9} className="text-[#6b8f8a]" />
               </button>
             ))}
           </div>

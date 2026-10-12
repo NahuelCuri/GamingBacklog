@@ -74,6 +74,19 @@ describe("TripPlanner", () => {
     fireEvent.click(screen.getByRole("button", { name: "+ New card" }));
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Card title" }), { target: { value: "Tsukiji breakfast" } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Food" }));
+    // Region offers the ones already used; arrows + Enter pick, Escape closes just the list.
+    const region = within(dialog()).getByRole("combobox", { name: "Region or place" }) as HTMLInputElement;
+    fireEvent.change(region, { target: { value: "shin" } });
+    expect(within(dialog()).getAllByRole("option").map((o) => o.textContent)).toEqual(["Shinjuku, Tokyo"]);
+    fireEvent.keyDown(region, { key: "ArrowDown" });
+    fireEvent.keyDown(region, { key: "Enter" });
+    expect(region.value).toBe("Shinjuku, Tokyo");
+    expect(within(dialog()).queryByRole("option")).toBeNull();
+    fireEvent.change(region, { target: { value: "Fushimi" } });
+    expect(within(dialog()).getAllByRole("option")).toHaveLength(1);
+    fireEvent.keyDown(region, { key: "Escape" });
+    expect(within(dialog()).queryByRole("option")).toBeNull();
+    expect(dialog()).toBeTruthy();
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Add a tag" }), { target: { value: "early" } });
     fireEvent.keyDown(within(dialog()).getByRole("textbox", { name: "Add a tag" }), { key: "Enter" });
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Price" }), { target: { value: "30" } });

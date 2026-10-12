@@ -259,6 +259,21 @@ export function tagSuggestions(cards: TripCard[], used: string[], typed: string)
     .slice(0, 8);
 }
 
+/** Regions already used on cards that contain what is typed: ones starting with it first, then most used (never the exact text). */
+export function regionSuggestions(cards: TripCard[], typed: string, max = 6): string[] {
+  const q = typed.trim().toLowerCase();
+  if (!q) return [];
+  const counts = new Map<string, number>();
+  cards.forEach((c) => {
+    const r = (c.region || "").trim();
+    if (r) counts.set(r, (counts.get(r) || 0) + 1);
+  });
+  return [...counts.keys()]
+    .filter((r) => r.toLowerCase().includes(q) && r.toLowerCase() !== q)
+    .sort((a, b) => +!a.toLowerCase().startsWith(q) - +!b.toLowerCase().startsWith(q) || counts.get(b)! - counts.get(a)!)
+    .slice(0, max);
+}
+
 // ---------------------------------------------------------------- scheduling
 
 /**

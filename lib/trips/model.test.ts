@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   areaQuery, budget, cleanCard, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
-  parseLoc, pickArea, quickAddCard, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
+  parseLoc, pickArea, quickAddCard, regionSuggestions, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
 } from "./model";
 
 const seeded = () => {
@@ -152,5 +152,12 @@ describe("trip model", () => {
     expect(areaQuery({ locText: "Ginza, Tokyo", title: "Ginza" })).toBe("Ginza, Tokyo");
     expect(areaQuery({ locText: "35.67, 139.76", title: "Ginza", region: "Chuo, Tokyo" })).toBe("Ginza, Chuo, Tokyo");
     expect(areaQuery({ title: "", region: "" })).toBeNull();
+  });
+
+  it("suggests regions already used, prefix matches first", () => {
+    const cs = ["Ginza, Tokyo", "Shinjuku, Tokyo", "Shinjuku, Tokyo", "Tokyo Station", "", "Nakagyo, Kyoto"].map((region, i) => ({ id: "r" + i, region }) as TripCard);
+    expect(regionSuggestions(cs, "tok")).toEqual(["Tokyo Station", "Shinjuku, Tokyo", "Ginza, Tokyo"]);
+    expect(regionSuggestions(cs, "shinjuku, tokyo")).toEqual([]);
+    expect(regionSuggestions(cs, "  ")).toEqual([]);
   });
 });
