@@ -95,7 +95,7 @@ export function TripMap() {
             <>
               <MapBoundary>
                 <Suspense fallback={<Centered text="loading map…" />}>
-                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} onOpen={openCard} />
+                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} />
                 </Suspense>
               </MapBoundary>
               <button type="button" onClick={() => setResets((n) => n + 1)} style={{ position: "absolute", top: 12, right: 14, zIndex: 6, cursor: "pointer", fontFamily: T.mono, fontSize: 11, color: T.muted, background: "rgba(14,17,18,.9)", border: "1px solid #232a2b", borderRadius: 8, padding: "6px 11px", whiteSpace: "nowrap" }}>

@@ -63,6 +63,17 @@ describe("mapScene", () => {
   });
 });
 
+describe("district outlines", () => {
+  it("come with the cards shown in the view", () => {
+    const area = { type: "Polygon" as const, coordinates: [[[139.7, 35.6], [139.71, 35.6], [139.71, 35.61], [139.7, 35.6]]] };
+    const withArea = [card("a", 1, 139.7, 35.6, { type: "district", area }), card("u", null, 139.9, 35.8, { area })];
+    expect(mapScene(withArea, "all").areas.map((a) => a.id)).toEqual(["a", "u"]);
+    expect(mapScene(withArea, 1).areas.map((a) => a.id)).toEqual(["a"]);
+    expect(mapScene(withArea, "none").areas.map((a) => a.id)).toEqual(["u"]);
+    expect(mapScene(cards, "all").areas).toEqual([]);
+  });
+});
+
 describe("framing maths", () => {
   const opts = { maxZoom: 15, outPast: 2, floor: 10 };
 

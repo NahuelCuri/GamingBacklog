@@ -3,10 +3,10 @@
 // The trip map itself: MapLibre GL on OpenFreeMap's dark vector tiles,
 // quietened to the Trip Planner palette. Loaded lazily from TripMap, so
 // MapLibre only downloads when the Map tab opens.
-import maplibregl, { LngLatBounds, type GeoJSONSource, type Map as MLMap, type Marker } from "maplibre-gl";
+import maplibregl, { LngLatBounds, type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { boxOf, minZoomFor, type LngLat, type MapPin, type MapScene } from "@/lib/trips/map-scene";
+import { boxOf, minZoomFor, type LngLat, type MapArea, type MapPin, type MapScene } from "@/lib/trips/map-scene";
 import { reducedMotion } from "@/lib/motion";
 import { T } from "./styles";
 
@@ -82,18 +82,97 @@ const minZoom = (overview: LngLat[], W: number, H: number, pad: number) =>
 
 const routeData = (route: LngLat[][]): GeoJSON.Feature => ({ type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: route } });
 
-function pinElement(p: MapPin, delay: number) {
-  const el = document.createElement("div");
-  el.className = "trip-pin";
-  el.setAttribute("aria-hidden", "true"); // the side list is the accessible way in
-  el.style.zIndex = p.n ? "2" : "1";
-  const dot = document.createElement("span");
-  dot.className = p.n ? "trip-pin-n" : "trip-pin-ghost";
-  dot.style.setProperty("--pin", p.color);
-  dot.style.animationDelay = delay + "ms";
-  if (p.n) dot.textContent = String(p.n);
-  el.appendChild(dot);
-  return el;
+const areaData = (areas: MapArea[]): GeoJSON.FeatureCollection => ({
+  type: "FeatureCollection",
+  features: areas.map((a) => ({ type: "Feature", properties: { id: a.id, color: a.color }, geometry: { type: a.geometry.type, coordinates: a.geometry.coordinates } as GeoJSON.Geometry })),
+});
+
+/** Long titles are cut here: a symbol label can't ellipsize itself. */
+const LABEL_MAX = 28;
+const short = (t: string) => (t.length > LABEL_MAX ? t.slice(0, LABEL_MAX - 1).trimEnd() + "…" : t);
+
+const pinData = (pins: MapPin[]): GeoJSON.FeatureCollection => ({
+  type: "FeatureCollection",
+  features: pins.map((p) => ({ type: "Feature", properties: { id: p.id, n: p.n, color: p.color, title: short(p.title) }, geometry: { type: "Point", coordinates: p.at } })),
+});
+
+/*
+ * Pins and their titles are WebGL layers, not DOM markers: the GPU draws them
+ * with the map, so panning and zooming cost the same with 5 stops or 50.
+ * Hover and hidden titles are feature state, so they never re-upload data.
+ */
+const BG = "#0a0c0d";
+const isN: maplibregl.ExpressionSpecification = [">", ["get", "n"], 0];
+const isHot: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "hot"], false];
+const isOff: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "off"], false];
+/** Titles step aside while hot (the tooltip takes their place) and stay away once clicked off. */
+const labelOpacity: maplibregl.ExpressionSpecification = ["case", ["any", isHot, isOff], 0, 1];
+const fade = { duration: 140, delay: 0 };
+const PIN_LAYERS = ["pin-label", "pin-dot"];
+
+/** Rounded dark plate behind a title, stretched to fit it (drawn at 2x). */
+function labelPlate() {
+  const S = 48;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const g = c.getContext("2d")!;
+  g.beginPath();
+  g.roundRect(1, 1, S - 2, S - 2, 14);
+  g.fillStyle = "rgba(15,18,19,.94)";
+  g.fill();
+  g.lineWidth = 2;
+  g.strokeStyle = "#2a3233";
+  g.stroke();
+  return g.getImageData(0, 0, S, S);
+}
+
+function addPinLayers(m: MLMap) {
+  m.addImage("pin-plate", labelPlate(), { pixelRatio: 2, stretchX: [[16, 32]], stretchY: [[16, 32]] });
+  m.addSource("pins", { type: "geojson", data: pinData([]), promoteId: "id" });
+  m.addLayer({
+    id: "pin-dot",
+    type: "circle",
+    source: "pins",
+    // Numbered stops above the unscheduled rings.
+    layout: { "circle-sort-key": ["case", isN, 1, 0] },
+    paint: {
+      "circle-radius": ["*", ["case", isN, 11.5, 4.6], ["case", isHot, 1.3, 1]],
+      "circle-radius-transition": { duration: 180, delay: 0 },
+      "circle-color": ["case", isN, ["get", "color"], BG],
+      "circle-stroke-color": ["case", isN, BG, ["get", "color"]],
+      "circle-stroke-width": ["case", isN, 2.5, 2.4],
+    },
+  });
+  m.addLayer({
+    id: "pin-n",
+    type: "symbol",
+    source: "pins",
+    filter: isN,
+    layout: { "text-field": ["to-string", ["get", "n"]], "text-font": ["Noto Sans Bold"], "text-size": 12.5, "text-allow-overlap": true, "text-ignore-placement": true },
+    paint: { "text-color": BG },
+  });
+  m.addLayer({
+    id: "pin-label",
+    type: "symbol",
+    source: "pins",
+    layout: {
+      "text-field": ["get", "title"],
+      "text-font": ["Noto Sans Bold"],
+      "text-size": 11.5,
+      "text-anchor": "bottom",
+      // Above the dot: its radius, a gap and the plate's padding, in ems.
+      "text-offset": ["case", isN, ["literal", [0, -2.2]], ["literal", [0, -1.55]]],
+      "text-max-width": 30,
+      "icon-image": "pin-plate",
+      "icon-text-fit": "both",
+      "icon-text-fit-padding": [4, 8, 4, 8],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "icon-allow-overlap": true,
+      "icon-ignore-placement": true,
+    },
+    paint: { "text-color": "#d9dfdd", "text-opacity": labelOpacity, "icon-opacity": labelOpacity, "text-opacity-transition": fade, "icon-opacity-transition": fade },
+  });
 }
 
 interface Props {
@@ -106,16 +185,15 @@ interface Props {
   hot: string | null;
   compact: boolean;
   onHot(id: string | null): void;
-  onOpen(id: string): void;
 }
 
-export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, onOpen }: Props) {
+export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
+  const tipAt = useRef<LngLat | null>(null);
   const map = useRef<MLMap | null>(null);
-  const markers = useRef(new Map<string, { marker: Marker; el: HTMLElement }>());
-  const cb = useRef({ onHot, onOpen });
-  cb.current = { onHot, onOpen };
+  const onHotRef = useRef(onHot);
+  onHotRef.current = onHot;
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<null | "webgl" | "tiles">(null);
   const padding = compact ? 40 : 70;
@@ -125,6 +203,14 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
   const overviewRef = useRef(overview);
   overviewRef.current = overview;
   const touched = useRef(false);
+
+  // Only the one tooltip is DOM; it follows its pin as the map moves.
+  const placeTip = () => {
+    const m = map.current, tip = tipRef.current, at = tipAt.current;
+    if (!m || !tip || !at) return;
+    const pt = m.project(at);
+    tip.style.transform = `translate(${pt.x}px, ${pt.y}px) translate(-50%, calc(-100% - 20px))`;
+  };
 
   // The map is created once; everything else updates it in place.
   useEffect(() => {
@@ -165,6 +251,10 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     m.on("style.load", () => {
       loaded = true;
       restyle(m);
+      // Bottom to top: district outlines, the route, then the pins and their titles.
+      m.addSource("areas", { type: "geojson", data: areaData([]), promoteId: "id" });
+      m.addLayer({ id: "area-fill", type: "fill", source: "areas", paint: { "fill-color": ["get", "color"], "fill-opacity": ["case", isHot, 0.2, 0.08], "fill-opacity-transition": { duration: 150, delay: 0 } } });
+      m.addLayer({ id: "area-line", type: "line", source: "areas", layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.4, "line-opacity": 0.6 } });
       m.addSource("route", { type: "geojson", data: routeData([]) });
       m.addLayer({
         id: "route",
@@ -173,12 +263,36 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": T.accent, "line-width": 1.6, "line-dasharray": [2, 2.5], "line-opacity": 0 },
       });
+      addPinLayers(m);
       setReady(true);
     });
     // Only a style that never loads is fatal; a missing tile later is not.
     m.on("error", () => !loaded && setFailed("tiles"));
-    // Keep the tooltip on its pin while the map moves.
-    m.on("move", () => placeTip());
+
+    // The pin (or its visible title) under the pointer, with a few pixels of slack.
+    const pinAt = (p: maplibregl.Point) => {
+      if (!m.getLayer("pin-dot")) return null;
+      const hits = m.queryRenderedFeatures([[p.x - 4, p.y - 4], [p.x + 4, p.y + 4]], { layers: PIN_LAYERS });
+      const f = hits.find((h) => h.layer.id === "pin-dot" || !m.getFeatureState({ source: "pins", id: h.id! }).off);
+      return f ? String(f.id) : null;
+    };
+    let over: string | null = null;
+    const hover = (id: string | null) => {
+      if (id === over) return;
+      over = id;
+      m.getCanvas().style.cursor = id ? "pointer" : "";
+      onHotRef.current(id);
+    };
+    m.on("mousemove", (e) => hover(pinAt(e.point)));
+    m.on("mouseout", () => hover(null));
+    // A click on a pin or its title hides the title; a click on the pin brings it back.
+    m.on("click", (e) => {
+      const id = pinAt(e.point);
+      if (!id) return;
+      const off = !!m.getFeatureState({ source: "pins", id }).off;
+      m.setFeatureState({ source: "pins", id }, { off: !off });
+    });
+    m.on("move", placeTip);
     // A user pan or zoom (not our fitBounds) means their view wins over re-framing on resize.
     m.on("movestart", (e) => {
       if ((e as { originalEvent?: Event }).originalEvent) touched.current = true;
@@ -189,42 +303,30 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     });
     m.on("load", limitZoom);
     map.current = m;
-    const pins = markers.current;
     return () => {
       m.remove();
       map.current = null;
-      pins.clear();
     };
     // Created once; later frames go through the effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Pins and route: rebuilt when the day filter or the stops change, so the pop-in replays.
+  // Pins, outlines and route: replaced when the day filter or the stops change (every title shows again).
   useEffect(() => {
     const m = map.current;
     if (!m || !ready) return;
-    markers.current.forEach(({ marker }) => marker.remove());
-    markers.current.clear();
-    scene.pins.forEach((p, i) => {
-      const el = pinElement(p, p.n ? Math.min(p.n - 1, 15) * 40 : Math.min(i, 15) * 20);
-      el.addEventListener("mouseenter", () => cb.current.onHot(p.id));
-      el.addEventListener("mouseleave", () => cb.current.onHot(null));
-      el.addEventListener("click", (e) => {
-        e.stopPropagation();
-        cb.current.onHot(null);
-        cb.current.onOpen(p.id);
-      });
-      markers.current.set(p.id, { marker: new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat(p.at).addTo(m), el });
-    });
-
+    m.removeFeatureState({ source: "pins" });
+    m.removeFeatureState({ source: "areas" });
+    (m.getSource("pins") as GeoJSONSource | undefined)?.setData(pinData(scene.pins));
+    (m.getSource("areas") as GeoJSONSource | undefined)?.setData(areaData(scene.areas));
     (m.getSource("route") as GeoJSONSource | undefined)?.setData(routeData(scene.route));
-    // The route fades in once the pins have popped.
+    // The route fades in after the pins.
     const numbered = scene.pins.filter((p) => p.n).length;
     m.setPaintProperty("route", "line-opacity-transition", { duration: 0, delay: 0 });
     m.setPaintProperty("route", "line-opacity", 0);
     const t = requestAnimationFrame(() => {
       if (!map.current) return;
-      m.setPaintProperty("route", "line-opacity-transition", reducedMotion() ? { duration: 0, delay: 0 } : { duration: 400, delay: Math.min(numbered, 15) * 40 });
+      m.setPaintProperty("route", "line-opacity-transition", reducedMotion() ? { duration: 0, delay: 0 } : { duration: 400, delay: Math.min(numbered, 15) * 25 });
       m.setPaintProperty("route", "line-opacity", 0.55);
     });
     return () => cancelAnimationFrame(t);
@@ -257,24 +359,22 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameKey, padding]);
 
-  // Hot pin (hovered here or in the side list): bigger, on top, with its tooltip.
+  // Hot pin (hovered here or in the side list): bigger, its district brighter, its tooltip shown.
   const hotPin = scene.pins.find((p) => p.id === hot) ?? null;
-  function placeTip() {
-    const m = map.current, tip = tipRef.current;
-    const at = tip?.dataset.at;
-    if (!m || !tip || !at) return;
-    const pt = m.project(JSON.parse(at) as LngLat);
-    tip.style.transform = `translate(${pt.x}px, ${pt.y}px) translate(-50%, calc(-100% - 20px))`;
-  }
+  tipAt.current = hotPin?.at ?? null;
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready || !hot) return;
+    m.setFeatureState({ source: "pins", id: hot }, { hot: true });
+    m.setFeatureState({ source: "areas", id: hot }, { hot: true });
+    return () => {
+      if (!map.current) return;
+      m.setFeatureState({ source: "pins", id: hot }, { hot: false });
+      m.setFeatureState({ source: "areas", id: hot }, { hot: false });
+    };
+  }, [hot, ready, scene]);
   // Before paint, so the tooltip never shows a frame at the corner.
-  useLayoutEffect(() => {
-    markers.current.forEach(({ el }, id) => {
-      const on = id === hot;
-      el.toggleAttribute("data-hot", on);
-      el.style.zIndex = on ? "3" : el.firstElementChild?.className === "trip-pin-n" ? "2" : "1";
-    });
-    placeTip();
-  });
+  useLayoutEffect(placeTip, [hotPin]);
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
@@ -294,7 +394,6 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
         <div
           key={hotPin.id}
           ref={tipRef}
-          data-at={JSON.stringify(hotPin.at)}
           style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none", zIndex: 7, background: "rgba(15,18,19,.96)", border: `1px solid ${T.border2}`, borderRadius: 9, padding: "8px 11px", maxWidth: 260, boxShadow: "0 10px 30px rgba(0,0,0,.5)", animation: "gfade 140ms ease-out" }}
         >
           <div style={{ fontSize: 12.5, fontWeight: 600, color: T.text }}>{(hotPin.n ? hotPin.n + ". " : "") + hotPin.title}</div>
