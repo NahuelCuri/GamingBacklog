@@ -1,7 +1,7 @@
 // What the trip Map tab shows for a day filter: pins, the route between a
 // day's stops and the points to frame. Plain data, so the MapLibre canvas
 // only has to draw it (and tests don't need WebGL).
-import { mapPlan, typeMeta, type MapDay, type TripCard } from "./model";
+import { mapPlan, typeMeta, type Area, type MapDay, type TripCard } from "./model";
 
 export type LngLat = [number, number];
 
@@ -19,10 +19,19 @@ export interface MapPin {
   day: number | null;
 }
 
+export interface MapArea {
+  /** The card's id, shared with its pin. */
+  id: string;
+  color: string;
+  geometry: Area;
+}
+
 export interface MapScene {
   pins: MapPin[];
   /** One line per day, through that day's stops in order. */
   route: LngLat[][];
+  /** District outlines, for the cards that have a pin in this view. */
+  areas: MapArea[];
 }
 
 const join = (parts: (string | null | undefined | false)[]) => parts.filter(Boolean).join(" · ");
@@ -49,7 +58,10 @@ export function mapScene(cards: TripCard[], day: MapDay): MapScene {
     route[route.length - 1].push(p.at);
     prev = p.day;
   }
-  return { pins, route: route.filter((l) => l.length > 1) };
+  const areas = [...numbered.map(({ c }) => c), ...ghosts]
+    .filter((c) => c.area?.coordinates?.length)
+    .map((c) => ({ id: c.id, color: typeMeta(c.type).color, geometry: c.area! }));
+  return { pins, route: route.filter((l) => l.length > 1), areas };
 }
 
 /** Points to frame: the numbered stops when there are any, else every pin. */

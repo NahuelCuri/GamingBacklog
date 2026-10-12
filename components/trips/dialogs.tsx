@@ -7,7 +7,7 @@ import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
-  PRIOS, STATUSES, TYPES, addTag, locQuery, locStatus, locStr, money, parseLoc, tagSuggestions, typeMeta, type TripCard,
+  PRIOS, STATUSES, TYPES, addTag, areaQuery, locQuery, locStatus, locStr, money, nominatimUrl, parseLoc, pickArea, regionSuggestions, tagSuggestions, typeMeta, type TripCard,
 } from "@/lib/trips/model";
 import { Fact, StatusPrio, sourceShort } from "./CompareDrawer";
 import { T, btnGhost, btnPrimary, chip, frame, closeX, dialogFoot, dialogHead, dialogPanel, fieldLabel, input, kicker, overlay, tagChip, typeTag } from "./styles";
@@ -92,7 +92,77 @@ export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; o
 
 // ---------------------------------------------------------------- card editor
 
-const optBtn: CSSProperties = { font: "inherit", cursor: "pointer", fontSize: 11.5, fontWeight: 600, padding: "6px 10px", borderRadius: 7 };
+/** Region field that offers the regions already used on other cards while typing (arrows + Enter, or click). */
+function RegionInput({ value, onChange, options }: { value: string; onChange(v: string): void; options(typed: string): string[] }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const list = open ? options(value) : [];
+  const pick = (v: string) => {
+    onChange(v);
+    setOpen(false);
+  };
+  return (
+    <div style={{ position: "relative", marginBottom: 14 }}>
+      <input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+          setActive(-1);
+        }}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (!list.length) return;
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            // Cycles through the options and back to the typed text (-1).
+            const step = e.key === "ArrowDown" ? 1 : -1, n = list.length + 1;
+            setActive((i) => ((i + 1 + step + n) % n) - 1);
+          } else if (e.key === "Enter" && active >= 0 && active < list.length) {
+            e.preventDefault();
+            pick(list[active]);
+          } else if (e.key === "Escape") {
+            // Close the list, not the dialog.
+            e.stopPropagation();
+            setOpen(false);
+          }
+        }}
+        role="combobox"
+        aria-expanded={list.length > 0}
+        aria-controls="region-options"
+        aria-autocomplete="list"
+        aria-activedescendant={active >= 0 && active < list.length ? "region-opt-" + active : undefined}
+        aria-label="Region or place"
+        autoComplete="off"
+        placeholder="Neighborhood, City"
+        style={input}
+      />
+      {list.length > 0 && (
+        <div id="region-options" role="listbox" aria-label="Regions used before" style={{ position: "absolute", left: 0, right: 0, top: "calc(100% + 4px)", zIndex: 5, background: T.card, border: `1px solid ${T.border2}`, borderRadius: 9, padding: 4, boxShadow: "0 10px 30px rgba(0,0,0,.5)", animation: "gfade 120ms ease-out" }}>
+          {list.map((r, i) => (
+            <div
+              key={r}
+              id={"region-opt-" + i}
+              role="option"
+              aria-selected={i === active}
+              // mousedown, so the input keeps focus and the blur doesn't close the list first.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                pick(r);
+              }}
+              onMouseEnter={() => setActive(i)}
+              style={{ cursor: "pointer", fontSize: 13, color: T.text2, padding: "7px 10px", borderRadius: 6, background: i === active ? "rgba(95,184,176,.12)" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            >
+              {r}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const optBtn: CSSProperties ={ font: "inherit", cursor: "pointer", fontSize: 11.5, fontWeight: 600, padding: "6px 10px", borderRadius: 7 };
 
 export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDelete, onClose }: {
   modal: CardModal;
@@ -112,20 +182,39 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
 
   const commitTag = (raw: string) => set({ tags: addTag(m.tags, raw), tagInput: "" });
 
+  const isDistrict = m.type === "district";
+  const search = (q: string, outline: boolean) => fetch(nominatimUrl(q, outline), { headers: { Accept: "application/json" } }).then((r) => r.json());
+
   const lookup = () => {
     const raw = String(locText).trim();
     if (!raw || parseLoc(raw)) return;
     const q = locQuery(raw, m.title, m.region);
     if (!q) return set({ locErr: "noquery" });
     set({ locBusy: true, locErr: null });
-    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q), { headers: { Accept: "application/json" } })
-      .then((r) => r.json())
+    // A district also takes its outline from the same search, when one of the hits has it.
+    search(q, isDistrict)
       .then((j) => {
         const hit = j && j[0];
         if (!hit) throw new Error("none");
-        set({ locText: (+hit.lat).toFixed(5) + ", " + (+hit.lon).toFixed(5), locBusy: false, locErr: null, locFound: hit.display_name });
+        const found = isDistrict ? pickArea(j) : null;
+        const at = found ? found.center : { lat: +hit.lat, lng: +hit.lon };
+        set({ locText: locStr(at), locBusy: false, locErr: null, locFound: found?.area.name ?? hit.display_name, ...(found ? { area: found.area, areaErr: false } : {}) });
       })
       .catch(() => set({ locBusy: false, locErr: "none" }));
+  };
+
+  // A district's outline on its own: by the location name, or the title and region.
+  const findArea = () => {
+    const q = areaQuery({ locText, title: m.title, region: m.region });
+    if (!q) return set({ areaErr: true });
+    set({ areaBusy: true, areaErr: false });
+    search(q, true)
+      .then((j) => {
+        const found = pickArea(j);
+        if (!found) throw new Error("none");
+        set({ area: found.area, areaBusy: false, ...(parseLoc(locText) ? {} : { locText: locStr(found.center), locErr: null }) });
+      })
+      .catch(() => set({ areaBusy: false, areaErr: true }));
   };
 
   return (
@@ -179,7 +268,7 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
         </div>
 
         <div style={fieldLabel}>Region / place</div>
-        <input value={m.region || ""} onChange={(e) => set({ region: e.target.value })} aria-label="Region or place" autoComplete="off" placeholder="Neighborhood, City" style={{ ...input, marginBottom: 14 }} />
+        <RegionInput value={m.region || ""} onChange={(region) => set({ region })} options={(typed) => regionSuggestions(data.cards, typed)} />
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
           <div style={{ ...fieldLabel, marginBottom: 0 }}>Location</div>
@@ -207,6 +296,33 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
         </div>
         <div style={{ fontSize: 11, color: T.dim3, lineHeight: 1.5, marginBottom: 14, textWrap: "pretty" }}>{loc.note}</div>
 
+        {isDistrict && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+              <div style={{ ...fieldLabel, marginBottom: 0 }}>Outline</div>
+              <div style={{ fontFamily: T.mono, fontSize: 10.5, color: m.area ? T.accent : "#5f6b68", whiteSpace: "nowrap" }}>{m.areaBusy ? "searching…" : m.area ? "✓ drawn on the map" : "none yet"}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 11, color: m.areaErr ? "#d98a6a" : T.dim3, lineHeight: 1.5, textWrap: "pretty" }}>
+                {m.areaErr
+                  ? "No outline found. Try the district with its city, e.g. “Ginza, Chuo, Tokyo”."
+                  : m.area
+                    ? m.area.name || "Outline found"
+                    : "The district’s boundary, from OpenStreetMap. Found with the location, or here by title and region."}
+              </div>
+              {m.area ? (
+                <button type="button" onClick={() => set({ area: null })} style={{ ...btnGhost, flex: "0 0 auto", fontSize: 11.5, padding: "6px 11px", borderRadius: 7 }}>
+                  Remove
+                </button>
+              ) : (
+                <button type="button" onClick={findArea} disabled={m.areaBusy} style={{ font: "inherit", cursor: "pointer", flex: "0 0 auto", fontSize: 12, fontWeight: 600, color: "#9fd8d1", background: "rgba(95,184,176,.12)", border: "1px solid rgba(95,184,176,.32)", borderRadius: 8, padding: "6px 11px", whiteSpace: "nowrap" }}>
+                  {m.areaBusy ? "…" : "Find outline"}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
         <div style={fieldLabel}>Time to allow</div>
         <input value={m.duration || ""} onChange={(e) => set({ duration: e.target.value })} aria-label="Time to allow" autoComplete="off" placeholder="e.g. 2h · half day" style={{ ...input, marginBottom: 14 }} />
 
@@ -214,8 +330,8 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
         {(m.tags || []).length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 7 }}>
             {(m.tags || []).map((t, i) => (
-              <button key={i} type="button" onClick={() => set({ tags: (m.tags || []).filter((x) => x !== t) })} aria-label={"Remove tag " + t} style={{ ...tagChip, font: "inherit", fontSize: 11.5, cursor: "pointer" }}>
-                {t} <CloseIcon size={9} className="inline text-[#6b8f8a]" />
+              <button key={i} type="button" onClick={() => set({ tags: (m.tags || []).filter((x) => x !== t) })} aria-label={"Remove tag " + t} style={{ ...tagChip, font: "inherit", fontSize: 11.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                {t} <CloseIcon size={9} className="text-[#6b8f8a]" />
               </button>
             ))}
           </div>

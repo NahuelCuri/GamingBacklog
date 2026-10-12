@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  budget, cleanCard, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
-  parseLoc, quickAddCard, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
+  areaQuery, budget, cleanCard, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
+  parseLoc, pickArea, quickAddCard, regionSuggestions, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
 } from "./model";
 
 const seeded = () => {
@@ -133,5 +133,31 @@ describe("trip model", () => {
     expect(locQuery("https://maps.app.goo.gl/abc", "Fushimi Inari", "Kyoto")).toBe("Fushimi Inari, Kyoto");
     expect(locQuery("https://maps.app.goo.gl/abc")).toBeNull();
     expect(locQuery("Tokyo Tower")).toBe("Tokyo Tower");
+  });
+
+  it("takes a district's outline from the first search hit that has one", () => {
+    const point = { lat: "35.67", lon: "139.76", display_name: "Ginza Station", geojson: { type: "Point", coordinates: [139.76, 35.67] } };
+    const ring = [[139.761234567, 35.671], [139.77, 35.67], [139.77, 35.68], [139.761234567, 35.671]];
+    const hood = { lat: "35.6717", lon: "139.7650", display_name: "Ginza, Chuo, Tokyo", geojson: { type: "Polygon", coordinates: [ring] } };
+    const got = pickArea([point, hood])!;
+    expect(got.center).toEqual({ lat: 35.6717, lng: 139.765 });
+    expect(got.area.type).toBe("Polygon");
+    expect(got.area.name).toBe("Ginza, Chuo, Tokyo");
+    expect((got.area.coordinates as number[][][])[0][0]).toEqual([139.76123, 35.671]);
+    expect(pickArea([point])).toBeNull();
+    expect(pickArea({ error: "x" })).toBeNull();
+  });
+
+  it("builds a query for a district's outline", () => {
+    expect(areaQuery({ locText: "Ginza, Tokyo", title: "Ginza" })).toBe("Ginza, Tokyo");
+    expect(areaQuery({ locText: "35.67, 139.76", title: "Ginza", region: "Chuo, Tokyo" })).toBe("Ginza, Chuo, Tokyo");
+    expect(areaQuery({ title: "", region: "" })).toBeNull();
+  });
+
+  it("suggests regions already used, prefix matches first", () => {
+    const cs = ["Ginza, Tokyo", "Shinjuku, Tokyo", "Shinjuku, Tokyo", "Tokyo Station", "", "Nakagyo, Kyoto"].map((region, i) => ({ id: "r" + i, region }) as TripCard);
+    expect(regionSuggestions(cs, "tok")).toEqual(["Tokyo Station", "Shinjuku, Tokyo", "Ginza, Tokyo"]);
+    expect(regionSuggestions(cs, "shinjuku, tokyo")).toEqual([]);
+    expect(regionSuggestions(cs, "  ")).toEqual([]);
   });
 });

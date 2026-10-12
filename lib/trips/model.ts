@@ -27,6 +27,14 @@ export interface LatLng {
   lng: number;
 }
 
+/** A district's outline, as a GeoJSON geometry ([lng, lat] rings, rounded to ~1 m). */
+export interface Area {
+  type: "Polygon" | "MultiPolygon";
+  coordinates: number[][][] | number[][][][];
+  /** What the search matched, e.g. "Ginza, Chuo, Tokyo, Japan". */
+  name?: string;
+}
+
 export interface TripCard {
   id: string;
   trip: string;
@@ -44,6 +52,8 @@ export interface TripCard {
   day?: number | null;
   addedBy?: string;
   loc?: LatLng | null;
+  /** District cards: the outline drawn on the map. */
+  area?: Area | null;
   /** Position in the stored list (see withOrder). */
   order?: number;
   [k: string]: unknown;
@@ -60,6 +70,7 @@ export const TYPES = [
   { value: "place", label: "Place", color: "#6cc6c0" },
   { value: "food", label: "Food", color: "#e0a86b" },
   { value: "activity", label: "Activity", color: "#9ce6b0" },
+  { value: "district", label: "District", color: "#a9c27a" },
   { value: "lodging", label: "Lodging", color: "#c6a9d6" },
   { value: "transport", label: "Transport", color: "#8ec5e6" },
   { value: "watch", label: "To watch", color: "#e69bb0" },
@@ -211,7 +222,7 @@ export type CardDraft = TripCard & LocDraft & { tagInput?: string };
  * erased a card's coordinates on every edit; now it only changes when edited.
  */
 export function cleanCard(d: CardDraft): TripCard {
-  const { locText, locBusy: _b, locErr: _e, locFound: _f, tagInput: _t, ...core } = d;
+  const { locText, locBusy: _b, locErr: _e, locFound: _f, areaBusy: _ab, areaErr: _ae, tagInput: _t, ...core } = d;
   return {
     ...core,
     ...(locText != null ? { loc: parseLoc(locText) } : {}),
@@ -246,6 +257,21 @@ export function tagSuggestions(cards: TripCard[], used: string[], typed: string)
     .filter((t) => !used.includes(t) && (!q || t.toLowerCase().includes(q)))
     .sort((a, b) => counts[b] - counts[a])
     .slice(0, 8);
+}
+
+/** Regions already used on cards that contain what is typed: ones starting with it first, then most used (never the exact text). */
+export function regionSuggestions(cards: TripCard[], typed: string, max = 6): string[] {
+  const q = typed.trim().toLowerCase();
+  if (!q) return [];
+  const counts = new Map<string, number>();
+  cards.forEach((c) => {
+    const r = (c.region || "").trim();
+    if (r) counts.set(r, (counts.get(r) || 0) + 1);
+  });
+  return [...counts.keys()]
+    .filter((r) => r.toLowerCase().includes(q) && r.toLowerCase() !== q)
+    .sort((a, b) => +!a.toLowerCase().startsWith(q) - +!b.toLowerCase().startsWith(q) || counts.get(b)! - counts.get(a)!)
+    .slice(0, max);
 }
 
 // ---------------------------------------------------------------- scheduling
@@ -361,6 +387,43 @@ export interface LocDraft {
   locBusy?: boolean;
   locErr?: "none" | "noquery" | null;
   locFound?: string | null;
+  areaBusy?: boolean;
+  areaErr?: boolean;
+}
+
+/** Nominatim search URL; `outline` asks for boundary polygons (simplified to ~30 m) and a few candidates. */
+export const nominatimUrl = (q: string, outline = false) =>
+  "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(q) +
+  (outline ? "&limit=5&polygon_geojson=1&polygon_threshold=0.0003" : "&limit=1");
+
+interface NominatimHit {
+  lat: string;
+  lon: string;
+  display_name: string;
+  geojson?: { type: string; coordinates: unknown };
+}
+
+const roundDeep = (v: unknown): unknown => (Array.isArray(v) ? v.map(roundDeep) : typeof v === "number" ? Math.round(v * 1e5) / 1e5 : v);
+
+/**
+ * The first search hit that has an outline (a name like "Ginza" can also match
+ * a station or a shop, which are points), as an Area plus its centre.
+ */
+export function pickArea(hits: unknown): { area: Area; center: LatLng } | null {
+  if (!Array.isArray(hits)) return null;
+  const hit = (hits as NominatimHit[]).find((h) => h?.geojson && (h.geojson.type === "Polygon" || h.geojson.type === "MultiPolygon"));
+  if (!hit) return null;
+  return {
+    area: { type: hit.geojson!.type as Area["type"], coordinates: roundDeep(hit.geojson!.coordinates) as Area["coordinates"], name: hit.display_name },
+    center: { lat: +(+hit.lat).toFixed(5), lng: +(+hit.lon).toFixed(5) },
+  };
+}
+
+/** What to search for a district's outline: the location text when it's a name, else title + region. */
+export function areaQuery(md: { locText?: string | null; title?: string; region?: string }): string | null {
+  const raw = String(md.locText ?? "").trim();
+  if (raw && !parseLoc(raw)) return locQuery(raw, md.title, md.region);
+  return [md.title, md.region].filter(Boolean).join(", ") || null;
 }
 
 /** Hint, colour and help text under the Location field. */
