@@ -5,7 +5,7 @@
 // MapLibre only downloads when the Map tab opens.
 import maplibregl, { LngLatBounds, type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { boxOf, minZoomFor, type LngLat, type MapArea, type MapPin, type MapScene } from "@/lib/trips/map-scene";
 import { reducedMotion } from "@/lib/motion";
 import { T } from "./styles";
@@ -89,25 +89,29 @@ const areaData = (areas: MapArea[]): GeoJSON.FeatureCollection => ({
 
 /** Long titles are cut here: a symbol label can't ellipsize itself. */
 const LABEL_MAX = 28;
-const short = (t: string) => (t.length > LABEL_MAX ? t.slice(0, LABEL_MAX - 1).trimEnd() + "…" : t);
+const shortTitle = (t: string) => (t.length > LABEL_MAX ? t.slice(0, LABEL_MAX - 1).trimEnd() + "…" : t);
 
 const pinData = (pins: MapPin[]): GeoJSON.FeatureCollection => ({
   type: "FeatureCollection",
-  features: pins.map((p) => ({ type: "Feature", properties: { id: p.id, n: p.n, color: p.color, title: short(p.title) }, geometry: { type: "Point", coordinates: p.at } })),
+  features: pins.map((p) => ({
+    type: "Feature",
+    properties: { id: p.id, n: p.n, color: p.color, title: shortTitle(p.title), tip: (p.n ? "#" + p.n + " · " : "") + p.tip },
+    geometry: { type: "Point", coordinates: p.at },
+  })),
 });
 
 /*
- * Pins and their titles are WebGL layers, not DOM markers: the GPU draws them
- * with the map, so panning and zooming cost the same with 5 stops or 50.
+ * Pins, their titles and the hover card are all WebGL layers, not DOM: the GPU
+ * draws them with the map, so panning and zooming cost the same with 5 stops
+ * or 50, and the card's title is the standing title's own pixels.
  * Hover and hidden titles are feature state, so they never re-upload data.
  */
 const BG = "#0a0c0d";
+const TITLE = "#d9dfdd";
+const CLEAR = "rgba(0,0,0,0)";
 const isN: maplibregl.ExpressionSpecification = [">", ["get", "n"], 0];
 const isHot: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "hot"], false];
 const isOff: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "off"], false];
-/** Titles step aside while hot (the tooltip takes their place) and stay away once clicked off. */
-const labelOpacity: maplibregl.ExpressionSpecification = ["case", ["any", isHot, isOff], 0, 1];
-const fade = { duration: 140, delay: 0 };
 const PIN_LAYERS = ["pin-label", "pin-dot"];
 
 /** Rounded dark plate behind a title, stretched to fit it (drawn at 2x). */
@@ -125,6 +129,58 @@ function labelPlate() {
   g.stroke();
   return g.getImageData(0, 0, S, S);
 }
+
+/** A title on its plate, above the dot. The hover card is this too, with the details line stacked on top. */
+/** A plate's padding around its text, in px: top, right, bottom, left. */
+type Pad = [number, number, number, number];
+const TITLE_PAD: Pad = [4, 8, 4, 8];
+/** The card's plate: roomier above and to the sides, but the same bottom, so the title doesn't move. */
+const CARD_PAD: Pad = [7, 11, 4, 11];
+
+const labelLayout = (text: maplibregl.ExpressionSpecification, pad: Pad | null): maplibregl.SymbolLayerSpecification["layout"] => ({
+  "text-field": text,
+  "text-font": ["Noto Sans Bold"],
+  "text-size": 11.5,
+  "text-anchor": "bottom",
+  // Above the dot: its radius, a gap and the plate's padding, in ems.
+  "text-offset": ["case", isN, ["literal", [0, -2.2]], ["literal", [0, -1.55]]],
+  "text-max-width": 30,
+  "text-allow-overlap": true,
+  "text-ignore-placement": true,
+  ...(pad && {
+    "icon-image": "pin-plate",
+    "icon-text-fit": "both",
+    "icon-text-fit-padding": pad,
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
+  }),
+});
+
+/**
+ * The card's text: details line over the title. Anchored at the bottom like
+ * the standing title, so its title line lands on exactly the same pixels. One
+ * layer draws the plate and title, another only the details line, so the
+ * details can rise in on their own.
+ */
+const cardText = (details: boolean): maplibregl.ExpressionSpecification => [
+  "format",
+  ["get", "tip"],
+  { "text-font": ["literal", ["Noto Sans Regular"]], "font-scale": 0.9, "text-color": details ? T.muted2 : CLEAR },
+  "\n",
+  {},
+  ["get", "title"],
+  { "text-color": details ? CLEAR : TITLE },
+];
+
+/**
+ * Two card slots, so one card can fade out while the next fades in. A slot
+ * shows one pin through its filter; with a single feature in it, its paint is
+ * the card's own and fades with ordinary paint transitions.
+ */
+const SLOTS = ["card-0", "card-1"];
+const nobody: maplibregl.FilterSpecification = ["==", ["get", "id"], ""];
+/** Details line: from a little low, up into place. */
+const TIP_DROP: [number, number] = [0, 5];
 
 function addPinLayers(m: MLMap) {
   m.addImage("pin-plate", labelPlate(), { pixelRatio: 2, stretchX: [[16, 32]], stretchY: [[16, 32]] });
@@ -151,28 +207,42 @@ function addPinLayers(m: MLMap) {
     layout: { "text-field": ["to-string", ["get", "n"]], "text-font": ["Noto Sans Bold"], "text-size": 12.5, "text-allow-overlap": true, "text-ignore-placement": true },
     paint: { "text-color": BG },
   });
-  m.addLayer({
-    id: "pin-label",
-    type: "symbol",
-    source: "pins",
-    layout: {
-      "text-field": ["get", "title"],
-      "text-font": ["Noto Sans Bold"],
-      "text-size": 11.5,
-      "text-anchor": "bottom",
-      // Above the dot: its radius, a gap and the plate's padding, in ems.
-      "text-offset": ["case", isN, ["literal", [0, -2.2]], ["literal", [0, -1.55]]],
-      "text-max-width": 30,
-      "icon-image": "pin-plate",
-      "icon-text-fit": "both",
-      "icon-text-fit-padding": [4, 8, 4, 8],
-      "text-allow-overlap": true,
-      "text-ignore-placement": true,
-      "icon-allow-overlap": true,
-      "icon-ignore-placement": true,
-    },
-    paint: { "text-color": "#d9dfdd", "text-opacity": labelOpacity, "icon-opacity": labelOpacity, "text-opacity-transition": fade, "icon-opacity-transition": fade },
-  });
+  // Titles hide once clicked off.
+  const shown: maplibregl.ExpressionSpecification = ["case", isOff, 0, 1];
+  m.addLayer({ id: "pin-label", type: "symbol", source: "pins", layout: labelLayout(["get", "title"], TITLE_PAD), paint: { "text-color": TITLE, "text-opacity": shown, "icon-opacity": shown } });
+  for (const s of SLOTS) {
+    m.addLayer({ id: s, type: "symbol", source: "pins", filter: nobody, layout: labelLayout(cardText(false), CARD_PAD), paint: { "text-opacity": 0, "icon-opacity": 0 } });
+    m.addLayer({ id: s + "-tip", type: "symbol", source: "pins", filter: nobody, layout: labelLayout(cardText(true), null), paint: { "text-opacity": 0, "text-translate": TIP_DROP } });
+  }
+}
+
+interface Slot {
+  id: string | null;
+  /** Showing (or fading in), as opposed to fading out. */
+  live: boolean;
+  timer?: ReturnType<typeof setTimeout>;
+}
+
+const OUT = 140;
+
+/** Fade a slot's card in or out; `now` jumps there (a fresh pin, or reduced motion). */
+function cardTo(m: MLMap, s: string, on: boolean, now: boolean) {
+  const t = (duration: number, delay = 0) => (now ? { duration: 0, delay: 0 } : { duration, delay });
+  m.setPaintProperty(s, "icon-opacity-transition", t(on ? 160 : OUT));
+  m.setPaintProperty(s, "text-opacity-transition", t(on ? 160 : OUT));
+  m.setPaintProperty(s, "icon-opacity", on ? 1 : 0);
+  m.setPaintProperty(s, "text-opacity", on ? 1 : 0);
+  // The details rise in once the card is mostly up, and leave first.
+  m.setPaintProperty(s + "-tip", "text-opacity-transition", t(on ? 200 : 90, on ? 70 : 0));
+  m.setPaintProperty(s + "-tip", "text-translate-transition", t(on ? 280 : 120, on ? 40 : 0));
+  m.setPaintProperty(s + "-tip", "text-opacity", on ? 1 : 0);
+  m.setPaintProperty(s + "-tip", "text-translate", on ? [0, 0] : TIP_DROP);
+}
+
+function cardFor(m: MLMap, s: string, id: string | null) {
+  const f: maplibregl.FilterSpecification = id ? ["==", ["get", "id"], id] : nobody;
+  m.setFilter(s, f);
+  m.setFilter(s + "-tip", f);
 }
 
 interface Props {
@@ -189,9 +259,9 @@ interface Props {
 
 export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot }: Props) {
   const box = useRef<HTMLDivElement>(null);
-  const tipRef = useRef<HTMLDivElement>(null);
-  const tipAt = useRef<LngLat | null>(null);
   const map = useRef<MLMap | null>(null);
+  // The hover card slots: the hot pin's card, and one still fading out.
+  const slots = useRef<Slot[]>(SLOTS.map(() => ({ id: null, live: false })));
   const onHotRef = useRef(onHot);
   onHotRef.current = onHot;
   const [ready, setReady] = useState(false);
@@ -203,14 +273,6 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
   const overviewRef = useRef(overview);
   overviewRef.current = overview;
   const touched = useRef(false);
-
-  // Only the one tooltip is DOM; it follows its pin as the map moves.
-  const placeTip = () => {
-    const m = map.current, tip = tipRef.current, at = tipAt.current;
-    if (!m || !tip || !at) return;
-    const pt = m.project(at);
-    tip.style.transform = `translate(${pt.x}px, ${pt.y}px) translate(-50%, calc(-100% - 20px))`;
-  };
 
   // The map is created once; everything else updates it in place.
   useEffect(() => {
@@ -292,7 +354,6 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
       const off = !!m.getFeatureState({ source: "pins", id }).off;
       m.setFeatureState({ source: "pins", id }, { off: !off });
     });
-    m.on("move", placeTip);
     // A user pan or zoom (not our fitBounds) means their view wins over re-framing on resize.
     m.on("movestart", (e) => {
       if ((e as { originalEvent?: Event }).originalEvent) touched.current = true;
@@ -317,6 +378,11 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     if (!m || !ready) return;
     m.removeFeatureState({ source: "pins" });
     m.removeFeatureState({ source: "areas" });
+    slots.current.forEach((sl, i) => {
+      clearTimeout(sl.timer);
+      Object.assign(sl, { id: null, live: false });
+      cardFor(m, SLOTS[i], null);
+    });
     (m.getSource("pins") as GeoJSONSource | undefined)?.setData(pinData(scene.pins));
     (m.getSource("areas") as GeoJSONSource | undefined)?.setData(areaData(scene.areas));
     (m.getSource("route") as GeoJSONSource | undefined)?.setData(routeData(scene.route));
@@ -359,9 +425,49 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameKey, padding]);
 
-  // Hot pin (hovered here or in the side list): bigger, its district brighter, its tooltip shown.
-  const hotPin = scene.pins.find((p) => p.id === hot) ?? null;
-  tipAt.current = hotPin?.at ?? null;
+  // Hot pin (hovered here or in the side list): bigger, its district brighter, its card up.
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready) return;
+    const id = hot && scene.pins.some((p) => p.id === hot) ? hot : null;
+    const still = reducedMotion();
+    const all = slots.current;
+    // Any other card fades out, then lets its slot go.
+    all.forEach((sl, i) => {
+      if (!sl.live || sl.id === id) return;
+      sl.live = false;
+      cardTo(m, SLOTS[i], false, still);
+      sl.timer = setTimeout(() => {
+        if (sl.live || !map.current) return;
+        sl.id = null;
+        cardFor(m, SLOTS[i], null);
+      }, still ? 0 : OUT + 60);
+    });
+    if (!id) return;
+    // Its own card if still fading out, else a free slot, else the one fading out.
+    const i = Math.max(all.findIndex((sl) => sl.id === id), all.findIndex((sl) => !sl.id), all.findIndex((sl) => !sl.live));
+    const sl = all[i];
+    clearTimeout(sl.timer);
+    sl.live = true;
+    // Drawn above the card it replaces.
+    m.moveLayer(SLOTS[i]);
+    m.moveLayer(SLOTS[i] + "-tip");
+    if (sl.id === id) return cardTo(m, SLOTS[i], true, still);
+    // A new pin starts from nothing. The filter change lays the slot out again
+    // off the main thread, so the fade waits until the card is actually drawn.
+    sl.id = id;
+    cardTo(m, SLOTS[i], false, true);
+    cardFor(m, SLOTS[i], id);
+    let f = 0;
+    let tries = 0;
+    const start = () => {
+      if (!sl.live || sl.id !== id || !map.current) return;
+      if (m.queryRenderedFeatures({ layers: [SLOTS[i]] }).length || ++tries > 20) return cardTo(m, SLOTS[i], true, still);
+      f = requestAnimationFrame(start);
+    };
+    f = requestAnimationFrame(start);
+    return () => cancelAnimationFrame(f);
+  }, [hot, scene, ready]);
   useEffect(() => {
     const m = map.current;
     if (!m || !ready || !hot) return;
@@ -373,8 +479,6 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
       m.setFeatureState({ source: "areas", id: hot }, { hot: false });
     };
   }, [hot, ready, scene]);
-  // Before paint, so the tooltip never shows a frame at the corner.
-  useLayoutEffect(placeTip, [hotPin]);
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
@@ -388,16 +492,6 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", gap: 6, alignItems: "center", justifyContent: "center", padding: "0 30px", textAlign: "center" }}>
           <div style={{ fontSize: 14, color: T.dim }}>{failed === "webgl" ? "This browser can't draw the map" : "Map tiles unavailable"}</div>
           <div style={{ fontSize: 12.5, color: T.faint }}>{failed === "webgl" ? "WebGL is off or unsupported. The stop list still works." : "Check your connection and reopen the tab."}</div>
-        </div>
-      )}
-      {hotPin && (
-        <div
-          key={hotPin.id}
-          ref={tipRef}
-          style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none", zIndex: 7, background: "rgba(15,18,19,.96)", border: `1px solid ${T.border2}`, borderRadius: 9, padding: "8px 11px", maxWidth: 260, boxShadow: "0 10px 30px rgba(0,0,0,.5)", animation: "gfade 140ms ease-out" }}
-        >
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: T.text }}>{(hotPin.n ? hotPin.n + ". " : "") + hotPin.title}</div>
-          <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.muted2, marginTop: 3 }}>{hotPin.tip}</div>
         </div>
       )}
     </div>
