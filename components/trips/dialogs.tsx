@@ -7,7 +7,7 @@ import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
-  PRIOS, STATUSES, TYPES, addTag, areaQuery, locQuery, locStatus, locStr, money, nominatimUrl, parseLoc, pickArea, regionSuggestions, tagSuggestions, typeMeta, type TripCard,
+  PRIOS, STATUSES, TYPES, addTag, locQuery, locStatus, locStr, money, parseLoc, regionSuggestions, tagSuggestions, typeMeta, type TripCard,
 } from "@/lib/trips/model";
 import { Fact, StatusPrio, sourceShort } from "./CompareDrawer";
 import { T, btnGhost, btnPrimary, chip, frame, closeX, dialogFoot, dialogHead, dialogPanel, fieldLabel, input, kicker, overlay, tagChip, typeTag } from "./styles";
@@ -182,39 +182,20 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
 
   const commitTag = (raw: string) => set({ tags: addTag(m.tags, raw), tagInput: "" });
 
-  const isDistrict = m.type === "district";
-  const search = (q: string, outline: boolean) => fetch(nominatimUrl(q, outline), { headers: { Accept: "application/json" } }).then((r) => r.json());
-
   const lookup = () => {
     const raw = String(locText).trim();
     if (!raw || parseLoc(raw)) return;
     const q = locQuery(raw, m.title, m.region);
     if (!q) return set({ locErr: "noquery" });
     set({ locBusy: true, locErr: null });
-    // A district also takes its outline from the same search, when one of the hits has it.
-    search(q, isDistrict)
+    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q), { headers: { Accept: "application/json" } })
+      .then((r) => r.json())
       .then((j) => {
         const hit = j && j[0];
         if (!hit) throw new Error("none");
-        const found = isDistrict ? pickArea(j) : null;
-        const at = found ? found.center : { lat: +hit.lat, lng: +hit.lon };
-        set({ locText: locStr(at), locBusy: false, locErr: null, locFound: found?.area.name ?? hit.display_name, ...(found ? { area: found.area, areaErr: false } : {}) });
+        set({ locText: locStr({ lat: +hit.lat, lng: +hit.lon }), locBusy: false, locErr: null, locFound: hit.display_name });
       })
       .catch(() => set({ locBusy: false, locErr: "none" }));
-  };
-
-  // A district's outline on its own: by the location name, or the title and region.
-  const findArea = () => {
-    const q = areaQuery({ locText, title: m.title, region: m.region });
-    if (!q) return set({ areaErr: true });
-    set({ areaBusy: true, areaErr: false });
-    search(q, true)
-      .then((j) => {
-        const found = pickArea(j);
-        if (!found) throw new Error("none");
-        set({ area: found.area, areaBusy: false, ...(parseLoc(locText) ? {} : { locText: locStr(found.center), locErr: null }) });
-      })
-      .catch(() => set({ areaBusy: false, areaErr: true }));
   };
 
   return (
@@ -295,33 +276,6 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
           </button>
         </div>
         <div style={{ fontSize: 11, color: T.dim3, lineHeight: 1.5, marginBottom: 14, textWrap: "pretty" }}>{loc.note}</div>
-
-        {isDistrict && (
-          <>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
-              <div style={{ ...fieldLabel, marginBottom: 0 }}>Outline</div>
-              <div style={{ fontFamily: T.mono, fontSize: 10.5, color: m.area ? T.accent : "#5f6b68", whiteSpace: "nowrap" }}>{m.areaBusy ? "searching…" : m.area ? "✓ drawn on the map" : "none yet"}</div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <div style={{ flex: 1, minWidth: 0, fontSize: 11, color: m.areaErr ? "#d98a6a" : T.dim3, lineHeight: 1.5, textWrap: "pretty" }}>
-                {m.areaErr
-                  ? "No outline found. Try the district with its city, e.g. “Ginza, Chuo, Tokyo”."
-                  : m.area
-                    ? m.area.name || "Outline found"
-                    : "The district’s boundary, from OpenStreetMap. Found with the location, or here by title and region."}
-              </div>
-              {m.area ? (
-                <button type="button" onClick={() => set({ area: null })} style={{ ...btnGhost, flex: "0 0 auto", fontSize: 11.5, padding: "6px 11px", borderRadius: 7 }}>
-                  Remove
-                </button>
-              ) : (
-                <button type="button" onClick={findArea} disabled={m.areaBusy} style={{ font: "inherit", cursor: "pointer", flex: "0 0 auto", fontSize: 12, fontWeight: 600, color: "#9fd8d1", background: "rgba(95,184,176,.12)", border: "1px solid rgba(95,184,176,.32)", borderRadius: 8, padding: "6px 11px", whiteSpace: "nowrap" }}>
-                  {m.areaBusy ? "…" : "Find outline"}
-                </button>
-              )}
-            </div>
-          </>
-        )}
 
         <div style={fieldLabel}>Time to allow</div>
         <input value={m.duration || ""} onChange={(e) => set({ duration: e.target.value })} aria-label="Time to allow" autoComplete="off" placeholder="e.g. 2h · half day" style={{ ...input, marginBottom: 14 }} />

@@ -6,7 +6,7 @@
 import maplibregl, { LngLatBounds, type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
-import { boxOf, minZoomFor, type LngLat, type MapArea, type MapPin, type MapScene } from "@/lib/trips/map-scene";
+import { boxOf, minZoomFor, type LngLat, type MapPin, type MapScene } from "@/lib/trips/map-scene";
 import { reducedMotion } from "@/lib/motion";
 import { T } from "./styles";
 
@@ -81,11 +81,6 @@ const minZoom = (overview: LngLat[], W: number, H: number, pad: number) =>
   minZoomFor(overview, W, H, pad, { maxZoom: MAX_ZOOM, outPast: OUT_PAST_TRIP, floor: CITY_ZOOM });
 
 const routeData = (route: LngLat[][]): GeoJSON.Feature => ({ type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: route } });
-
-const areaData = (areas: MapArea[]): GeoJSON.FeatureCollection => ({
-  type: "FeatureCollection",
-  features: areas.map((a) => ({ type: "Feature", properties: { id: a.id, color: a.color }, geometry: { type: a.geometry.type, coordinates: a.geometry.coordinates } as GeoJSON.Geometry })),
-});
 
 /** Long titles are cut here: a symbol label can't ellipsize itself. */
 const LABEL_MAX = 28;
@@ -313,10 +308,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     m.on("style.load", () => {
       loaded = true;
       restyle(m);
-      // Bottom to top: district outlines, the route, then the pins and their titles.
-      m.addSource("areas", { type: "geojson", data: areaData([]), promoteId: "id" });
-      m.addLayer({ id: "area-fill", type: "fill", source: "areas", paint: { "fill-color": ["get", "color"], "fill-opacity": ["case", isHot, 0.2, 0.08], "fill-opacity-transition": { duration: 150, delay: 0 } } });
-      m.addLayer({ id: "area-line", type: "line", source: "areas", layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.4, "line-opacity": 0.6 } });
+      // Bottom to top: the route, then the pins and their titles.
       m.addSource("route", { type: "geojson", data: routeData([]) });
       m.addLayer({
         id: "route",
@@ -372,19 +364,17 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Pins, outlines and route: replaced when the day filter or the stops change (every title shows again).
+  // Pins and route: replaced when the day filter or the stops change (every title shows again).
   useEffect(() => {
     const m = map.current;
     if (!m || !ready) return;
     m.removeFeatureState({ source: "pins" });
-    m.removeFeatureState({ source: "areas" });
     slots.current.forEach((sl, i) => {
       clearTimeout(sl.timer);
       Object.assign(sl, { id: null, live: false });
       cardFor(m, SLOTS[i], null);
     });
     (m.getSource("pins") as GeoJSONSource | undefined)?.setData(pinData(scene.pins));
-    (m.getSource("areas") as GeoJSONSource | undefined)?.setData(areaData(scene.areas));
     (m.getSource("route") as GeoJSONSource | undefined)?.setData(routeData(scene.route));
     // The route fades in after the pins.
     const numbered = scene.pins.filter((p) => p.n).length;
@@ -425,7 +415,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameKey, padding]);
 
-  // Hot pin (hovered here or in the side list): bigger, its district brighter, its card up.
+  // Hot pin (hovered here or in the side list): bigger, its card up.
   useEffect(() => {
     const m = map.current;
     if (!m || !ready) return;
@@ -472,11 +462,9 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     const m = map.current;
     if (!m || !ready || !hot) return;
     m.setFeatureState({ source: "pins", id: hot }, { hot: true });
-    m.setFeatureState({ source: "areas", id: hot }, { hot: true });
     return () => {
       if (!map.current) return;
       m.setFeatureState({ source: "pins", id: hot }, { hot: false });
-      m.setFeatureState({ source: "areas", id: hot }, { hot: false });
     };
   }, [hot, ready, scene]);
 
