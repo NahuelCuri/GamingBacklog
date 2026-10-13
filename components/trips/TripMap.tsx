@@ -4,7 +4,8 @@
 // numbered per day and joined by a dashed route; unscheduled ones show as
 // rings. Picking a day frames its stops; the side list and the pins light each
 // other up. The map (MapLibre) loads lazily, the first time this tab opens.
-import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { loadDistricts, type Districts } from "@/lib/trips/districts";
 import { framePoints, frameKey, mapScene } from "@/lib/trips/map-scene";
 import { mapStops, type MapDay } from "@/lib/trips/model";
 import { T } from "./styles";
@@ -34,6 +35,8 @@ class MapBoundary extends Component<{ children: ReactNode }, { failed: boolean }
   }
 }
 
+const mapBtn: CSSProperties = { cursor: "pointer", fontFamily: T.mono, fontSize: 11, color: T.muted, background: "rgba(14,17,18,.9)", border: "1px solid #232a2b", borderRadius: 8, padding: "6px 11px", whiteSpace: "nowrap" };
+
 function Centered({ text }: { text: string }) {
   return (
     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontFamily: T.mono, fontSize: 12, color: T.dim2, padding: "0 30px", textAlign: "center" }}>
@@ -47,6 +50,9 @@ export function TripMap() {
   const [day, setDay] = useState<MapDay>("all");
   const [hot, setHot] = useState<string | null>(null);
   const [resets, setResets] = useState(0);
+  const [showZones, setShowZones] = useState(false);
+  const [zones, setZones] = useState<{ key: string; d: Districts | null; status: "loading" | "ready" | "error" }>({ key: "", d: null, status: "ready" });
+  const [retries, setRetries] = useState(0);
 
   useEffect(forgetOldStreetCache, []);
 
@@ -54,6 +60,23 @@ export function TripMap() {
   const scene = useMemo(() => mapScene(cards, day), [cards, day]);
   const frame = useMemo(() => framePoints(scene), [scene]);
   const overview = useMemo(() => stops.loc.map((c) => [c.loc!.lng, c.loc!.lat] as [number, number]), [stops.loc]);
+  // Districts of the stops on show (the day picked), fetched when the toggle
+  // goes on and again only when those stops change; a click after a failure retries.
+  const zKey = frame.map((p) => p.map((v) => v.toFixed(3)).join(",")).join(";");
+  useEffect(() => {
+    if (!showZones || !frame.length || (zones.key === zKey && zones.status === "ready")) return;
+    const ac = new AbortController();
+    setZones({ key: zKey, d: null, status: "loading" });
+    loadDistricts(frame, ac.signal)
+      .then((d) => setZones({ key: zKey, d, status: "ready" }))
+      .catch(() => !ac.signal.aborted && setZones({ key: zKey, d: null, status: "error" }));
+    return () => ac.abort();
+    // frame is read through zKey; zones only gates the fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showZones, zKey, retries]);
+  const zoneState = !showZones ? null : zones.key !== zKey || zones.status === "loading" ? "loading" : zones.status === "error" ? "error" : zones.d ? "on" : "none";
+  const zoneLabel = { loading: "finding districts", error: "districts unavailable · retry", none: "no districts here", on: "districts" }[zoneState ?? "on"];
+
   // Re-frame on a new day, a reset, or stops added or moved.
   const fKey = `${day}|${resets}|${frameKey(frame)}`;
 
@@ -95,12 +118,25 @@ export function TripMap() {
             <>
               <MapBoundary>
                 <Suspense fallback={<Centered text="loading map…" />}>
-                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} />
+                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} />
                 </Suspense>
               </MapBoundary>
-              <button type="button" onClick={() => setResets((n) => n + 1)} style={{ position: "absolute", top: 12, right: 14, zIndex: 6, cursor: "pointer", fontFamily: T.mono, fontSize: 11, color: T.muted, background: "rgba(14,17,18,.9)", border: "1px solid #232a2b", borderRadius: 8, padding: "6px 11px", whiteSpace: "nowrap" }}>
-                reset view
-              </button>
+              <div style={{ position: "absolute", top: 12, right: 14, zIndex: 6, display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  aria-pressed={showZones}
+                  aria-busy={zoneState === "loading"}
+                  className={zoneState === "loading" ? "tp-scan" : undefined}
+                  onClick={() => (zoneState === "error" ? setRetries((n) => n + 1) : setShowZones((v) => !v))}
+                  style={{ ...mapBtn, display: "flex", alignItems: "center", gap: 7, ...(showZones && { color: zoneState === "on" ? "#9fd8d1" : T.muted, borderColor: "rgba(95,184,176,.4)" }) }}
+                >
+                  {zoneState === "loading" && <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: T.accent, animation: "gpulse 1s ease-in-out infinite" }} />}
+                  {zoneLabel}
+                </button>
+                <button type="button" onClick={() => setResets((n) => n + 1)} style={mapBtn}>
+                  reset view
+                </button>
+              </div>
             </>
           ) : (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "0 30px", textAlign: "center" }}>
