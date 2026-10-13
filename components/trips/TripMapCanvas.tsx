@@ -6,6 +6,7 @@
 import maplibregl, { LngLatBounds, type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
+import type { Districts } from "@/lib/trips/districts";
 import { boxOf, minZoomFor, type LngLat, type MapPin, type MapScene } from "@/lib/trips/map-scene";
 import { reducedMotion } from "@/lib/motion";
 import { T } from "./styles";
@@ -240,6 +241,51 @@ function cardFor(m: MLMap, s: string, id: string | null) {
   m.setFilter(s + "-tip", f);
 }
 
+const districtData = (d: Districts | null): GeoJSON.FeatureCollection => ({
+  type: "FeatureCollection",
+  features: (d?.zones ?? []).map((z) => ({ type: "Feature", id: z.id, properties: { name: z.name }, geometry: { type: "MultiPolygon", coordinates: z.rings.map((r) => [r]) } })),
+});
+
+/** A ring's signed area and centroid (shoelace). */
+function ringCentre(r: LngLat[]) {
+  let a = 0, x = 0, y = 0;
+  for (let i = 0; i < r.length - 1; i++) {
+    const f = r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1];
+    a += f;
+    x += (r[i][0] + r[i + 1][0]) * f;
+    y += (r[i][1] + r[i + 1][1]) * f;
+  }
+  return { area: Math.abs(a / 2), at: (a ? [x / (3 * a), y / (3 * a)] : r[0]) as LngLat };
+}
+
+/**
+ * One name per district, as a point at the centre of its largest part: a
+ * polygon gets a label in every map tile it crosses, so big ones would repeat.
+ */
+const districtNames = (d: Districts | null): GeoJSON.FeatureCollection => ({
+  type: "FeatureCollection",
+  features: (d?.zones ?? []).map((z) => {
+    const main = z.rings.map(ringCentre).reduce((a, c) => (c.area > a.area ? c : a));
+    return { type: "Feature", id: z.id, properties: { name: z.name }, geometry: { type: "Point", coordinates: main.at } };
+  }),
+});
+
+/** The districts toggle: quiet outlines and names under the route, the one under the pointer a little lit. */
+function addDistrictLayers(m: MLMap) {
+  const lit: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "lit"], false];
+  m.addSource("districts", { type: "geojson", data: districtData(null) });
+  m.addSource("district-names", { type: "geojson", data: districtNames(null) });
+  m.addLayer({ id: "district-fill", type: "fill", source: "districts", paint: { "fill-color": "#9fb7b2", "fill-opacity": ["case", lit, 0.09, 0.025] } });
+  m.addLayer({ id: "district-line", type: "line", source: "districts", layout: { "line-join": "round" }, paint: { "line-color": "#55625f", "line-width": 1.2 } });
+  m.addLayer({
+    id: "district-name",
+    type: "symbol",
+    source: "district-names",
+    layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11, "text-transform": "uppercase", "text-letter-spacing": 0.08, "text-max-width": 8 },
+    paint: { "text-color": ["case", lit, "#a3b0ad", "#66726f"], "text-halo-color": BG, "text-halo-width": 1.2 },
+  });
+}
+
 interface Props {
   scene: MapScene;
   /** Points to frame, and a key that changes whenever the view should re-frame. */
@@ -250,9 +296,11 @@ interface Props {
   hot: string | null;
   compact: boolean;
   onHot(id: string | null): void;
+  /** Outlined under the stops when the districts toggle is on. */
+  districts: Districts | null;
 }
 
-export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot }: Props) {
+export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   // The hover card slots: the hot pin's card, and one still fading out.
@@ -308,7 +356,8 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     m.on("style.load", () => {
       loaded = true;
       restyle(m);
-      // Bottom to top: the route, then the pins and their titles.
+      // Bottom to top: districts, the route, then the pins and their titles.
+      addDistrictLayers(m);
       m.addSource("route", { type: "geojson", data: routeData([]) });
       m.addLayer({
         id: "route",
@@ -337,8 +386,25 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
       m.getCanvas().style.cursor = id ? "pointer" : "";
       onHotRef.current(id);
     };
-    m.on("mousemove", (e) => hover(pinAt(e.point)));
-    m.on("mouseout", () => hover(null));
+    // The district under the pointer, unless a pin is.
+    let zone: string | number | null = null;
+    const light = (id: string | number | null) => {
+      if (id === zone) return;
+      for (const source of ["districts", "district-names"]) {
+        if (zone != null) m.setFeatureState({ source, id: zone }, { lit: false });
+        if (id != null) m.setFeatureState({ source, id }, { lit: true });
+      }
+      zone = id;
+    };
+    m.on("mousemove", (e) => {
+      const pin = pinAt(e.point);
+      hover(pin);
+      light(pin || !m.getLayer("district-fill") ? null : (m.queryRenderedFeatures(e.point, { layers: ["district-fill"] })[0]?.id ?? null));
+    });
+    m.on("mouseout", () => {
+      hover(null);
+      light(null);
+    });
     // A click on a pin or its title hides the title; a click on the pin brings it back.
     m.on("click", (e) => {
       const id = pinAt(e.point);
@@ -387,6 +453,17 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     });
     return () => cancelAnimationFrame(t);
   }, [scene, ready]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready) return;
+    m.removeFeatureState({ source: "districts" });
+    m.removeFeatureState({ source: "district-names" });
+    (m.getSource("districts") as GeoJSONSource | undefined)?.setData(districtData(districts));
+    (m.getSource("district-names") as GeoJSONSource | undefined)?.setData(districtNames(districts));
+    // The basemap's own neighbourhood names would repeat ours.
+    if (m.getLayer("place_suburb")) m.setLayoutProperty("place_suburb", "visibility", districts ? "none" : "visible");
+  }, [districts, ready]);
 
   // Zooming out stops a little past the whole trip.
   const overviewKey = overview.map((p) => p.join(",")).join(";");
