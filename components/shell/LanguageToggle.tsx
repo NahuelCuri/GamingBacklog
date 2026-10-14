@@ -2,12 +2,14 @@
 
 // Fixed EN/ES switch (bottom-left, every page), as in legacy. The choice is per
 // device (localStorage `bl_lang`) and translates the page in place.
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ES } from "@/lib/i18n/es";
 import { ES_ADDED } from "@/lib/i18n/es-added";
 import { createTranslator, readLang, saveLang, type Lang, type Translator } from "@/lib/i18n/translator";
 
 export function LanguageToggle() {
+  const pathname = usePathname();
   const [lang, setLang] = useState<Lang>("en");
   const translator = useRef<Translator | null>(null);
 
@@ -29,6 +31,9 @@ export function LanguageToggle() {
     setLang(l);
     translator.current?.setLang(l);
   };
+
+  // Only the home page and the books library offer the switch.
+  if (pathname !== "/" && pathname !== "/books") return null;
 
   return (
     <div
