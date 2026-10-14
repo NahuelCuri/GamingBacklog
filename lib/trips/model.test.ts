@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  budget, cleanCard, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
+  budget, cleanCard, lookalikes, normTitle, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
   parseLoc, quickAddCard, regionSuggestions, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
 } from "./model";
 
@@ -133,6 +133,25 @@ describe("trip model", () => {
     expect(locQuery("https://maps.app.goo.gl/abc", "Fushimi Inari", "Kyoto")).toBe("Fushimi Inari, Kyoto");
     expect(locQuery("https://maps.app.goo.gl/abc")).toBeNull();
     expect(locQuery("Tokyo Tower")).toBe("Tokyo Tower");
+  });
+
+  it("finds cards a new one may repeat", () => {
+    const cs = [
+      { id: "a", title: "GINZA SIX", source: "", loc: { lat: 35.6696, lng: 139.7641 } },
+      { id: "b", title: "Sensō-ji Temple", source: "https://maps.app.goo.gl/x" },
+      { id: "c", title: "Tokyo Tower" },
+      { id: "d", title: "Untitled link", source: "https://example.com/y" },
+      { id: "e", title: "Ramen" },
+    ] as TripCard[];
+    expect(normTitle("  Sensō-ji Temple! ")).toBe("senso ji temple");
+    expect(lookalikes(cs, { title: "Ginza  six" }).map((l) => [l.card.id, l.why])).toEqual([["a", "same title"]]);
+    expect(lookalikes(cs, { title: "Untitled link", source: "https://example.com/y" }).map((l) => [l.card.id, l.why])).toEqual([["d", "same link"]]);
+    expect(lookalikes(cs, { title: "Mall", loc: { lat: 35.6697, lng: 139.7642 } }).map((l) => l.why)).toEqual(["same place"]);
+    expect(lookalikes(cs, { title: "Tokyo Tower observation deck" }).map((l) => [l.card.id, l.why])).toEqual([["c", "similar title"]]);
+    // Short words and the card itself don't count.
+    expect(lookalikes(cs, { title: "Ichiran Ramen" })).toEqual([]);
+    expect(lookalikes(cs, { id: "c", title: "Tokyo Tower" })).toEqual([]);
+    expect(lookalikes(cs, { title: "" })).toEqual([]);
   });
 
   it("suggests regions already used, prefix matches first", () => {
