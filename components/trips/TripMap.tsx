@@ -4,11 +4,13 @@
 // numbered per day and joined by a dashed route; unscheduled ones show as
 // rings. Picking a day frames its stops; the side list and the pins light each
 // other up. The map (MapLibre) loads lazily, the first time this tab opens.
-import { Component, lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { loadDistricts, type Districts } from "@/lib/trips/districts";
 import { framePoints, frameKey, mapScene } from "@/lib/trips/map-scene";
-import { mapStops, type MapDay } from "@/lib/trips/model";
-import { T } from "./styles";
+import { mapStops, typeMeta, type MapDay, type TripCard } from "@/lib/trips/model";
+import { play } from "@/lib/motion";
+import { CardViewBody } from "./dialogs";
+import { T, btnPrimary, typeTag } from "./styles";
 import { useTripCtx } from "./TripPlanner";
 
 const TripMapCanvas = lazy(() => import("./TripMapCanvas"));
@@ -88,6 +90,48 @@ function TransitKey({ lines, stations }: { lines: boolean; stations: boolean }) 
   );
 }
 
+/**
+ * A stop opened up: the card as the view dialog shows it, on a plate that points
+ * at it: down at its pin on the map, or right at its row in the side list.
+ * Whoever shows it places it; any click closes it.
+ */
+function CardBubble({ card, n, compact, onEdit, tail = "down", tailRef }: { card: TripCard; n: number; compact: boolean; onEdit(): void; tail?: "down" | "right"; tailRef?: Ref<SVGSVGElement> }) {
+  const tm = typeMeta(card.type);
+  return (
+    <div role="dialog" aria-label={card.title || "Untitled"} style={{ position: "relative", width: compact ? 290 : 340, filter: "drop-shadow(0 18px 40px rgba(0,0,0,.55))" }}>
+      <div style={{ display: "flex", flexDirection: "column", maxHeight: "var(--bubble-max)", background: T.dialog, border: `1px solid ${T.border}`, borderTop: `3px solid ${tm.color}`, borderRadius: 14, overflow: "hidden" }}>
+        <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 16px 0" }}>
+          <span style={typeTag(tm.color)}>{tm.label}</span>
+          {n > 0 && <span style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim2 }}>stop #{n}</span>}
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "10px 16px 14px" }}>
+          <CardViewBody card={card} />
+        </div>
+        <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "flex-end", padding: "10px 12px", borderTop: `1px solid ${T.line}` }}>
+          <button type="button" onClick={onEdit} style={{ ...btnPrimary, padding: "7px 16px" }}>
+            Edit
+          </button>
+        </div>
+      </div>
+      {/* The tail, down to the pin or across to the row (its height set by the list). */}
+      {tail === "down" ? (
+        <svg width="22" height="10" aria-hidden="true" style={{ position: "absolute", left: "50%", bottom: -9, transform: "translateX(-50%)", display: "block" }}>
+          <path d="M0 0 L11 10 L22 0" fill={T.dialog} stroke={T.border} strokeWidth="1" />
+          <rect x="0" y="-1" width="22" height="1.5" fill={T.dialog} />
+        </svg>
+      ) : (
+        <svg ref={tailRef} width="10" height="22" aria-hidden="true" style={{ position: "absolute", right: -9, top: 0, display: "block" }}>
+          <path d="M0 0 L10 11 L0 22" fill={T.dialog} stroke={T.border} strokeWidth="1" />
+          <rect x="-1" y="0" width="1.5" height="22" fill={T.dialog} />
+        </svg>
+      )}
+    </div>
+  );
+}
+
+/** Set once the user has opened a pin by double-click: the side list's hint then stays away. */
+const HINT_KEY = "trip-map-dblclick-seen";
+
 function Centered({ text }: { text: string }) {
   return (
     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontFamily: T.mono, fontSize: 12, color: T.dim2, padding: "0 30px", textAlign: "center" }}>
@@ -97,9 +141,32 @@ function Centered({ text }: { text: string }) {
 }
 
 export function TripMap() {
-  const { cards, isMobile, openCard } = useTripCtx();
+  const { cards, isMobile, openEdit } = useTripCtx();
   const [day, setDay] = useState<MapDay>("all");
   const [hot, setHot] = useState<string | null>(null);
+  const [opened, setOpened] = useState<string | null>(null);
+  // Bumped when the open stop is double-clicked again: the bubble calls attention to itself.
+  const [nudge, setNudge] = useState(0);
+  // A row's own bubble: a click on it opens the card beside the list, over the
+  // map's edge, pointing at the row; the map stays put.
+  const [side, setSide] = useState<string | null>(null);
+  const area = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const sideEl = useRef<HTMLDivElement>(null);
+  const sideTail = useRef<SVGSVGElement>(null);
+  // The double-click hint: unknown until storage is read (so it never flashes), then shown until first use.
+  const [hintSeen, setHintSeen] = useState<boolean | null>(null);
+  useEffect(() => {
+    try {
+      setHintSeen(localStorage.getItem(HINT_KEY) === "1");
+    } catch {
+      setHintSeen(false);
+    }
+  }, []);
+  // A row's click opens its bubble beside the list, unless a second click makes
+  // it a double-click, which flies to the pin and opens its bubble there instead.
+  const rowClick = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(rowClick.current), []);
   const [resets, setResets] = useState(0);
   const [showZones, setShowZones] = useState(false);
   const [transit, setTransit] = useState(false);
@@ -129,6 +196,113 @@ export function TripMap() {
   }, [showZones, zKey, retries]);
   const zoneState = !showZones ? null : zones.key !== zKey || zones.status === "loading" ? "loading" : zones.status === "error" ? "error" : zones.d ? "on" : "none";
   const zoneLabel = { loading: "finding districts", error: "districts unavailable · retry", none: "no districts here", on: "districts" }[zoneState ?? "on"];
+
+  // The pin opened into a bubble, while it's on the map. Another day closes it.
+  const openPin = opened ? scene.pins.find((p) => p.id === opened) : undefined;
+  const openCardData = openPin && cards.find((c) => c.id === openPin.id);
+  const open = openCardData ? openPin.id : null;
+  const sidePin = side ? scene.pins.find((p) => p.id === side) : undefined;
+  const sideCard = sidePin && cards.find((c) => c.id === sidePin.id);
+  const sideOpen = sideCard ? sidePin.id : null;
+  // The bubble stays drawn while it slips back into its row, showing what it last showed.
+  const lastSide = useRef<{ card: TripCard; n: number } | null>(null);
+  if (sideCard) lastSide.current = { card: sideCard, n: sidePin!.n };
+  const [, sideGone] = useState(0);
+  // Where it grows from and shrinks back to: the tail's tip, and the row's height against its own.
+  const sideFrom = useRef({ origin: "100% 50%", squash: 0.2 });
+  useEffect(() => {
+    setOpened(null);
+    setSide(null);
+  }, [day]);
+  const closeAll = () => {
+    setOpened(null);
+    setSide(null);
+  };
+  const openSide = (id: string) => {
+    // Its row clicked again: a light bounce towards the map.
+    if (id === sideOpen)
+      return void play(sideEl.current?.firstElementChild, [{ transform: "none" }, { transform: "translateX(-6px)", offset: 0.3 }, { transform: "none", offset: 0.6 }, { transform: "translateX(-2px)", offset: 0.8 }, { transform: "none" }], { duration: 460, easing: "ease-out", fill: "none" });
+    setOpened(null);
+    setSide(id);
+  };
+  const openStop = (id: string | null) => {
+    setSide(null);
+    if (id && id === open) setNudge((n) => n + 1);
+    else setOpened(id);
+    if (!id || hintSeen) return;
+    setHintSeen(true);
+    try {
+      localStorage.setItem(HINT_KEY, "1");
+    } catch {
+      /* storage blocked: hidden for this visit only */
+    }
+  };
+  // Any click closes it (a drag, panning the map, doesn't); so does Escape.
+  // The map decides for its own clicks, and the open stop's row leaves it be:
+  // either may be the start of a double-click on it.
+  const active = open ?? sideOpen;
+  useEffect(() => {
+    if (!active) return;
+    let down: { x: number; y: number } | null = null;
+    const press = (e: PointerEvent) => (down = { x: e.clientX, y: e.clientY });
+    const click = (e: MouseEvent) => {
+      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
+      const t = e.target instanceof Element ? e.target : null;
+      if ((open && t?.closest("[data-testid=trip-map]")) || t?.closest("[data-stop]")?.getAttribute("data-stop") === active) return;
+      closeAll();
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && closeAll();
+    document.addEventListener("pointerdown", press, true);
+    document.addEventListener("click", click, true);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", press, true);
+      document.removeEventListener("click", click, true);
+      document.removeEventListener("keydown", key);
+    };
+  }, [active, open]);
+
+  // The side bubble sits level with its row (kept inside the map), its tail on
+  // the row's middle; it follows the row as the list scrolls, and goes when the row does.
+  const placeSide = () => {
+    const el = sideEl.current, a = area.current;
+    const row = sideOpen ? [...(list.current?.querySelectorAll("[data-stop]") ?? [])].find((r) => r.getAttribute("data-stop") === sideOpen) : null;
+    if (!el || !a || !row) return;
+    const ar = a.getBoundingClientRect(), rr = row.getBoundingClientRect();
+    el.style.setProperty("--bubble-max", Math.max(160, ar.height - 24) + "px");
+    const y = rr.top + rr.height / 2 - ar.top, h = el.offsetHeight;
+    const top = Math.min(Math.max(12, y - h / 2), Math.max(12, ar.height - h - 12));
+    el.style.top = top + "px";
+    const tail = Math.min(Math.max(14, y - top - 11), h - 36);
+    if (sideTail.current) sideTail.current.style.top = tail + "px";
+    sideFrom.current = { origin: `100% ${tail + 11}px`, squash: Math.min(1, rr.height / Math.max(h, 1)) };
+    if (y < 0 || y > ar.height) setSide(null);
+  };
+  // In and out through the row: it opens from the tail, row-high and thin, out
+  // to its full size, and folds back the same way when it closes.
+  const tucked = () => `scale(.06, ${sideFrom.current.squash})`;
+  useLayoutEffect(() => {
+    const inner = sideEl.current?.firstElementChild;
+    if (!sideOpen) {
+      if (!lastSide.current) return;
+      const done = () => {
+        lastSide.current = null;
+        sideGone((n) => n + 1);
+      };
+      const { origin } = sideFrom.current;
+      const a = play(inner, [{ transformOrigin: origin, transform: "none", opacity: 1 }, { transformOrigin: origin, transform: tucked(), opacity: 0.6, offset: 0.85 }, { transformOrigin: origin, transform: tucked(), opacity: 0 }], { duration: 230, easing: "cubic-bezier(.5, 0, .75, 0)", fill: "forwards" });
+      if (!a) return done();
+      a.onfinish = done;
+      return () => a.cancel();
+    }
+    placeSide();
+    const { origin } = sideFrom.current;
+    play(inner, [{ transformOrigin: origin, transform: tucked(), opacity: 0 }, { transformOrigin: origin, opacity: 1, offset: 0.25 }, { transformOrigin: origin, transform: "none", opacity: 1 }], { duration: 360 });
+    addEventListener("resize", placeSide);
+    return () => removeEventListener("resize", placeSide);
+    // placeSide reads the latest refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sideOpen]);
 
   // Re-frame on a new day, a reset, or stops added or moved.
   const fKey = `${day}|${resets}|${frameKey(frame)}`;
@@ -166,12 +340,25 @@ export function TripMap() {
         <div style={{ marginLeft: "auto", fontFamily: T.mono, fontSize: 11, color: T.dim2 }}>{stops.loc.length ? `${shown} numbered · ${stops.loc.length} of ${cards.length} cards located` : ""}</div>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-        <div style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+        <div ref={area} style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+          {lastSide.current && (
+            <div ref={sideEl} style={{ position: "absolute", right: 12, top: 12, zIndex: 7, pointerEvents: sideOpen ? "auto" : "none" }}>
+              <div>
+                <CardBubble card={lastSide.current.card} n={lastSide.current.n} compact={false} onEdit={() => openEdit(lastSide.current!.card.id)} tail="right" tailRef={sideTail} />
+              </div>
+            </div>
+          )}
           {stops.loc.length > 0 ? (
             <>
               <MapBoundary>
                 <Suspense fallback={<Centered text="loading map…" />}>
-                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} transit={transit} stations={stations} />
+                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} transit={transit}
+                    stations={stations}
+                    open={open}
+                    onOpen={openStop}
+                    nudge={nudge}
+                    bubble={openCardData && <CardBubble card={openCardData} n={openPin.n} compact={isMobile} onEdit={() => openEdit(openCardData.id)} />}
+                  />
                 </Suspense>
               </MapBoundary>
               {/* Map controls, and under them the transit key while it's needed. */}
@@ -215,7 +402,15 @@ export function TripMap() {
           )}
         </div>
         {!isMobile && rows.length > 0 && (
-          <div style={{ flex: "0 0 262px", borderLeft: `1px solid ${T.line}`, background: T.panel, overflowY: "auto", padding: "6px 16px 26px" }}>
+          <div ref={list} onScroll={() => sideOpen && placeSide()} style={{ flex: "0 0 262px", borderLeft: `1px solid ${T.line}`, background: T.panel, overflowY: "auto", padding: "6px 16px 26px" }}>
+            {hintSeen !== null && (
+              <Fold open={!hintSeen}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, width: 218, margin: "10px 0 2px", padding: "7px 10px", borderRadius: 8, border: `1px dashed ${T.border2}`, fontFamily: T.mono, fontSize: 10.5, lineHeight: 1.45, color: T.dim2, textWrap: "pretty" }}>
+                  <span aria-hidden="true" style={{ color: T.accent }}>✦</span>
+                  Click a stop to see its card; double-click it, here or on the map, to fly there.
+                </div>
+              </Fold>
+            )}
             {rows.map((r, i) =>
               "header" in r ? (
                 <div key={"h" + i} style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: T.dim3, padding: "15px 0 7px" }}>
@@ -225,13 +420,28 @@ export function TripMap() {
                 <button
                   key={r.pin.id}
                   type="button"
-                  onClick={() => openCard(r.pin.id)}
+                  onClick={(e) => {
+                    clearTimeout(rowClick.current);
+                    if (e.detail > 1) return;
+                    const id = r.pin.id;
+                    const show = () => openSide(id);
+                    // Keyboard presses (detail 0) open at once.
+                    if (!e.detail) return show();
+                    rowClick.current = setTimeout(show, 250);
+                  }}
+                  onDoubleClick={() => {
+                    clearTimeout(rowClick.current);
+                    openStop(r.pin.id);
+                  }}
                   // Hovering a stop lights up its pin (and shows its tooltip), and the other way round.
                   onPointerEnter={() => setHot(r.pin.id)}
                   onPointerLeave={() => setHot(null)}
                   onFocus={() => setHot(r.pin.id)}
                   onBlur={() => setHot(null)}
                   aria-label={"Open " + r.pin.title}
+                  aria-expanded={sideOpen === r.pin.id}
+                  data-stop={r.pin.id}
+                  title="Click to open · double-click to show on the map"
                   style={{ width: "calc(100% + 16px)", margin: "0 -8px", textAlign: "left", background: hot === r.pin.id ? "rgba(95,184,176,.08)" : "none", display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 8px", cursor: "pointer", border: "none", borderBottom: "1px solid #171c1d", borderRadius: 8, transition: "background .15s" }}
                 >
                   <div

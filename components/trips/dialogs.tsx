@@ -28,11 +28,55 @@ function Dialog({ label, onClose, children, panel, z }: { label: string; onClose
 
 // ---------------------------------------------------------------- view
 
-export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; onClose(): void; onEdit(): void }) {
+/** What a card says, read-only: the view dialog's body, and the map's opened bubble. */
+export function CardViewBody({ card: d }: { card: TripCard }) {
   const { trip } = useTripCtx();
-  const tm = typeMeta(d.type);
   const tags = d.tags || [];
   const hasPrice = d.price != null && (d.price as unknown) !== "";
+  return (
+    <>
+      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: T.text, lineHeight: 1.25, marginBottom: 13 }}>{d.title || "Untitled"}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 15 }}>
+        <StatusPrio card={d} />
+        <div style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 20, background: "rgba(95,184,176,.1)", border: "1px solid rgba(95,184,176,.28)", color: "#7fd0c8" }}>
+          {d.day != null ? "Day " + d.day : "Pool"}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 15 }}>
+        {hasPrice && <Fact label="Price" value={money(d.price, trip?.currency)} size={15} bold />}
+        {d.startTime && <Fact label="Start" value={d.startTime} size={15} />}
+        {d.duration && <Fact label="Duration" value={d.duration} size={15} />}
+      </div>
+      {d.region && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.muted, marginBottom: 15 }}>
+          <PinIcon size={13} className="text-[#5fb8b0]" />
+          {d.region}
+        </div>
+      )}
+      {tags.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 15 }}>
+          {tags.map((t, i) => (
+            <div key={i} style={tagChip}>
+              {t}
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", color: T.dim2, marginBottom: 5 }}>Notes</div>
+      <div style={{ fontSize: 13.5, color: T.text2, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{d.notes || "No notes yet."}</div>
+      {d.source && (
+        <a href={d.source} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, color: T.accent, marginTop: 14 }}>
+          <ArrowUpRightIcon size={12} />
+          {sourceShort(d.source)}
+        </a>
+      )}
+      {d.addedBy && <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim3, marginTop: 12 }}>added by {d.addedBy}</div>}
+    </>
+  );
+}
+
+export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; onClose(): void; onEdit(): void }) {
+  const tm = typeMeta(d.type);
   return (
     <Dialog label={d.title || "Untitled"} onClose={onClose} panel={frame(T.border, "top", tm.color)}>
       <div style={{ ...dialogHead, padding: "14px 18px" }}>
@@ -42,42 +86,7 @@ export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; o
         </button>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: T.text, lineHeight: 1.25, marginBottom: 13 }}>{d.title || "Untitled"}</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 15 }}>
-          <StatusPrio card={d} />
-          <div style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 20, background: "rgba(95,184,176,.1)", border: "1px solid rgba(95,184,176,.28)", color: "#7fd0c8" }}>
-            {d.day != null ? "Day " + d.day : "Pool"}
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 15 }}>
-          {hasPrice && <Fact label="Price" value={money(d.price, trip?.currency)} size={15} bold />}
-          {d.startTime && <Fact label="Start" value={d.startTime} size={15} />}
-          {d.duration && <Fact label="Duration" value={d.duration} size={15} />}
-        </div>
-        {d.region && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.muted, marginBottom: 15 }}>
-            <PinIcon size={13} className="text-[#5fb8b0]" />
-            {d.region}
-          </div>
-        )}
-        {tags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 15 }}>
-            {tags.map((t, i) => (
-              <div key={i} style={tagChip}>
-                {t}
-              </div>
-            ))}
-          </div>
-        )}
-        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", color: T.dim2, marginBottom: 5 }}>Notes</div>
-        <div style={{ fontSize: 13.5, color: T.text2, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{d.notes || "No notes yet."}</div>
-        {d.source && (
-          <a href={d.source} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, color: T.accent, marginTop: 14 }}>
-            <ArrowUpRightIcon size={12} />
-            {sourceShort(d.source)}
-          </a>
-        )}
-        {d.addedBy && <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim3, marginTop: 12 }}>added by {d.addedBy}</div>}
+        <CardViewBody card={d} />
       </div>
       <div style={{ ...dialogFoot, justifyContent: "flex-end" }}>
         <button type="button" onClick={onClose} style={btnGhost}>
