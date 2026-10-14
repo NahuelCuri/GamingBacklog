@@ -87,11 +87,18 @@ const routeData = (route: LngLat[][]): GeoJSON.Feature => ({ type: "Feature", pr
 const LABEL_MAX = 28;
 const shortTitle = (t: string) => (t.length > LABEL_MAX ? t.slice(0, LABEL_MAX - 1).trimEnd() + "…" : t);
 
-const pinData = (pins: MapPin[]): GeoJSON.FeatureCollection => ({
+/**
+ * Which title keeps a crowded spot (lower wins): the day's stops in order,
+ * then unscheduled "must" cards, then the rest.
+ */
+const rank = (p: MapPin, i: number) => (p.n ? p.n : (p.must ? 1000 : 2000) + i);
+
+/** `off`: titles clicked off. They leave the data, so they free their spot for the others. */
+const pinData = (pins: MapPin[], off: ReadonlySet<string> = new Set()): GeoJSON.FeatureCollection => ({
   type: "FeatureCollection",
-  features: pins.map((p) => ({
+  features: pins.map((p, i) => ({
     type: "Feature",
-    properties: { id: p.id, n: p.n, color: p.color, title: shortTitle(p.title), tip: (p.n ? "#" + p.n + " · " : "") + p.tip },
+    properties: { id: p.id, n: p.n, color: p.color, title: shortTitle(p.title), tip: (p.n ? "#" + p.n + " · " : "") + p.tip, rank: rank(p, i), off: off.has(p.id) },
     geometry: { type: "Point", coordinates: p.at },
   })),
 });
@@ -100,14 +107,14 @@ const pinData = (pins: MapPin[]): GeoJSON.FeatureCollection => ({
  * Pins, their titles and the hover card are all WebGL layers, not DOM: the GPU
  * draws them with the map, so panning and zooming cost the same with 5 stops
  * or 50, and the card's title is the standing title's own pixels.
- * Hover and hidden titles are feature state, so they never re-upload data.
+ * Titles that would overlap give way (the map places them as it does its own
+ * labels), and come back as the zoom makes room. Hover is feature state.
  */
 const BG = "#0a0c0d";
 const TITLE = "#d9dfdd";
 const CLEAR = "rgba(0,0,0,0)";
 const isN: maplibregl.ExpressionSpecification = [">", ["get", "n"], 0];
 const isHot: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "hot"], false];
-const isOff: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "off"], false];
 const PIN_LAYERS = ["pin-label", "pin-dot"];
 
 /** Rounded dark plate behind a title, stretched to fit it (drawn at 2x). */
@@ -126,14 +133,18 @@ function labelPlate() {
   return g.getImageData(0, 0, S, S);
 }
 
-/** A title on its plate, above the dot. The hover card is this too, with the details line stacked on top. */
 /** A plate's padding around its text, in px: top, right, bottom, left. */
 type Pad = [number, number, number, number];
 const TITLE_PAD: Pad = [4, 8, 4, 8];
 /** The card's plate: roomier above and to the sides, but the same bottom, so the title doesn't move. */
 const CARD_PAD: Pad = [7, 11, 4, 11];
 
-const labelLayout = (text: maplibregl.ExpressionSpecification, pad: Pad | null): maplibregl.SymbolLayerSpecification["layout"] => ({
+/**
+ * A title on its plate, above the dot. The hover card is this too, with the
+ * details line stacked on top. `standing` titles collide: one that would cover
+ * another (or be covered) is left out; cards always draw.
+ */
+const labelLayout = (text: maplibregl.ExpressionSpecification, pad: Pad | null, standing = false): maplibregl.SymbolLayerSpecification["layout"] => ({
   "text-field": text,
   "text-font": ["Noto Sans Bold"],
   "text-size": 11.5,
@@ -141,14 +152,15 @@ const labelLayout = (text: maplibregl.ExpressionSpecification, pad: Pad | null):
   // Above the dot: its radius, a gap and the plate's padding, in ems.
   "text-offset": ["case", isN, ["literal", [0, -2.2]], ["literal", [0, -1.55]]],
   "text-max-width": 30,
-  "text-allow-overlap": true,
-  "text-ignore-placement": true,
+  "text-allow-overlap": !standing,
+  "text-ignore-placement": !standing,
+  ...(standing && { "symbol-sort-key": ["get", "rank"] }),
   ...(pad && {
     "icon-image": "pin-plate",
     "icon-text-fit": "both",
     "icon-text-fit-padding": pad,
-    "icon-allow-overlap": true,
-    "icon-ignore-placement": true,
+    "icon-allow-overlap": !standing,
+    "icon-ignore-placement": !standing,
   }),
 });
 
@@ -204,8 +216,17 @@ function addPinLayers(m: MLMap) {
     paint: { "text-color": BG },
   });
   // Titles hide once clicked off.
-  const shown: maplibregl.ExpressionSpecification = ["case", isOff, 0, 1];
-  m.addLayer({ id: "pin-label", type: "symbol", source: "pins", layout: labelLayout(["get", "title"], TITLE_PAD), paint: { "text-color": TITLE, "text-opacity": shown, "icon-opacity": shown } });
+  m.addLayer({ id: "pin-label", type: "symbol", source: "pins", filter: ["!", ["get", "off"]], layout: labelLayout(["get", "title"], TITLE_PAD, true), paint: { "text-color": TITLE } });
+  // An invisible disc over every pin, for titles to keep clear of. Above the
+  // titles because the map places labels top layer first.
+  m.addImage("pin-keepout", { width: 28, height: 28, data: new Uint8Array(28 * 28 * 4) });
+  m.addLayer({
+    id: "pin-keepout",
+    type: "symbol",
+    source: "pins",
+    layout: { "icon-image": "pin-keepout", "icon-size": ["case", isN, 1, 0.5], "icon-allow-overlap": true, "icon-ignore-placement": false },
+    paint: { "icon-opacity": 0 },
+  });
   for (const s of SLOTS) {
     m.addLayer({ id: s, type: "symbol", source: "pins", filter: nobody, layout: labelLayout(cardText(false), CARD_PAD), paint: { "text-opacity": 0, "icon-opacity": 0 } });
     m.addLayer({ id: s + "-tip", type: "symbol", source: "pins", filter: nobody, layout: labelLayout(cardText(true), null), paint: { "text-opacity": 0, "text-translate": TIP_DROP } });
@@ -305,6 +326,10 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
   const map = useRef<MLMap | null>(null);
   // The hover card slots: the hot pin's card, and one still fading out.
   const slots = useRef<Slot[]>(SLOTS.map(() => ({ id: null, live: false })));
+  // Titles clicked off (until the stops or the day change), and the scene for handlers set up once.
+  const offRef = useRef(new Set<string>());
+  const sceneRef = useRef(scene);
+  sceneRef.current = scene;
   const onHotRef = useRef(onHot);
   onHotRef.current = onHot;
   const [ready, setReady] = useState(false);
@@ -376,7 +401,8 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     const pinAt = (p: maplibregl.Point) => {
       if (!m.getLayer("pin-dot")) return null;
       const hits = m.queryRenderedFeatures([[p.x - 4, p.y - 4], [p.x + 4, p.y + 4]], { layers: PIN_LAYERS });
-      const f = hits.find((h) => h.layer.id === "pin-dot" || !m.getFeatureState({ source: "pins", id: h.id! }).off);
+      // A pin before a title (titles never cover pins, but sit close); only drawn titles count.
+      const f = hits.find((h) => h.layer.id === "pin-dot") ?? hits[0];
       return f ? String(f.id) : null;
     };
     let over: string | null = null;
@@ -409,8 +435,9 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     m.on("click", (e) => {
       const id = pinAt(e.point);
       if (!id) return;
-      const off = !!m.getFeatureState({ source: "pins", id }).off;
-      m.setFeatureState({ source: "pins", id }, { off: !off });
+      const off = offRef.current;
+      if (!off.delete(id)) off.add(id);
+      (m.getSource("pins") as GeoJSONSource | undefined)?.setData(pinData(sceneRef.current.pins, off));
     });
     // A user pan or zoom (not our fitBounds) means their view wins over re-framing on resize.
     m.on("movestart", (e) => {
@@ -435,6 +462,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     const m = map.current;
     if (!m || !ready) return;
     m.removeFeatureState({ source: "pins" });
+    offRef.current.clear();
     slots.current.forEach((sl, i) => {
       clearTimeout(sl.timer);
       Object.assign(sl, { id: null, live: false });

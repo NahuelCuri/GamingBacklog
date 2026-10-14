@@ -17,6 +17,8 @@ export interface MapPin {
   /** Side-list line: type · start time · duration. */
   meta: string;
   day: number | null;
+  /** A "must" card: its title wins a crowded spot over the others'. */
+  must: boolean;
 }
 
 export interface MapScene {
@@ -38,6 +40,7 @@ export function mapScene(cards: TripCard[], day: MapDay): MapScene {
     tip: join([typeMeta(c.type).label, c.day != null ? "Day " + c.day : "Unscheduled", c.startTime, c.duration]),
     meta: n ? join([typeMeta(c.type).label, c.startTime, c.duration]) : join([typeMeta(c.type).label, c.duration]),
     day: c.day ?? null,
+    must: c.priority === "must",
   });
   const pins = [...numbered.map(({ c, n }) => pin(c, n)), ...ghosts.map((c) => pin(c, 0))];
 
