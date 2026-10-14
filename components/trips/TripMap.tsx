@@ -35,7 +35,58 @@ class MapBoundary extends Component<{ children: ReactNode }, { failed: boolean }
   }
 }
 
-const mapBtn: CSSProperties = { cursor: "pointer", fontFamily: T.mono, fontSize: 11, color: T.muted, background: "rgba(14,17,18,.9)", border: "1px solid #232a2b", borderRadius: 8, padding: "6px 11px", whiteSpace: "nowrap" };
+const mapBtn: CSSProperties = { pointerEvents: "auto", cursor: "pointer", fontFamily: T.mono, fontSize: 11, color: T.muted, background: "rgba(14,17,18,.9)", borderWidth: 1, borderStyle: "solid", borderColor: "#232a2b", borderRadius: 8, padding: "6px 11px", whiteSpace: "nowrap" };
+
+/**
+ * A row that opens to its height and closes to nothing, so the box around it
+ * grows and shrinks. Its column keeps the content's width even when shut (a
+ * clipped row would otherwise count as zero wide), so the box never jumps sideways.
+ */
+function Fold({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div aria-hidden={!open} style={{ display: "grid", gridTemplateColumns: "max-content", gridTemplateRows: open ? "1fr" : "0fr", opacity: open ? 1 : 0, transition: "grid-template-rows 260ms var(--ease-out), opacity 200ms ease-out" }}>
+      <div style={{ overflow: "hidden", minHeight: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+/**
+ * What the transit lines and station marks mean. Always mounted, so it can
+ * animate: it fades in under the buttons with its first row, each row folds
+ * open or shut as its toggle flips, and it fades out with its last one.
+ */
+function TransitKey({ lines, stations }: { lines: boolean; stations: boolean }) {
+  const on = lines || stations;
+  const row: CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "2.5px 0", whiteSpace: "nowrap" };
+  const line = (dash?: string) => (
+    <svg width="22" height="6" aria-hidden="true">
+      <line x1="1" y1="3" x2="21" y2="3" stroke="#6d86a8" strokeWidth="1.8" strokeDasharray={dash} opacity={dash ? 0.75 : 0.9} />
+    </svg>
+  );
+  return (
+    <div
+      aria-hidden={!on}
+      style={{
+        fontFamily: T.mono, fontSize: 10.5, color: T.dim2, background: "rgba(14,17,18,.86)", border: "1px solid #232a2b", borderRadius: 8, padding: "4.5px 10px",
+        opacity: on ? 1 : 0, transform: on ? "none" : "translateY(-4px) scale(.97)", transformOrigin: "top right",
+        transition: "opacity 180ms ease-out, transform 240ms var(--ease-out)",
+      }}
+    >
+      <Fold open={lines}>
+        <div style={row}>{line()}rail · surface</div>
+        <div style={row}>{line("3.5 3.5")}underground</div>
+      </Fold>
+      <Fold open={stations}>
+        <div style={row}>
+          <span aria-hidden="true" style={{ width: 22, display: "flex", justifyContent: "center" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: "#0f1517", boxShadow: "inset 0 0 0 1.5px #a9bcd6" }} />
+          </span>
+          station
+        </div>
+      </Fold>
+    </div>
+  );
+}
 
 function Centered({ text }: { text: string }) {
   return (
@@ -51,6 +102,8 @@ export function TripMap() {
   const [hot, setHot] = useState<string | null>(null);
   const [resets, setResets] = useState(0);
   const [showZones, setShowZones] = useState(false);
+  const [transit, setTransit] = useState(false);
+  const [stations, setStations] = useState(false);
   const [zones, setZones] = useState<{ key: string; d: Districts | null; status: "loading" | "ready" | "error" }>({ key: "", d: null, status: "ready" });
   const [retries, setRetries] = useState(0);
 
@@ -118,24 +171,38 @@ export function TripMap() {
             <>
               <MapBoundary>
                 <Suspense fallback={<Centered text="loading map…" />}>
-                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} />
+                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} transit={transit} stations={stations} />
                 </Suspense>
               </MapBoundary>
-              <div style={{ position: "absolute", top: 12, right: 14, zIndex: 6, display: "flex", gap: 6 }}>
-                <button
-                  type="button"
-                  aria-pressed={showZones}
-                  aria-busy={zoneState === "loading"}
-                  className={zoneState === "loading" ? "tp-scan" : undefined}
-                  onClick={() => (zoneState === "error" ? setRetries((n) => n + 1) : setShowZones((v) => !v))}
-                  style={{ ...mapBtn, display: "flex", alignItems: "center", gap: 7, ...(showZones && { color: zoneState === "on" ? "#9fd8d1" : T.muted, borderColor: "rgba(95,184,176,.4)" }) }}
-                >
-                  {zoneState === "loading" && <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: T.accent, animation: "gpulse 1s ease-in-out infinite" }} />}
-                  {zoneLabel}
-                </button>
-                <button type="button" onClick={() => setResets((n) => n + 1)} style={mapBtn}>
-                  reset view
-                </button>
+              {/* Map controls, and under them the transit key while it's needed. */}
+              <div style={{ position: "absolute", top: 12, right: 14, left: 14, zIndex: 6, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, pointerEvents: "none" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 6 }}>
+                  <button
+                    type="button"
+                    aria-pressed={showZones}
+                    aria-busy={zoneState === "loading"}
+                    className={zoneState === "loading" ? "tp-scan" : undefined}
+                    onClick={() => (zoneState === "error" ? setRetries((n) => n + 1) : setShowZones((v) => !v))}
+                    style={{ ...mapBtn, display: "flex", alignItems: "center", gap: 7, ...(showZones && { color: zoneState === "on" ? "#9fd8d1" : T.muted, borderColor: "rgba(95,184,176,.4)" }) }}
+                  >
+                    {zoneState === "loading" && <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: T.accent, animation: "gpulse 1s ease-in-out infinite" }} />}
+                    {zoneLabel}
+                  </button>
+                  {(
+                    [
+                      ["transit", transit, setTransit],
+                      ["stations", stations, setStations],
+                    ] as const
+                  ).map(([label, on, flip]) => (
+                    <button key={label} type="button" aria-pressed={on} onClick={() => flip((v) => !v)} style={{ ...mapBtn, ...(on && { color: "#a9bcd6", borderColor: "rgba(169,188,214,.4)" }) }}>
+                      {label}
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => setResets((n) => n + 1)} style={mapBtn}>
+                    reset view
+                  </button>
+                </div>
+                <TransitKey lines={transit} stations={stations} />
               </div>
             </>
           ) : (

@@ -297,6 +297,70 @@ function addDistrictLayers(m: MLMap) {
   });
 }
 
+/*
+ * Transit, from the basemap's own tiles (no extra requests): rail and metro
+ * lines, and stations with their names. Lines carry no colour or line name in
+ * these tiles, so they're one quiet blue; underground runs are dashed.
+ * Stations are small squares, so they never read as the trip's round pins.
+ */
+const TRANSIT_LINES = ["transit-line", "transit-tunnel"];
+const STATION_LAYERS = ["station"];
+const RAIL_LINE: maplibregl.ExpressionSpecification = ["all", ["match", ["get", "class"], ["rail", "transit"], true, false], ["!", ["has", "service"]]];
+const isTunnel: maplibregl.ExpressionSpecification = ["==", ["get", "brunnel"], "tunnel"];
+const RAIL_BLUE = "#6d86a8";
+
+/** A rounded square with a light edge, drawn at 2x. */
+function stationMark() {
+  const S = 22;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const g = c.getContext("2d")!;
+  g.beginPath();
+  g.roundRect(3, 3, S - 6, S - 6, 4);
+  g.fillStyle = "#0f1517";
+  g.fill();
+  g.lineWidth = 3;
+  g.strokeStyle = "#a9bcd6";
+  g.stroke();
+  return g.getImageData(0, 0, S, S);
+}
+
+function addTransitLayers(m: MLMap) {
+  const width: maplibregl.ExpressionSpecification = ["interpolate", ["linear"], ["zoom"], 10, 0.7, 15, 1.8];
+  const off = { visibility: "none" as const };
+  m.addLayer({ id: "transit-line", type: "line", source: "openmaptiles", "source-layer": "transportation", filter: ["all", RAIL_LINE, ["!", isTunnel]], layout: { ...off, "line-join": "round" }, paint: { "line-color": RAIL_BLUE, "line-width": width, "line-opacity": 0.6 } });
+  m.addLayer({ id: "transit-tunnel", type: "line", source: "openmaptiles", "source-layer": "transportation", filter: ["all", RAIL_LINE, isTunnel], layout: off, paint: { "line-color": RAIL_BLUE, "line-width": width, "line-opacity": 0.45, "line-dasharray": [2, 2] } });
+}
+
+function addStationLayer(m: MLMap) {
+  m.addImage("station", stationMark(), { pixelRatio: 2 });
+  m.addLayer({
+    id: "station",
+    type: "symbol",
+    source: "openmaptiles",
+    "source-layer": "poi",
+    minzoom: 12,
+    filter: ["all", ["==", ["get", "class"], "railway"], ["match", ["get", "subclass"], ["station", "subway", "halt"], true, false]],
+    layout: {
+      visibility: "none",
+      // The busiest first. A station is listed once per line (Ginza three times,
+      // a block apart); a wide margin round each mark lets one stand for all.
+      "symbol-sort-key": ["get", "rank"],
+      "icon-image": "station",
+      "icon-padding": 16,
+      "text-field": ["coalesce", ["get", "name:en"], ["get", "name_en"], ["get", "name_int"], ["get", "name"]],
+      "text-font": ["Noto Sans Regular"],
+      "text-size": 10.5,
+      "text-anchor": "left",
+      "text-offset": [0.75, 0],
+      "text-max-width": 9,
+      // A crowded name gives way; its mark stays.
+      "text-optional": true,
+    },
+    paint: { "text-color": "#93a6c0", "text-halo-color": BG, "text-halo-width": 1.2 },
+  });
+}
+
 interface Props {
   scene: MapScene;
   /** Points to frame, and a key that changes whenever the view should re-frame. */
@@ -309,9 +373,13 @@ interface Props {
   onHot(id: string | null): void;
   /** Outlined under the stops when the districts toggle is on. */
   districts: Districts | null;
+  /** Rail and metro lines from the basemap. */
+  transit: boolean;
+  /** Stations and their names from the basemap. */
+  stations: boolean;
 }
 
-export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts }: Props) {
+export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts, transit, stations }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   // The hover card slots: the hot pin's card, and one still fading out.
@@ -373,6 +441,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
       restyle(m);
       // Bottom to top: districts, the route, then the pins and their titles.
       addDistrictLayers(m);
+      addTransitLayers(m);
       m.addSource("route", { type: "geojson", data: routeData([]) });
       m.addLayer({
         id: "route",
@@ -381,6 +450,8 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": T.accent, "line-width": 1.6, "line-dasharray": [2, 2.5], "line-opacity": 0 },
       });
+      // Stations under the pins, so a pin's title wins the spot over a station's name.
+      addStationLayer(m);
       addPinLayers(m);
       setReady(true);
     });
@@ -482,6 +553,13 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     // The basemap's own neighbourhood names would repeat ours.
     if (m.getLayer("place_suburb")) m.setLayoutProperty("place_suburb", "visibility", districts ? "none" : "visible");
   }, [districts, ready]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready) return;
+    for (const id of TRANSIT_LINES) m.setLayoutProperty(id, "visibility", transit ? "visible" : "none");
+    for (const id of STATION_LAYERS) m.setLayoutProperty(id, "visibility", stations ? "visible" : "none");
+  }, [transit, stations, ready]);
 
   // Zooming out stops a little past the whole trip.
   const overviewKey = overview.map((p) => p.join(",")).join(";");
