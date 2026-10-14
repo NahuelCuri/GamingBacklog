@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  budget, cleanCard, lookalikes, normTitle, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
+  budget, cleanCard, lookalikes, normTitle, regionFromAddress, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
   parseLoc, quickAddCard, regionSuggestions, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
 } from "./model";
 
@@ -152,6 +152,16 @@ describe("trip model", () => {
     expect(lookalikes(cs, { title: "Ichiran Ramen" })).toEqual([]);
     expect(lookalikes(cs, { id: "c", title: "Tokyo Tower" })).toEqual([]);
     expect(lookalikes(cs, { title: "" })).toEqual([]);
+  });
+
+  it("names a region from a reverse lookup's address", () => {
+    expect(regionFromAddress({ neighbourhood: "Ginza 4", quarter: "Ginza", city: "Chuo", country: "Japan" })).toBe("Ginza, Chuo");
+    expect(regionFromAddress({ quarter: "Jerónimos", suburb: "Retiro", city: "Madrid" })).toBe("Retiro, Madrid");
+    expect(regionFromAddress({ suburb: "Fushimi Ward", city: "Kyoto" })).toBe("Fushimi, Kyoto");
+    expect(regionFromAddress({ town: "Hakone" })).toBe("Hakone");
+    expect(regionFromAddress({ suburb: "Kyoto", city: "Kyoto" })).toBe("Kyoto");
+    expect(regionFromAddress({ country: "Japan" })).toBeNull();
+    expect(regionFromAddress(null)).toBeNull();
   });
 
   it("suggests regions already used, prefix matches first", () => {

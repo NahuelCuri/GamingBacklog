@@ -429,6 +429,23 @@ export interface LocDraft {
   locFound?: string | null;
 }
 
+/** Nominatim reverse lookup for a point: its address, named in English, at about neighbourhood detail. */
+export const reverseUrl = (at: LatLng) =>
+  `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&addressdetails=1&accept-language=en&lat=${at.lat}&lon=${at.lng}`;
+
+/**
+ * A Region line from a reverse lookup's address: the area, then its city, like
+ * the ones typed by hand ("Ginza, Chuo", "Retiro, Madrid"). Null when it names neither.
+ */
+export function regionFromAddress(address: unknown): string | null {
+  const a = (address && typeof address === "object" ? address : {}) as Record<string, string | undefined>;
+  const clean = (v?: string) => (v || "").replace(/ Ward$/, "").trim();
+  const area = clean(a.suburb || a.quarter || a.city_district || a.neighbourhood);
+  const city = clean(a.city || a.town || a.village || a.state_district);
+  const parts = [area, city].filter((v, i, all) => v && all.indexOf(v) === i);
+  return parts.length ? parts.join(", ") : null;
+}
+
 /** Hint, colour and help text under the Location field. */
 export function locStatus(md: LocDraft) {
   const raw = String(md.locText != null ? md.locText : locStr(md.loc)).trim();

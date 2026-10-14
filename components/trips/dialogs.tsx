@@ -2,12 +2,12 @@
 
 // Trip Planner dialogs: read-only card view, card editor, trip editor and the
 // type-the-name delete confirmation.
-import { useRef, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
-  PRIOS, STATUSES, TYPES, addTag, locQuery, locStatus, locStr, lookalikes, money, parseLoc, regionSuggestions, tagSuggestions, typeMeta, type TripCard,
+  PRIOS, STATUSES, TYPES, addTag, locQuery, locStatus, locStr, lookalikes, money, parseLoc, regionFromAddress, regionSuggestions, reverseUrl, tagSuggestions, typeMeta, type TripCard,
 } from "@/lib/trips/model";
 import { Fact, StatusPrio, sourceShort } from "./CompareDrawer";
 import { LookalikeNote } from "./LookalikeNote";
@@ -182,6 +182,30 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
   const days = trip?.dayCount || 0;
 
   const commitTag = (raw: string) => set({ tags: addTag(m.tags, raw), tagInput: "" });
+
+  // Coordinates and no Region yet: name the area from them, once they stop
+  // changing (one lookup; a Region typed meanwhile wins).
+  const at = parseLoc(locText);
+  const atKey = at ? at.lat.toFixed(5) + "," + at.lng.toFixed(5) : "";
+  useEffect(() => {
+    if (!at || (m.region || "").trim()) return;
+    const ac = new AbortController();
+    const t = setTimeout(() => {
+      fetch(reverseUrl(at), { headers: { Accept: "application/json" }, signal: ac.signal })
+        .then((r) => r.json())
+        .then((j) => {
+          const region = regionFromAddress(j?.address);
+          if (region) setModal((s) => (s && !(s.region || "").trim() ? { ...s, region } : s));
+        })
+        .catch(() => {});
+    }, 600);
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+    // at is read through atKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atKey]);
 
   const lookup = () => {
     const raw = String(locText).trim();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mainCity, outerRings, pickLevel, simplify, tripBox, zonesOf } from "./districts";
+import { mainCity, outerRings, pickBundle, pickLevel, simplify, stopsIn, tripBox, zonesNear, zonesOf } from "./districts";
 import type { LngLat } from "./map-scene";
 
 const counts = (...n: number[]) => ({ elements: n.map((relations, id) => ({ type: "count", id, tags: { relations: String(relations) } })) });
@@ -53,5 +53,21 @@ describe("district shapes", () => {
     const zones = zonesOf({ elements: [square(1, "A"), { ...square(2, "B"), tags: {} }, { type: "relation", id: 3, tags: { name: "C" }, members: [] }] });
     expect(zones.map((z) => z.name)).toEqual(["A (en)"]);
     expect(zones[0].rings).toHaveLength(1);
+  });
+
+  it("counts the stops in each zone", () => {
+    const sq = (x: number): LngLat[] => [[x, 0], [x + 1, 0], [x + 1, 1], [x, 1], [x, 0]];
+    const zones = [{ id: 1, name: "A", rings: [sq(0)] }, { id: 2, name: "B", rings: [sq(5), sq(1)] }, { id: 3, name: "C", rings: [sq(9)] }];
+    const got = stopsIn(zones, [[0.5, 0.5], [0.2, 0.9], [1.5, 0.5], [5.5, 0.5], [20, 20]]);
+    expect([...got]).toEqual([[1, 2], [2, 2]]);
+  });
+
+  it("reads a kept city's districts for stops inside it, only those near them", () => {
+    const list = [{ name: "a", file: "a.json", box: { w: 0, s: 0, e: 10, n: 10 } }, { name: "b", file: "b.json", box: { w: 20, s: 0, e: 30, n: 10 } }];
+    expect(pickBundle(list, { w: 21, s: 1, e: 23, n: 3 })?.name).toBe("b");
+    expect(pickBundle(list, { w: 12, s: 1, e: 14, n: 3 })).toBeUndefined();
+    const sq = (x: number): LngLat[] => [[x, 0], [x + 1, 0], [x + 1, 1], [x, 1], [x, 0]];
+    const d = { level: 7, zones: [{ id: 1, name: "A", rings: [sq(0)] }, { id: 2, name: "B", rings: [sq(5)] }] };
+    expect(zonesNear(d, { w: 0.5, s: 0.2, e: 2, n: 0.8 }).zones.map((z) => z.id)).toEqual([1]);
   });
 });
