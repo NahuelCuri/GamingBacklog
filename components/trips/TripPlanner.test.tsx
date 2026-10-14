@@ -221,9 +221,11 @@ describe("TripPlanner", () => {
     fireEvent.click(screen.getByRole("button", { name: "Day 2" }));
     expect(pins()).toHaveLength(1);
     expect(screen.getByTestId("trip-map").dataset.frame).not.toBe(allFrame);
+    // A side-list row opens the stop's card beside the list; any later click closes it.
     fireEvent.click(screen.getByRole("button", { name: "Open Shinjuku Gyoen — sakura" }));
     expect(screen.getByRole("dialog", { name: "Shinjuku Gyoen — sakura" })).toBeTruthy();
-    expect(location.search).toContain("card=c3");
+    fireEvent.click(document.body);
+    expect(screen.queryByRole("dialog", { name: "Shinjuku Gyoen — sakura" })).toBeNull();
   });
 
   it("converts currencies with the remembered pair", async () => {
