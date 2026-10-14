@@ -27,16 +27,31 @@ export function CardsTab() {
     <div style={{ flex: 1, minHeight: 0, overflowY: "auto", background: T.bg }}>
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "20px 24px 100px" }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search cards"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Search cards — title, tag or place…"
-            style={{ ...input, flex: 1, minWidth: 220, background: T.panel, borderRadius: 10, padding: "11px 14px", fontSize: 13.5 }}
-          />
+          <div style={{ position: "relative", flex: 1, minWidth: 220, display: "flex" }}>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search cards"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Search cards — title, tag or place…"
+              style={{ ...input, flex: 1, width: "100%", background: T.panel, borderRadius: 10, padding: "11px 38px 11px 14px", fontSize: 13.5 }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                title="Clear search"
+                style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, border: "none", borderRadius: 999, background: "transparent", color: T.muted }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                  <path d="M2 2l8 8M10 2l-8 8" />
+                </svg>
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setFxOpen((o) => !o)}

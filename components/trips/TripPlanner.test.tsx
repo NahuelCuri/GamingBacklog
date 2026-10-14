@@ -64,7 +64,7 @@ describe("TripPlanner", () => {
     openJapan();
     fireEvent.click(screen.getByRole("button", { name: "Food" }));
     expect(screen.getAllByRole("button", { name: / — open$/ })).toHaveLength(3);
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search cards" }), { target: { value: "kyoto" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Search cards" }), { target: { value: "kyoto" } });
     expect(screen.getAllByRole("button", { name: / — open$/ }).map((b) => b.getAttribute("aria-label"))).toEqual(["Nishiki Market crawl — open"]);
   });
 

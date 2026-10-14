@@ -8,7 +8,8 @@
     "preview": "next build && node scripts/preview.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint"
+    "lint": "eslint",
+    "districts": "vite-node --config vitest.config.mts scripts/districts.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

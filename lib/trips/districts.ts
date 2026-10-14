@@ -3,6 +3,7 @@
 // zones. Countries number their levels differently (Tokyo's wards are level 7,
 // Madrid's distritos 9), so the level is picked by how many zones it gives,
 // not by country. Fetches go to Overpass; the rest is plain data and maths.
+import { withBase } from "@/lib/paths";
 import { boxOf, type Box, type LngLat } from "./map-scene";
 
 /** Fewer zones than this says little; more paints the whole map. */
@@ -69,7 +70,8 @@ export const countsQuery = (b: Box) => "[out:json][timeout:25];" + LEVELS.map((l
 /** One level's boundaries with their outlines. */
 export const shapesQuery = (lv: number, b: Box) => `[out:json][timeout:25];${level(lv, b)}out geom;`;
 
-const nameOf = (t: Record<string, string> = {}) => t["name:en"] || t.name || "";
+/** English name when there is one, without a trailing " Ward" ("Ukyō Ward" → "Ukyō"). */
+const nameOf = (t: Record<string, string> = {}) => (t["name:en"] || t.name || "").replace(/ Ward$/, "");
 
 /**
  * From the counts (in LEVELS order): the finest level that splits the box into
@@ -143,6 +145,26 @@ export function zonesOf(json: unknown): District[] {
   });
 }
 
+/** Even–odd ray cast: is the point inside the closed ring? */
+function inRing([x, y]: LngLat, ring: LngLat[]) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** How many of the stops fall in each zone, by zone id (zones with none are left out). */
+export function stopsIn(zones: District[], pts: LngLat[]): Map<number, number> {
+  const counts = new Map<number, number>();
+  for (const p of pts) {
+    const z = zones.find((z) => z.rings.some((r) => inRing(p, r)));
+    if (z) counts.set(z.id, (counts.get(z.id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 const OVERPASS = "https://overpass-api.de/api/interpreter";
 const CACHE = "trip-districts:v1:";
 
@@ -150,8 +172,11 @@ const CACHE = "trip-districts:v1:";
  * Overpass answers 429, or 504 "too busy", when it's loaded (often, at peak
  * hours); a few retries, further apart each time, usually get through.
  */
-async function overpass(q: string, signal?: AbortSignal, tries = 4): Promise<unknown> {
-  const r = await fetch(OVERPASS, { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" }, signal });
+export async function overpass(q: string, signal?: AbortSignal, tries = 4): Promise<unknown> {
+  const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
+  // Overpass turns away clients that don't say who they are; a browser sends its own User-Agent.
+  if (typeof window === "undefined") headers["User-Agent"] = "GamingBacklog trip map (github.com/NahuelCuri/GamingBacklog)";
+  const r = await fetch(OVERPASS, { method: "POST", body: "data=" + encodeURIComponent(q), headers, signal });
   if (r.ok) return r.json();
   if (tries > 1 && (r.status === 429 || r.status === 504)) {
     await new Promise((ok) => setTimeout(ok, (5 - tries) * 2500));
@@ -160,12 +185,49 @@ async function overpass(q: string, signal?: AbortSignal, tries = 4): Promise<unk
   throw new Error("overpass " + r.status);
 }
 
+/** A city's districts kept in the site (public/districts, written by scripts/districts.ts). */
+export interface Bundle {
+  name: string;
+  file: string;
+  /** The area the file covers. */
+  box: Box;
+}
+
+const zoneBox = (z: District): Box => {
+  const pts = z.rings.flat();
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  return { w: Math.min(...xs), s: Math.min(...ys), e: Math.max(...xs), n: Math.max(...ys) };
+};
+const meets = (a: Box, b: Box) => a.w < b.e && a.e > b.w && a.s < b.n && a.n > b.s;
+
+/** The kept city whose area holds the stops' box centre. */
+export function pickBundle(list: Bundle[], b: Box): Bundle | undefined {
+  const x = (b.w + b.e) / 2, y = (b.s + b.n) / 2;
+  return list.find((k) => x > k.box.w && x < k.box.e && y > k.box.s && y < k.box.n);
+}
+
+/** A kept city's districts, cut down to those reaching into the box. */
+export const zonesNear = (d: Districts, b: Box): Districts => ({ level: d.level, zones: d.zones.filter((z) => meets(zoneBox(z), b)) });
+
+let bundles: Promise<Bundle[]> | null = null;
+const bundleList = () =>
+  (bundles ??= fetch(withBase("/districts/index.json"))
+    .then((r) => (r.ok ? r.json() : []))
+    .catch(() => []));
+
 /**
- * Districts around the stops (those in their main city): from this browser's
- * cache, else two Overpass queries (only a find is cached). Null when no level fits.
+ * Districts around the stops (those in their main city): from the ones kept
+ * in the site when it has their city, else this browser's cache, else two
+ * Overpass queries (only a find is cached). Null when no level fits.
  */
 export async function loadDistricts(pts: LngLat[], signal?: AbortSignal): Promise<Districts | null> {
   const b = tripBox(mainCity(pts));
+  const kept = pickBundle(await bundleList(), b);
+  if (kept) {
+    const d = await fetch(withBase("/districts/" + kept.file), { signal }).then((r) => (r.ok ? (r.json() as Promise<Districts>) : null)).catch(() => null);
+    const near = d && zonesNear(d, b);
+    if (near?.zones.length) return near;
+  }
   const k = CACHE + bbox(b);
   try {
     const hit = localStorage.getItem(k);

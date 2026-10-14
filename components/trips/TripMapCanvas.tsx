@@ -6,7 +6,7 @@
 import maplibregl, { LngLatBounds, type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
-import type { Districts } from "@/lib/trips/districts";
+import { stopsIn, type Districts } from "@/lib/trips/districts";
 import { boxOf, minZoomFor, type LngLat, type MapPin, type MapScene } from "@/lib/trips/map-scene";
 import { reducedMotion } from "@/lib/motion";
 import { T } from "./styles";
@@ -252,9 +252,10 @@ function cardFor(m: MLMap, s: string, id: string | null) {
   m.setFilter(s + "-tip", f);
 }
 
-const districtData = (d: Districts | null): GeoJSON.FeatureCollection => ({
+/** `stops`: how many of the shown stops each district holds. */
+const districtData = (d: Districts | null, stops: Map<number, number>): GeoJSON.FeatureCollection => ({
   type: "FeatureCollection",
-  features: (d?.zones ?? []).map((z) => ({ type: "Feature", id: z.id, properties: { name: z.name }, geometry: { type: "MultiPolygon", coordinates: z.rings.map((r) => [r]) } })),
+  features: (d?.zones ?? []).map((z) => ({ type: "Feature", id: z.id, properties: { name: z.name, stops: stops.get(z.id) ?? 0 }, geometry: { type: "MultiPolygon", coordinates: z.rings.map((r) => [r]) } })),
 });
 
 /** A ring's signed area and centroid (shoelace). */
@@ -273,27 +274,32 @@ function ringCentre(r: LngLat[]) {
  * One name per district, as a point at the centre of its largest part: a
  * polygon gets a label in every map tile it crosses, so big ones would repeat.
  */
-const districtNames = (d: Districts | null): GeoJSON.FeatureCollection => ({
+const districtNames = (d: Districts | null, stops: Map<number, number>): GeoJSON.FeatureCollection => ({
   type: "FeatureCollection",
   features: (d?.zones ?? []).map((z) => {
     const main = z.rings.map(ringCentre).reduce((a, c) => (c.area > a.area ? c : a));
-    return { type: "Feature", id: z.id, properties: { name: z.name }, geometry: { type: "Point", coordinates: main.at } };
+    return { type: "Feature", id: z.id, properties: { name: z.name, stops: stops.get(z.id) ?? 0 }, geometry: { type: "Point", coordinates: main.at } };
   }),
 });
 
-/** The districts toggle: quiet outlines and names under the route, the one under the pointer a little lit. */
+/**
+ * The districts toggle: quiet outlines and names under the route, the one
+ * under the pointer a little lit. Districts holding stops are a shade brighter
+ * and carry their count ("CHUO · 4").
+ */
 function addDistrictLayers(m: MLMap) {
   const lit: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "lit"], false];
-  m.addSource("districts", { type: "geojson", data: districtData(null) });
-  m.addSource("district-names", { type: "geojson", data: districtNames(null) });
-  m.addLayer({ id: "district-fill", type: "fill", source: "districts", paint: { "fill-color": "#9fb7b2", "fill-opacity": ["case", lit, 0.09, 0.025] } });
+  const visited: maplibregl.ExpressionSpecification = [">", ["get", "stops"], 0];
+  m.addSource("districts", { type: "geojson", data: districtData(null, new Map()) });
+  m.addSource("district-names", { type: "geojson", data: districtNames(null, new Map()) });
+  m.addLayer({ id: "district-fill", type: "fill", source: "districts", paint: { "fill-color": "#9fb7b2", "fill-opacity": ["case", lit, 0.1, visited, 0.05, 0.02] } });
   m.addLayer({ id: "district-line", type: "line", source: "districts", layout: { "line-join": "round" }, paint: { "line-color": "#55625f", "line-width": 1.2 } });
   m.addLayer({
     id: "district-name",
     type: "symbol",
     source: "district-names",
-    layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11, "text-transform": "uppercase", "text-letter-spacing": 0.08, "text-max-width": 8 },
-    paint: { "text-color": ["case", lit, "#a3b0ad", "#66726f"], "text-halo-color": BG, "text-halo-width": 1.2 },
+    layout: { "text-field": ["case", visited, ["concat", ["get", "name"], "  ·  ", ["to-string", ["get", "stops"]]], ["get", "name"]], "text-font": ["Noto Sans Regular"], "text-size": 11, "text-transform": "uppercase", "text-letter-spacing": 0.08, "text-max-width": 8 },
+    paint: { "text-color": ["case", lit, "#a3b0ad", visited, "#8a9895", "#66726f"], "text-halo-color": BG, "text-halo-width": 1.2 },
   });
 }
 
@@ -548,11 +554,13 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     if (!m || !ready) return;
     m.removeFeatureState({ source: "districts" });
     m.removeFeatureState({ source: "district-names" });
-    (m.getSource("districts") as GeoJSONSource | undefined)?.setData(districtData(districts));
-    (m.getSource("district-names") as GeoJSONSource | undefined)?.setData(districtNames(districts));
+    // Which district each shown stop falls in: a point-in-polygon pass, a few ms even for 50 stops.
+    const stops = districts ? stopsIn(districts.zones, scene.pins.map((p) => p.at)) : new Map<number, number>();
+    (m.getSource("districts") as GeoJSONSource | undefined)?.setData(districtData(districts, stops));
+    (m.getSource("district-names") as GeoJSONSource | undefined)?.setData(districtNames(districts, stops));
     // The basemap's own neighbourhood names would repeat ours.
     if (m.getLayer("place_suburb")) m.setLayoutProperty("place_suburb", "visibility", districts ? "none" : "visible");
-  }, [districts, ready]);
+  }, [districts, scene, ready]);
 
   useEffect(() => {
     const m = map.current;
