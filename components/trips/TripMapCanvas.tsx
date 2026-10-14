@@ -217,16 +217,6 @@ function addPinLayers(m: MLMap) {
   });
   // Titles hide once clicked off.
   m.addLayer({ id: "pin-label", type: "symbol", source: "pins", filter: ["!", ["get", "off"]], layout: labelLayout(["get", "title"], TITLE_PAD, true), paint: { "text-color": TITLE } });
-  // An invisible disc over every pin, for titles to keep clear of. Above the
-  // titles because the map places labels top layer first.
-  m.addImage("pin-keepout", { width: 28, height: 28, data: new Uint8Array(28 * 28 * 4) });
-  m.addLayer({
-    id: "pin-keepout",
-    type: "symbol",
-    source: "pins",
-    layout: { "icon-image": "pin-keepout", "icon-size": ["case", isN, 1, 0.5], "icon-allow-overlap": true, "icon-ignore-placement": false },
-    paint: { "icon-opacity": 0 },
-  });
   for (const s of SLOTS) {
     m.addLayer({ id: s, type: "symbol", source: "pins", filter: nobody, layout: labelLayout(cardText(false), CARD_PAD), paint: { "text-opacity": 0, "icon-opacity": 0 } });
     m.addLayer({ id: s + "-tip", type: "symbol", source: "pins", filter: nobody, layout: labelLayout(cardText(true), null), paint: { "text-opacity": 0, "text-translate": TIP_DROP } });
@@ -401,7 +391,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     const pinAt = (p: maplibregl.Point) => {
       if (!m.getLayer("pin-dot")) return null;
       const hits = m.queryRenderedFeatures([[p.x - 4, p.y - 4], [p.x + 4, p.y + 4]], { layers: PIN_LAYERS });
-      // A pin before a title (titles never cover pins, but sit close); only drawn titles count.
+      // A pin before a title (a title may cover another pin); only drawn titles count.
       const f = hits.find((h) => h.layer.id === "pin-dot") ?? hits[0];
       return f ? String(f.id) : null;
     };
