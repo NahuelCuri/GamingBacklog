@@ -5,10 +5,10 @@
 // MapLibre only downloads when the Map tab opens.
 import maplibregl, { LngLatBounds, type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { stopsIn, type Districts } from "@/lib/trips/districts";
 import { boxOf, minZoomFor, type LngLat, type MapPin, type MapScene } from "@/lib/trips/map-scene";
-import { reducedMotion } from "@/lib/motion";
+import { play, reducedMotion } from "@/lib/motion";
 import { T } from "./styles";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
@@ -383,9 +383,25 @@ interface Props {
   transit: boolean;
   /** Stations and their names from the basemap. */
   stations: boolean;
+  /** The pin opened into a bubble (double-click), and what the bubble shows. */
+  open: string | null;
+  /** Opens a pin (double-click), or closes the bubble (null) when the user zooms. */
+  onOpen(id: string | null): void;
+  /** Bumped when the open pin is opened again: the bubble calls attention to itself. */
+  nudge: number;
+  bubble: ReactNode;
 }
 
-export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts, transit, stations }: Props) {
+/** Opening a pin always lands at this zoom, in or out from wherever the map is. */
+const OPEN_ZOOM = 15;
+/** Opening a pin: the camera's move, and when (into it) the bubble starts to grow. */
+const ZOOM_IN = 850;
+const BLOOM_AT = 500;
+
+/** Bubble's gap above the pin's centre: past the dot, where its title sits. */
+const lift = (p: MapPin) => (p.n ? 19 : 11);
+
+export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts, transit, stations, open, onOpen, nudge, bubble }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   // The hover card slots: the hot pin's card, and one still fading out.
@@ -396,6 +412,16 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
   sceneRef.current = scene;
   const onHotRef = useRef(onHot);
   onHotRef.current = onHot;
+  const onOpenRef = useRef(onOpen);
+  onOpenRef.current = onOpen;
+  const openRef = useRef(open);
+  openRef.current = open;
+  // The bubble stays drawn while it fades out, showing what it last showed.
+  const bubbleEl = useRef<HTMLDivElement>(null);
+  const shown = useRef<{ id: string; node: ReactNode } | null>(null);
+  if (open) shown.current = { id: open, node: bubble };
+  const [, closed] = useState(0);
+  const [bubbleMax, setBubbleMax] = useState(400);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<null | "webgl" | "tiles">(null);
   const padding = compact ? 40 : 70;
@@ -499,12 +525,35 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
       light(null);
     });
     // A click on a pin or its title hides the title; a click on the pin brings it back.
+    // While a bubble is open, a click only closes it.
+    let closeSoon: ReturnType<typeof setTimeout> | undefined;
     m.on("click", (e) => {
       const id = pinAt(e.point);
+      const o = openRef.current;
+      if (o) {
+        clearTimeout(closeSoon);
+        // A click on the open pin waits a moment: it may be a double-click on it.
+        if (id === o) closeSoon = setTimeout(() => onOpenRef.current(null), 260);
+        else onOpenRef.current(null);
+        return;
+      }
       if (!id) return;
       const off = offRef.current;
       if (!off.delete(id)) off.add(id);
       (m.getSource("pins") as GeoJSONSource | undefined)?.setData(pinData(sceneRef.current.pins, off));
+    });
+    // A double-click on a pin opens it into a bubble (the camera moves there
+    // itself); anywhere else it zooms in as usual.
+    m.on("dblclick", (e) => {
+      const id = pinAt(e.point);
+      if (!id) return;
+      e.preventDefault();
+      clearTimeout(closeSoon);
+      onOpenRef.current(id);
+    });
+    // Zooming by hand closes the bubble (our own easeTo has no originalEvent).
+    m.on("zoomstart", (e) => {
+      if ((e as { originalEvent?: Event }).originalEvent && openRef.current) onOpenRef.current(null);
     });
     // A user pan or zoom (not our fitBounds) means their view wins over re-framing on resize.
     m.on("movestart", (e) => {
@@ -517,6 +566,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     m.on("load", limitZoom);
     map.current = m;
     return () => {
+      clearTimeout(closeSoon);
       m.remove();
       map.current = null;
     };
@@ -596,11 +646,87 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameKey, padding]);
 
+  // The open pin: the camera flies to it at OPEN_ZOOM, leaving room above for
+  // the bubble, which grows out of the pin's title and then follows the pin.
+  useLayoutEffect(() => {
+    const m = map.current;
+    const pin = open ? scene.pins.find((p) => p.id === open) : undefined;
+    if (!m || !ready || !pin) return;
+    const H = m.getContainer().clientHeight;
+    setBubbleMax(Math.max(160, Math.round(H * 0.62)));
+    touched.current = true;
+    const still = reducedMotion();
+    m.easeTo({ center: pin.at, zoom: OPEN_ZOOM, offset: [0, Math.round(H * 0.3)], duration: still ? 0 : ZOOM_IN });
+    const place = () => {
+      const el = bubbleEl.current;
+      if (!el) return;
+      const { x, y } = m.project(pin.at);
+      el.style.transform = `translate(${x}px, ${y - lift(pin)}px) translate(-50%, -100%)`;
+    };
+    place();
+    // The bubble waits out most of the zoom, then grows as the camera settles.
+    play(bubbleEl.current?.firstElementChild, [{ opacity: 0, transform: "scale(.22)" }, { opacity: 1, transform: "none" }], { duration: 340, delay: BLOOM_AT });
+    // Its own title would peek out from under it, once it's up.
+    const hide = setTimeout(() => map.current && m.setFilter("pin-label", ["all", ["!", ["get", "off"]], ["!=", ["get", "id"], pin.id]]), still ? 0 : BLOOM_AT);
+    m.on("move", place);
+    m.on("resize", place);
+    return () => {
+      m.off("move", place);
+      m.off("resize", place);
+      clearTimeout(hide);
+      if (map.current) m.setFilter("pin-label", ["!", ["get", "off"]]);
+    };
+    // Re-runs for another pin, not for edits to this one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, ready]);
+  // The open pin double-clicked again: back to it if the map has wandered,
+  // then the bubble bounces lightly, so the eye finds it.
+  useEffect(() => {
+    const m = map.current;
+    const pin = open ? sceneRef.current.pins.find((p) => p.id === open) : undefined;
+    if (!nudge || !m || !pin) return;
+    const c = m.getContainer();
+    const off: [number, number] = [0, Math.round(c.clientHeight * 0.3)];
+    const { x, y } = m.project(pin.at);
+    const away = Math.hypot(x - c.clientWidth / 2, y - (c.clientHeight / 2 + off[1])) > 8 || Math.abs(m.getZoom() - OPEN_ZOOM) > 0.05;
+    if (away) m.easeTo({ center: pin.at, zoom: OPEN_ZOOM, offset: off, duration: reducedMotion() ? 0 : 500 });
+    // A small hop, and a smaller one as it settles.
+    const a = play(
+      bubbleEl.current?.firstElementChild,
+      [
+        { transform: "none" },
+        { transform: "translateY(-6px)", offset: 0.3 },
+        { transform: "none", offset: 0.6 },
+        { transform: "translateY(-2px)", offset: 0.8 },
+        { transform: "none" },
+      ],
+      { duration: 460, delay: away ? 380 : 0, easing: "ease-out", fill: "none" },
+    );
+    return () => a?.cancel();
+    // Only a new nudge plays it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nudge]);
+
+  // Closing: the bubble shrinks back into the pin, then goes.
+  useEffect(() => {
+    if (open || !shown.current) return;
+    const done = () => {
+      if (openRef.current) return;
+      shown.current = null;
+      closed((n) => n + 1);
+    };
+    const a = play(bubbleEl.current?.firstElementChild, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.4)" }], { duration: 150, easing: "ease-in", fill: "forwards" });
+    if (!a) return done();
+    a.onfinish = done;
+    return () => a.cancel();
+  }, [open]);
+
   // Hot pin (hovered here or in the side list): bigger, its card up.
   useEffect(() => {
     const m = map.current;
     if (!m || !ready) return;
-    const id = hot && scene.pins.some((p) => p.id === hot) ? hot : null;
+    // The open pin's bubble stands in for its card.
+    const id = hot && hot !== open && scene.pins.some((p) => p.id === hot) ? hot : null;
     const still = reducedMotion();
     const all = slots.current;
     // Any other card fades out, then lets its slot go.
@@ -638,7 +764,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     };
     f = requestAnimationFrame(start);
     return () => cancelAnimationFrame(f);
-  }, [hot, scene, ready]);
+  }, [hot, scene, ready, open]);
   useEffect(() => {
     const m = map.current;
     if (!m || !ready || !hot) return;
@@ -652,6 +778,11 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <div ref={box} data-testid="trip-map" style={{ position: "absolute", inset: 0, background: "#0a0c0d" }} aria-label="Map of the trip's stops" role="region" />
+      {shown.current && (
+        <div ref={bubbleEl} style={{ position: "absolute", left: 0, top: 0, zIndex: 5, pointerEvents: "none", willChange: "transform" }}>
+          <div style={{ transformOrigin: "50% 100%", pointerEvents: open ? "auto" : "none", ["--bubble-max" as string]: bubbleMax + "px" }}>{shown.current.node}</div>
+        </div>
+      )}
       {!ready && !failed && (
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontFamily: T.mono, fontSize: 12, color: T.dim2 }}>
           loading map…
