@@ -7,7 +7,8 @@
 // or the buttons).
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
 import { MinusIcon, PlusIcon, StarIcon, WarningCircleIcon } from "@/components/icons";
-import { cardAriaLabel, dayHint, money, quickAddCard, setCardDay, statusMeta, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
+import { cardAriaLabel, dayHint, lookalikes, money, quickAddCard, setCardDay, statusMeta, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
+import { LookalikeNote } from "./LookalikeNote";
 import { IMPORTANT_EDGE, T, filterPill, frame, importantCard, input, statusDot } from "./styles";
 import { useTripCtx } from "./TripPlanner";
 import { Tick } from "@/components/ui/Tick";
@@ -62,6 +63,8 @@ function useFlip(deps: unknown) {
 export function ItineraryTab() {
   const { trip, cards, data, isMobile: mob, persist, poolFilter, setPoolFilter, openCard, moveDay, moveOrder } = useTripCtx();
   const [quick, setQuick] = useState("");
+  // The text a first Enter was held back for, as a likely repeat; Enter again adds it.
+  const [held, setHeld] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null);
   const [over, setOver] = useState<Over>(null);
   const [view, setView] = useState({ zoom: 1, x: 0, y: 0 });
@@ -222,12 +225,16 @@ export function ItineraryTab() {
     window.addEventListener("pointerup", up);
   };
 
+  const quickCard = quickAddCard(quick, trip.id);
+  const quickLike = quickCard ? lookalikes(cards, quickCard) : [];
+  // Only a sure repeat holds the Enter back; a similar title just shows the note.
+  const quickRepeat = quickLike.some((l) => l.why === "same title" || l.why === "same link");
   const onQuickKey = (e: KeyboardEvent) => {
-    if (e.key !== "Enter") return;
-    const card = quickAddCard(quick, trip.id);
-    if (!card) return;
-    void persist({ cards: [...data.cards, card] });
+    if (e.key !== "Enter" || !quickCard) return;
+    if (quickRepeat && held !== quick) return setHeld(quick);
+    void persist({ cards: [...data.cards, quickCard] });
     setQuick("");
+    setHeld(null);
   };
 
   const pool = cards.filter((c) => c.day == null);
@@ -256,6 +263,7 @@ export function ItineraryTab() {
             <div style={{ fontSize: 11.5, color: T.dim3 }}>unscheduled</div>
           </div>
           <input value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={onQuickKey} aria-label="Quick add a card" autoComplete="off" spellCheck={false} placeholder="Quick add — paste a link or title, Enter" style={{ ...input, padding: "10px 12px" }} />
+          <LookalikeNote found={quickLike} hint={quickRepeat ? (held === quick ? "Press Enter again to add it anyway." : "Enter checks first; press it again to add anyway.") : undefined} style={{ marginTop: 8 }} />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 10 }}>
             {typeFilterOptions(pool).map((f) => (
               <button key={f.value} type="button" aria-pressed={poolFilter === f.value} onClick={() => setPoolFilter(f.value)} style={{ whiteSpace: "nowrap", cursor: "pointer", fontSize: 11.5, fontWeight: 600, padding: "4px 9px", borderRadius: 999, ...filterPill(poolFilter === f.value, f.color) }}>

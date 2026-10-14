@@ -137,6 +137,32 @@ describe("TripPlanner", () => {
     expect(errors).toEqual([]);
   });
 
+  it("warns about a card that repeats one already in the trip", async () => {
+    const store = await setup();
+    openJapan();
+    const before = store.data.cards.length;
+    // Quick add: a repeated title holds the first Enter back; the second adds it anyway.
+    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    const quick = screen.getByRole("textbox", { name: "Quick add a card" });
+    fireEvent.change(quick, { target: { value: "golden gai bar crawl" } });
+    expect(screen.getByRole("status").textContent).toContain("Golden Gai bar crawlsame title · Day 2");
+    fireEvent.keyDown(quick, { key: "Enter" });
+    expect(screen.getByText("Press Enter again to add it anyway.")).toBeTruthy();
+    expect(store.data.cards).toHaveLength(before);
+    fireEvent.keyDown(quick, { key: "Enter" });
+    await waitFor(() => expect(store.data.cards).toHaveLength(before + 1));
+
+    // New card: the note offers the existing card instead, dropping the draft.
+    fireEvent.click(screen.getByRole("tab", { name: /^Cards/ }));
+    fireEvent.click(screen.getByRole("button", { name: "+ New card" }));
+    fireEvent.change(within(dialog()).getByRole("textbox", { name: "Card title" }), { target: { value: "Fushimi Inari at dawn" } });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "edit that one" }));
+    expect((within(dialog()).getByRole("textbox", { name: "Card title" }) as HTMLInputElement).value).toBe("Fushimi Inari at dawn");
+    expect(within(dialog()).getByText("Edit card")).toBeTruthy();
+    expect(within(dialog()).queryByRole("status")).toBeNull();
+    expect(errors).toEqual([]);
+  });
+
   it("compare mode opens cards side by side", async () => {
     await setup();
     openJapan();

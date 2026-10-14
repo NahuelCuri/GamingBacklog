@@ -7,9 +7,10 @@ import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
-  PRIOS, STATUSES, TYPES, addTag, locQuery, locStatus, locStr, money, parseLoc, regionSuggestions, tagSuggestions, typeMeta, type TripCard,
+  PRIOS, STATUSES, TYPES, addTag, locQuery, locStatus, locStr, lookalikes, money, parseLoc, regionSuggestions, tagSuggestions, typeMeta, type TripCard,
 } from "@/lib/trips/model";
 import { Fact, StatusPrio, sourceShort } from "./CompareDrawer";
+import { LookalikeNote } from "./LookalikeNote";
 import { T, btnGhost, btnPrimary, chip, frame, closeX, dialogFoot, dialogHead, dialogPanel, fieldLabel, input, kicker, overlay, tagChip, typeTag } from "./styles";
 import { useTripCtx, type CardModal, type TripModal } from "./TripPlanner";
 
@@ -172,7 +173,7 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
   onDelete(m: CardModal): void;
   onClose(): void;
 }) {
-  const { data, trip, moveOrder } = useTripCtx();
+  const { data, trip, cards, moveOrder, openEdit } = useTripCtx();
   const set = (patch: Partial<CardModal>) => setModal((s) => (s ? { ...s, ...patch } : s));
   const header = m.__new ? "New card" : "Edit card";
   const loc = locStatus(m);
@@ -208,6 +209,8 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18 }}>
         <input value={m.title} onChange={(e) => set({ title: e.target.value })} aria-label="Card title" autoComplete="off" placeholder="Title" style={{ ...input, padding: "11px 13px", fontSize: 15, fontWeight: 600, marginBottom: 15 }} />
+        {/* A new card can switch to the one it repeats (dropping the draft); an edit only hears about it. */}
+        <LookalikeNote found={lookalikes(cards, { id: m.id, title: m.title, source: m.source, loc: parseLoc(locText) })} onOpen={m.__new ? openEdit : undefined} style={{ margin: "-7px 0 15px" }} />
 
         <div style={fieldLabel}>Type</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>

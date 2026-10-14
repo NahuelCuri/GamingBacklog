@@ -231,6 +231,57 @@ export function quickAddCard(raw: string, tripId: string, now = Date.now()): Tri
   };
 }
 
+/** Lowercase, no accents or punctuation, single spaces: "Sensō-ji Temple!" → "senso ji temple". */
+export const normTitle = (t: string) =>
+  String(t || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+export type LookalikeWhy = "same title" | "same link" | "same place" | "similar title";
+
+/** Metres between two points (equirectangular: plenty at city scale). */
+const metres = (a: LatLng, b: LatLng) => {
+  const kx = 111320 * Math.cos((((a.lat + b.lat) / 2) * Math.PI) / 180);
+  return Math.hypot((a.lng - b.lng) * kx, (a.lat - b.lat) * 110570);
+};
+
+/** Placeholder titles say nothing about the card, so they never count as a match. */
+const PLACEHOLDER = new Set(["untitled", "untitled link"]);
+
+/**
+ * Cards a new or edited one may repeat, strongest reason first, at most `max`:
+ * the same title once normalized, the same link, a pin within ~40 m, or one
+ * title inside the other as whole words (the shorter two words or more: one
+ * word like "Ramen" is in too many titles to mean anything).
+ */
+export function lookalikes(
+  cards: TripCard[],
+  draft: { id?: string; title?: string; source?: string; loc?: LatLng | null },
+  max = 3,
+): { card: TripCard; why: LookalikeWhy }[] {
+  const t = normTitle(draft.title || "");
+  const title = PLACEHOLDER.has(t) ? "" : t;
+  const src = String(draft.source || "").trim();
+  const rank: LookalikeWhy[] = ["same title", "same link", "same place", "similar title"];
+  const found: { card: TripCard; why: LookalikeWhy }[] = [];
+  for (const c of cards) {
+    if (c.id === draft.id) continue;
+    const ct = normTitle(c.title || "");
+    const [short, long] = title.length <= ct.length ? [title, ct] : [ct, title];
+    const why: LookalikeWhy | null =
+      title && ct === title ? "same title"
+      : src && String(c.source || "").trim() === src ? "same link"
+      : draft.loc && c.loc && metres(draft.loc, c.loc) <= 40 ? "same place"
+      : title && !PLACEHOLDER.has(ct) && short.includes(" ") && (" " + long + " ").includes(" " + short + " ") ? "similar title"
+      : null;
+    if (why) found.push({ card: c, why });
+  }
+  return found.sort((a, b) => rank.indexOf(a.why) - rank.indexOf(b.why)).slice(0, max);
+}
+
 export function addTag(tags: string[] | undefined, raw: string): string[] {
   const t = raw.trim();
   const cur = tags || [];
