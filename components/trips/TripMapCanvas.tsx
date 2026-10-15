@@ -294,14 +294,14 @@ function addDistrictLayers(m: MLMap) {
   const visited: maplibregl.ExpressionSpecification = [">", ["get", "stops"], 0];
   m.addSource("districts", { type: "geojson", data: districtData(null, new Map()) });
   m.addSource("district-names", { type: "geojson", data: districtNames(null, new Map()) });
-  m.addLayer({ id: "district-fill", type: "fill", source: "districts", paint: { "fill-color": "#9fb7b2", "fill-opacity": ["case", lit, 0.1, visited, 0.05, 0.02] } });
-  m.addLayer({ id: "district-line", type: "line", source: "districts", layout: { "line-join": "round" }, paint: { "line-color": "#55625f", "line-width": 1.2 } });
+  m.addLayer({ id: "district-fill", type: "fill", source: "districts", paint: { "fill-color": "#5fb8b0", "fill-opacity": ["case", lit, 0.2, visited, 0.11, 0.05] } });
+  m.addLayer({ id: "district-line", type: "line", source: "districts", layout: { "line-join": "round" }, paint: { "line-color": "#5fb8b0", "line-opacity": 0.5, "line-width": 1.3 } });
   m.addLayer({
     id: "district-name",
     type: "symbol",
     source: "district-names",
     layout: { "text-field": ["case", visited, ["concat", ["get", "name"], "  ·  ", ["to-string", ["get", "stops"]]], ["get", "name"]], "text-font": ["Noto Sans Regular"], "text-size": 11, "text-transform": "uppercase", "text-letter-spacing": 0.08, "text-max-width": 8 },
-    paint: { "text-color": ["case", lit, "#a3b0ad", visited, "#8a9895", "#66726f"], "text-halo-color": BG, "text-halo-width": 1.2 },
+    paint: { "text-color": ["case", lit, "#c2e6e1", visited, "#9fd3cd", "#6fa8a2"], "text-halo-color": BG, "text-halo-width": 1.4 },
   });
 }
 
