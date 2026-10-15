@@ -26,7 +26,7 @@ const CITY_ZOOM = 10;
  * OpenFreeMap "dark".
  */
 const HIDDEN = [
-  "building", "landuse_residential", "landcover_wood", "landuse_park", "landcover_ice_shelf", "landcover_glacier",
+  "building", "landuse_residential", "landcover_ice_shelf", "landcover_glacier",
   "aeroway-taxiway", "aeroway-runway-casing", "aeroway-area", "aeroway-runway", "road_area_pier", "road_pier",
   "railway_transit", "railway_transit_dashline", "railway_minor", "railway_minor_dashline", "railway", "railway_dashline",
   "road_oneway", "road_oneway_opposite", "highway_path", "highway_major_casing", "highway_motorway_casing",
@@ -35,24 +35,26 @@ const HIDDEN = [
 ];
 
 const PAINT: Record<string, Record<string, unknown>> = {
-  background: { "background-color": "#0a0c0d" },
-  water: { "fill-color": "#0c1416" },
-  waterway: { "line-color": "#0f191b" },
-  highway_minor: { "line-color": "#141a1b" },
-  highway_major_inner: { "line-color": "#192022" },
-  highway_major_subtle: { "line-color": "#171d1f" },
-  highway_motorway_inner: { "line-color": "#1d2527" },
-  highway_motorway_subtle: { "line-color": "#1a2123" },
-  highway_name_other: { "text-color": "#46504e", "text-halo-color": "#0a0c0d" },
-  place_city_large: { "text-color": "#56615e", "text-halo-color": "#0a0c0d" },
-  place_city: { "text-color": "#56615e", "text-halo-color": "#0a0c0d" },
-  place_town: { "text-color": "#4a5452", "text-halo-color": "#0a0c0d" },
-  place_suburb: { "text-color": "#3f4947", "text-halo-color": "#0a0c0d" },
+  background: { "background-color": "#14181a" },
+  water: { "fill-color": "#11202a" },
+  waterway: { "line-color": "#16293a" },
+  landuse_park: { "fill-color": "#17261f" },
+  landcover_wood: { "fill-color": "#162219" },
+  highway_minor: { "line-color": "#2a3235" },
+  highway_major_inner: { "line-color": "#3a4447" },
+  highway_major_subtle: { "line-color": "#343e41" },
+  highway_motorway_inner: { "line-color": "#4a5558" },
+  highway_motorway_subtle: { "line-color": "#414c4f" },
+  highway_name_other: { "text-color": "#6a7673", "text-halo-color": "#14181a" },
+  place_city_large: { "text-color": "#7d8985", "text-halo-color": "#14181a" },
+  place_city: { "text-color": "#7d8985", "text-halo-color": "#14181a" },
+  place_town: { "text-color": "#6f7a77", "text-halo-color": "#14181a" },
+  place_suburb: { "text-color": "#606b68", "text-halo-color": "#14181a" },
 };
 
 /** [min, max] zoom per layer, intersected with the style's own range. */
 const ZOOM: Record<string, [number, number]> = {
-  highway_minor: [14, 24],
+  highway_minor: [13, 24],
   highway_name_other: [15, 24],
   place_suburb: [12, 15],
   place_town: [0, 13],
@@ -777,7 +779,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      <div ref={box} data-testid="trip-map" style={{ position: "absolute", inset: 0, background: "#0a0c0d" }} aria-label="Map of the trip's stops" role="region" />
+      <div ref={box} data-testid="trip-map" style={{ position: "absolute", inset: 0, background: "#14181a" }} aria-label="Map of the trip's stops" role="region" />
       {shown.current && (
         <div ref={bubbleEl} style={{ position: "absolute", left: 0, top: 0, zIndex: 5, pointerEvents: "none", willChange: "transform" }}>
           <div style={{ transformOrigin: "50% 100%", pointerEvents: open ? "auto" : "none", ["--bubble-max" as string]: bubbleMax + "px" }}>{shown.current.node}</div>
