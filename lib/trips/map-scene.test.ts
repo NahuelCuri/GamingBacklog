@@ -48,6 +48,10 @@ describe("mapScene", () => {
     ]);
   });
 
+  it("frames every pin on show, unscheduled ones included", () => {
+    expect(framePoints(mapScene(cards, "all"))).toContainEqual([139.9, 35.8]);
+  });
+
   it("frames the ghosts when no stop is numbered", () => {
     const s = mapScene(cards, "none");
     expect(s.route).toEqual([]);

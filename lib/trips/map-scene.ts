@@ -55,10 +55,9 @@ export function mapScene(cards: TripCard[], day: MapDay): MapScene {
   return { pins, route: route.filter((l) => l.length > 1) };
 }
 
-/** Points to frame: the numbered stops when there are any, else every pin. */
+/** Points to frame: every pin on show, unscheduled ones too, so none starts off the edge. */
 export function framePoints(scene: MapScene): LngLat[] {
-  const numbered = scene.pins.filter((p) => p.n);
-  return (numbered.length ? numbered : scene.pins).map((p) => p.at);
+  return scene.pins.map((p) => p.at);
 }
 
 /** Changes when the framed set of points does (not on edits that don't move a pin). */
