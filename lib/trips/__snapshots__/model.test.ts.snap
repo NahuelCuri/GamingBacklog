@@ -1229,7 +1229,7 @@ exports[`trip model (frozen from the legacy planner) > suggests tags and explain
     "loc": [
       "✓ on the map",
       "#5fb8b0",
-      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Type a place name and it's looked up when you leave the field. A Google Maps link or coordinates work too.",
       "Find",
     ],
     "tags": [
@@ -1244,7 +1244,7 @@ exports[`trip model (frozen from the legacy planner) > suggests tags and explain
     "loc": [
       "✓ on the map",
       "#5fb8b0",
-      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Type a place name and it's looked up when you leave the field. A Google Maps link or coordinates work too.",
       "Find",
     ],
     "tags": [
@@ -1287,7 +1287,7 @@ exports[`trip model (frozen from the legacy planner) > suggests tags and explain
     "loc": [
       "no coordinates yet",
       "#d98a6a",
-      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Type a place name and it's looked up when you leave the field. A Google Maps link or coordinates work too.",
       "Find",
     ],
     "tags": [
@@ -1319,7 +1319,7 @@ exports[`trip model (frozen from the legacy planner) > suggests tags and explain
     "loc": [
       "searching…",
       "#8a9693",
-      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Type a place name and it's looked up when you leave the field. A Google Maps link or coordinates work too.",
       "…",
     ],
     "tags": [
@@ -1367,7 +1367,7 @@ exports[`trip model (frozen from the legacy planner) > suggests tags and explain
     "loc": [
       "✓ on the map",
       "#5fb8b0",
-      "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.",
+      "Type a place name and it's looked up when you leave the field. A Google Maps link or coordinates work too.",
       "Find",
     ],
     "tags": [

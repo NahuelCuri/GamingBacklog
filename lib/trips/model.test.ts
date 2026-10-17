@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   budget, cleanCard, lookalikes, normTitle, regionFromAddress, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
-  parseLoc, quickAddCard, regionSuggestions, removeDay, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
+  countryNames, parseLoc, pickPlace, placeSearchUrl, placesFrom, quickAddCard, regionSuggestions, removeDay, seedTrips, tripArea, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
 } from "./model";
 
 const seeded = () => {
@@ -233,5 +233,59 @@ describe("trip model", () => {
     expect(r.trips.find((x) => x.id === t.id)!.dayCount).toBe(2);
     expect(r.cards.map((c) => [c.id, c.day])).toEqual([["a", 1], ["b", null], ["c", 2], ["p", null], ["o", 2]]);
     expect(removeDay({ ...data, trips: data.trips.map((x) => ({ ...x, dayCount: 1 })) }, t.id, 1)).toBeNull();
+  });
+});
+
+describe("place search", () => {
+  const kyoto = { lat: 35.039, lng: 135.729, name: "Kinkaku-ji, Kyoto, Japan", country: "jp" };
+  const nara = { lat: 34.689, lng: 135.84, name: "Kinkaku, Nara, Japan", country: "jp" };
+  const nyc = { lat: 40.73, lng: -73.99, name: "Kinkaku, Manhattan, New York, United States", country: "us" };
+  const stops = [{ lat: 35.0, lng: 135.77 }, { lat: 35.68, lng: 139.7 }];
+
+  it("reads search results, dropping malformed ones", () => {
+    expect(placesFrom([{ lat: "35.1", lon: "135.2", display_name: "X, Japan", address: { country_code: "JP" } }, { lat: "nope" }, null])).toEqual([{ lat: 35.1, lng: 135.2, name: "X, Japan", country: "jp" }]);
+    expect(placesFrom({ error: "x" })).toEqual([]);
+    const twice = { lat: "40.7", lon: "-74", display_name: "Chelsea Market, New York" };
+    expect(placesFrom([twice, { ...twice, lat: "40.71" }])).toHaveLength(1);
+  });
+
+  it("sizes the trip's area from its other located cards", () => {
+    const cards = seeded().cards;
+    const a = tripArea(cards)!;
+    expect(a.w).toBeLessThan(135.671);
+    expect(a.e).toBeGreaterThan(139.789);
+    expect(a.e - a.w).toBeLessThan(15);
+    // a card's own pin doesn't count, nor do cards without one
+    expect(tripArea([{ ...cards[0], loc: { lat: 1, lng: 1 } }], cards[0].id)).toBeNull();
+    expect(tripArea(seedTrips().cards.map((c) => ({ ...c, loc: null })))).toBeNull();
+  });
+
+  it("restricts the search to the area when there is one", () => {
+    expect(placeSearchUrl("Kinkaku-ji", { area: { s: 33, n: 37, w: 134, e: 141 } })).toContain("&viewbox=134,37,141,33&bounded=1&");
+    expect(placeSearchUrl("Kinkaku-ji")).not.toContain("viewbox");
+    // countries win over an area: a hard lock
+    expect(placeSearchUrl("Kinkaku-ji", { countries: ["jp", "kr"], area: { s: 33, n: 37, w: 134, e: 141 } })).toMatch(/&countrycodes=jp,kr&q=/);
+  });
+
+  it("names countries for the editor's notes", () => {
+    expect(countryNames(["jp"])).toBe("Japan");
+    expect(countryNames(["fr", "es", "it"])).toBe("France, Spain and Italy");
+  });
+
+  it("picks a match inside the trip's area, nearest the other stops first", () => {
+    const area = tripArea(seeded().cards);
+    expect(pickPlace([nara, kyoto], [], stops, area)).toMatchObject({ pick: kyoto, far: false });
+  });
+
+  it("never picks a match far from the trip on its own", () => {
+    const area = tripArea(seeded().cards);
+    expect(pickPlace([], [nyc], stops, area)).toEqual({ pick: null, choices: [nyc], far: true });
+  });
+
+  it("without an area, picks a lone answer or one country's, and asks across countries", () => {
+    expect(pickPlace([], [nyc], [], null).pick).toBe(nyc);
+    expect(pickPlace([], [kyoto, nara], [], null).pick).toBe(kyoto);
+    expect(pickPlace([], [kyoto, nyc], [], null)).toMatchObject({ pick: null, far: false });
+    expect(pickPlace([], [], [], null)).toEqual({ pick: null, choices: [], far: false });
   });
 });
