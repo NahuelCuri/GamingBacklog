@@ -97,7 +97,8 @@ export interface TripCtx {
   goHome(): void;
   openCard(id: string): void;
   openEdit(id: string): void;
-  newCard(): void;
+  /** A new card's editor; `seed` fills in some of its fields. */
+  newCard(seed?: Partial<TripCard>): void;
   newTrip(): void;
   editTrip(id: string): void;
   moveDay(id: string, dir: number): void;
@@ -172,10 +173,10 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
       },
       openCard: (id) => (compare.on ? setCompare((c) => openInCompare(c, id)) : setNav({ viewCard: id })),
       openEdit,
-      newCard: () => {
+      newCard: (seed) => {
         if (!trip) return;
         setConfirmDel(false);
-        setModal({ ...blankCard(trip.id), price: "" as never, tagInput: "", __new: true });
+        setModal({ ...blankCard(trip.id), ...seed, price: "" as never, tagInput: "", __new: true });
       },
       newTrip: () => setTripModal({ ...blankTrip(), budget: "" as never, __new: true }),
       editTrip: (id) => {

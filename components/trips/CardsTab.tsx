@@ -65,7 +65,7 @@ export function CardsTab() {
             <SwapIcon size={15} />
             Convert
           </button>
-          <button type="button" onClick={newCard} style={{ cursor: "pointer", flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, background: T.accent, color: T.onAccent, fontWeight: 700, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 10, boxShadow: "0 4px 16px rgba(95,184,176,.22)" }}>
+          <button type="button" onClick={() => newCard()} style={{ cursor: "pointer", flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, background: T.accent, color: T.onAccent, fontWeight: 700, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 10, boxShadow: "0 4px 16px rgba(95,184,176,.22)" }}>
             + New card
           </button>
         </div>

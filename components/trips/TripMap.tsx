@@ -4,13 +4,13 @@
 // numbered per day and joined by a dashed route; unscheduled ones show as
 // rings. Picking a day frames its stops; the side list and the pins light each
 // other up. The map (MapLibre) loads lazily, the first time this tab opens.
-import { Component, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+import { Component, lazy, useCallback, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { loadDistricts, stopsIn, zoneAt, type District, type Districts } from "@/lib/trips/districts";
 import { framePoints, frameKey, mapScene } from "@/lib/trips/map-scene";
-import { mapStops, TYPES, typeMeta, type MapDay, type TripCard } from "@/lib/trips/model";
+import { blankCard, cleanCard, mapStops, normTitle, TYPES, typeMeta, type MapDay, type TripCard } from "@/lib/trips/model";
 import { play } from "@/lib/motion";
 import { CardViewBody } from "./dialogs";
-import { T, btnPrimary, typeTag } from "./styles";
+import { T, btnGhost, btnPrimary, input, typeTag } from "./styles";
 import { useTripCtx } from "./TripPlanner";
 
 const TripMapCanvas = lazy(() => import("./TripMapCanvas"));
@@ -95,7 +95,7 @@ function TransitKey({ lines, stations }: { lines: boolean; stations: boolean }) 
  * at it: down at its pin on the map, or right at its row in the side list.
  * Whoever shows it places it; any click closes it.
  */
-function CardBubble({ card, n, compact, onEdit, tail = "down", tailRef }: { card: TripCard; n: number; compact: boolean; onEdit(): void; tail?: "down" | "right"; tailRef?: Ref<SVGSVGElement> }) {
+function CardBubble({ card, n, compact, onEdit, onClose, tail = "down", tailRef }: { card: TripCard; n: number; compact: boolean; onEdit(): void; onClose?(): void; tail?: "down" | "right" | null; tailRef?: Ref<SVGSVGElement> }) {
   const tm = typeMeta(card.type);
   return (
     <div role="dialog" aria-label={card.title || "Untitled"} style={{ position: "relative", width: compact ? 290 : 340, filter: "drop-shadow(0 18px 40px rgba(0,0,0,.55))" }}>
@@ -103,6 +103,11 @@ function CardBubble({ card, n, compact, onEdit, tail = "down", tailRef }: { card
         <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 16px 0" }}>
           <span style={typeTag(tm.color)}>{tm.label}</span>
           {n > 0 && <span style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim2 }}>stop #{n}</span>}
+          {onClose && (
+            <button type="button" onClick={onClose} aria-label="Close" style={{ marginLeft: "auto", cursor: "pointer", border: "none", background: "none", color: T.dim2, fontSize: 16, lineHeight: 1, padding: 4 }}>
+              ×
+            </button>
+          )}
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "10px 16px 14px" }}>
           <CardViewBody card={card} />
@@ -114,7 +119,7 @@ function CardBubble({ card, n, compact, onEdit, tail = "down", tailRef }: { card
         </div>
       </div>
       {/* The tail, down to the pin or across to the row (its height set by the list). */}
-      {tail === "down" ? (
+      {tail === null ? null : tail === "down" ? (
         <svg width="22" height="10" aria-hidden="true" style={{ position: "absolute", left: "50%", bottom: -9, transform: "translateX(-50%)", display: "block" }}>
           <path d="M0 0 L11 10 L22 0" fill={T.dialog} stroke={T.border} strokeWidth="1" />
           <rect x="0" y="-1" width="22" height="1.5" fill={T.dialog} />
@@ -125,6 +130,74 @@ function CardBubble({ card, n, compact, onEdit, tail = "down", tailRef }: { card
           <rect x="-1" y="0" width="1.5" height="22" fill={T.dialog} />
         </svg>
       )}
+    </div>
+  );
+}
+
+/** The district's card, if the user made one: the first whose title is the district's name, else one that has it as whole words ("Shibuya Crossing"). */
+function districtCard(cards: TripCard[], name: string) {
+  const n = normTitle(name);
+  if (!n) return undefined;
+  return cards.find((c) => normTitle(c.title || "") === n) ?? cards.find((c) => (" " + normTitle(c.title || "") + " ").includes(" " + n + " "));
+}
+
+/**
+ * A district's card slid in over the left edge of the map, which keeps working
+ * around it. Escape or its cross closes it.
+ */
+function DistrictPanel({ on, onClose, children }: { on: boolean; onClose(): void; children: ReactNode }) {
+  const [vis, setVis] = useState(false);
+  // Slides in a frame after it mounts, so a card for another district animates too.
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setVis(on));
+    return () => cancelAnimationFrame(r);
+  }, [on]);
+  useEffect(() => {
+    if (!on) return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [on, onClose]);
+  return (
+    <div
+      aria-hidden={!on}
+      style={{
+        position: "absolute", left: 14, top: 58, zIndex: 5, pointerEvents: on ? "auto" : "none", ["--bubble-max" as string]: "calc(100vh - 260px)",
+        visibility: vis ? "visible" : "hidden", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateX(-18px)",
+        transition: vis ? "opacity 180ms ease-out, transform 280ms var(--ease-out), visibility 0s" : "opacity 140ms ease-out, transform 180ms ease-in, visibility 0s linear 180ms",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** No card for the district yet: a short form with its name filled in, so one can be started without leaving the map. */
+function DistrictDraft({ name, onSave, onClose }: { name: string; onSave(notes: string): void; onClose(): void }) {
+  const [notes, setNotes] = useState("");
+  const field = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => field.current?.focus(), []);
+  return (
+    <div role="dialog" aria-label={name} style={{ width: 340, maxWidth: "calc(100vw - 60px)", background: T.dialog, border: `1px solid ${T.border}`, borderTop: `3px solid ${typeMeta("place").color}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 18px 40px rgba(0,0,0,.55)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 12px 0 16px" }}>
+        <span style={typeTag(typeMeta("place").color)}>New card</span>
+        <button type="button" onClick={onClose} aria-label="Close" style={{ cursor: "pointer", border: "none", background: "none", color: T.dim2, fontSize: 16, lineHeight: 1, padding: 4 }}>
+          ×
+        </button>
+      </div>
+      <div style={{ padding: "8px 16px 14px" }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{name}</div>
+        <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim2, margin: "3px 0 10px" }}>No card for this district yet</div>
+        <textarea ref={field} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What to remember about it: where to eat, how to get around, what to skip…" rows={6} style={{ ...input, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "10px 12px", borderTop: `1px solid ${T.line}` }}>
+        <button type="button" onClick={onClose} style={{ ...btnGhost, padding: "7px 14px" }}>
+          Cancel
+        </button>
+        <button type="button" onClick={() => onSave(notes.trim())} style={{ ...btnPrimary, padding: "7px 16px" }}>
+          Create card
+        </button>
+      </div>
     </div>
   );
 }
@@ -141,7 +214,7 @@ function Centered({ text }: { text: string }) {
 }
 
 export function TripMap() {
-  const { cards, isMobile, openEdit } = useTripCtx();
+  const { cards, isMobile, openEdit, trip, data, persist } = useTripCtx();
   const [day, setDay] = useState<MapDay>("all");
   const [hot, setHot] = useState<string | null>(null);
   const [opened, setOpened] = useState<string | null>(null);
@@ -184,6 +257,12 @@ export function TripMap() {
   const [pickTypes, setPickTypes] = useState<string[]>([]);
   const [glow, setGlow] = useState<{ zone: District; tick: number } | null>(null);
   const [pickZones, setPickZones] = useState<number[]>([]);
+  // The card of the district opened on the map (kept while it slides away), and whether it shows.
+  const [dzCard, setDzCard] = useState<string | null>(null);
+  // The district with no card yet, whose short form is open in the same place.
+  const [dzNew, setDzNew] = useState<string | null>(null);
+  const [dzOn, setDzOn] = useState(false);
+  const closeDz = useCallback(() => setDzOn(false), []);
   const typeOpts = useMemo(() => TYPES.filter((t) => stops.loc.some((c) => c.type === t.value)), [stops.loc]);
   const types = useMemo(() => pickTypes.filter((v) => typeOpts.some((t) => t.value === v)), [pickTypes, typeOpts]);
   const byType = useMemo(() => (types.length ? cards.filter((c) => types.includes(c.type)) : cards), [cards, types]);
@@ -239,6 +318,23 @@ export function TripMap() {
   const scene = useMemo(() => (visible === byType ? baseScene : mapScene(visible, day)), [visible, byType, baseScene, day]);
   const frame = useMemo(() => framePoints(scene), [scene]);
   const filtered = types.length + picked.length;
+  const dzData = dzCard ? cards.find((x) => x.id === dzCard) : undefined;
+  // A double-click on a district opens the card the user made for it, or starts one with its name.
+  const openDistrict = (id: number) => {
+    const zone = zd?.zones.find((z) => z.id === id);
+    if (!zone) return;
+    const card = districtCard(cards, zone.name);
+    setDzNew(card ? null : zone.name);
+    if (card) setDzCard(card.id);
+    setDzOn(true);
+  };
+  const createDz = (title: string, notes: string) => {
+    if (!trip) return;
+    const made = cleanCard({ ...blankCard(trip.id), title, notes, price: "" as never, tagInput: "" });
+    void persist({ cards: [...data.cards, made] });
+    setDzCard(made.id);
+    setDzNew(null);
+  };
 
   // The pin opened into a bubble, while it's on the map. Another day closes it.
   const openPin = opened ? scene.pins.find((p) => p.id === opened) : undefined;
@@ -397,7 +493,9 @@ export function TripMap() {
             <>
               <MapBoundary>
                 <Suspense fallback={<Centered text="loading map…" />}>
-                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} glow={glow} transit={transit}
+                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} glow={glow}
+                    onDistrict={openDistrict}
+                    transit={transit}
                     stations={stations}
                     open={open}
                     onOpen={openStop}
@@ -406,6 +504,11 @@ export function TripMap() {
                   />
                 </Suspense>
               </MapBoundary>
+              {(dzNew != null || dzData) && (
+                <DistrictPanel key={dzNew ?? dzData!.id} on={dzOn} onClose={closeDz}>
+                  {dzNew != null ? <DistrictDraft name={dzNew} onSave={(notes) => createDz(dzNew, notes)} onClose={closeDz} /> : <CardBubble card={dzData!} n={0} compact={false} onEdit={() => openEdit(dzData!.id)} onClose={closeDz} tail={null} />}
+                </DistrictPanel>
+              )}
               {/* Map controls, and under them the transit key while it's needed. */}
               <div style={{ position: "absolute", top: 12, right: 14, left: 14, zIndex: 6, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, pointerEvents: "none" }}>
                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 6 }}>
