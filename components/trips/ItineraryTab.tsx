@@ -40,6 +40,8 @@ function dropTarget(x: number, y: number): { day: number | null; index: number }
 /** Slides cards from their old position when the list re-orders (legacy FLIP). */
 function useFlip(deps: unknown) {
   const last = useRef(new Map<string, DOMRect>());
+  // Takes the cards' current places as where they were: a move already made (a lane that closed up) isn't slid again.
+  const settle = () => document.querySelectorAll<HTMLElement>("[data-flip]").forEach((el) => last.current.set(el.getAttribute("data-flip")!, el.getBoundingClientRect()));
   useLayoutEffect(() => {
     const els = [...document.querySelectorAll<HTMLElement>("[data-flip]")];
     els.forEach((el) => {
@@ -58,6 +60,7 @@ function useFlip(deps: unknown) {
       last.current.set(id, now);
     });
   }, [deps]);
+  return settle;
 }
 
 export function ItineraryTab() {
@@ -71,7 +74,25 @@ export function ItineraryTab() {
   const canvas = useRef<HTMLDivElement>(null);
   const pending = useRef<{ id: string; sx: number; sy: number; moved: boolean; armed: boolean } | null>(null);
   const cleanup = useRef<() => void>(() => {});
-  useFlip(cards);
+  const leaving = useRef(false);
+  // Each lane keeps an identity of its own (not its day number), so when a day is removed only
+  // that lane goes: the rest keep their elements and cards, and just take their new number.
+  const laneIds = useRef<number[]>([]);
+  const nextLane = useRef(1);
+  const cut = useRef<number | null>(null);
+  // The lane being dissolved. Lanes are keyed by day number, so the next day takes over its
+  // element: the animation must be dropped as soon as the days change, or it would stay on it.
+  const fading = useRef<{ el: HTMLElement; as: Animation[] } | null>(null);
+  const unfade = () => {
+    const f = fading.current;
+    fading.current = null;
+    leaving.current = false;
+    cut.current = null;
+    if (!f) return;
+    f.as.forEach((a) => a.cancel());
+    Object.assign(f.el.style, { pointerEvents: "", minWidth: "", minHeight: "", overflow: "" });
+  };
+  const settle = useFlip(cards);
 
   // A card dropped on a day settles with a small pop once the move lands in `cards`.
   const landed = useRef<{ id: string; at: number } | null>(null);
@@ -92,6 +113,7 @@ export function ItineraryTab() {
   );
 
   useEffect(() => () => cleanup.current(), []);
+  useLayoutEffect(unfade, [trip?.dayCount]);
 
   // Wheel on the canvas: pan, or zoom with Ctrl/⌘ (desktop only).
   useEffect(() => {
@@ -225,6 +247,42 @@ export function ItineraryTab() {
     window.addEventListener("pointerup", up);
   };
 
+  // Removing a day: the lane dissolves (fades, blurs and shrinks away), then closes up so its
+  // neighbours slide over; the change lands when it's gone. Without animation it lands at once.
+  const dropDay = (d: number) => {
+    const r = removeDay(data, trip.id, d);
+    if (!r || leaving.current) return;
+    const done = () => {
+      // The lane stays gone until the days change (see unfade); if saving fails it comes back.
+      settle();
+      cut.current = d;
+      persist({ trips: r.trips, cards: r.cards }).catch(unfade);
+    };
+    const el = canvas.current?.querySelector<HTMLElement>(`[data-day="${d}"]`);
+    const gone = { opacity: 0, filter: "blur(9px)", transform: "scale(.9) translateY(-8px)" };
+    const size = mob ? { height: el?.offsetHeight + "px", paddingBlock: "12px", borderWidth: "1px", marginBottom: "0px" } : { flexBasis: el?.offsetWidth + "px", paddingInline: "12px", borderWidth: "1px", marginRight: "0px" };
+    const shut = mob ? { height: "0px", paddingBlock: "0px", borderWidth: "0px", marginBottom: "-14px" } : { flexBasis: "0px", paddingInline: "0px", borderWidth: "0px", marginRight: "-14px" };
+    leaving.current = true;
+    // In order: the lane dissolves where it is; then the ones after it slide over into its
+    // place (the lane closes up); only when that has settled does the day really go.
+    const FADE = 360;
+    const fade = play(el, [{ opacity: 1, filter: "blur(0px)", transform: "none" }, gone], { duration: FADE, easing: "ease-out", fill: "forwards" });
+    const close = play(el, [size, shut], { duration: 460, delay: FADE, easing: "cubic-bezier(.45, 0, .2, 1)", fill: "forwards" });
+    if (!fade || !close) {
+      fade?.cancel();
+      close?.cancel();
+      leaving.current = false;
+      cut.current = d;
+      void persist({ trips: r.trips, cards: r.cards });
+      return;
+    }
+    // A flex item won't shrink below its content (min-width / min-height: auto): without this the
+    // lane stops closing at the width of its header, and the days after it stall, then jump.
+    Object.assign(el!.style, { pointerEvents: "none", minWidth: "0", minHeight: "0", overflow: "hidden" });
+    fading.current = { el: el!, as: [fade, close] };
+    close.onfinish = done;
+  };
+
   const quickCard = quickAddCard(quick, trip.id);
   const quickLike = quickCard ? lookalikes(cards, quickCard) : [];
   // Only a sure repeat holds the Enter back; a similar title just shows the note.
@@ -242,6 +300,12 @@ export function ItineraryTab() {
   const poolGhost = !!drag && over !== "none" && over?.day === null;
   const dragCard = drag ? data.cards.find((c) => c.id === drag.id) : undefined;
   const dayCount = trip.dayCount || 0;
+  const ids = laneIds.current;
+  if (ids.length > dayCount) {
+    ids.splice(ids.length - dayCount === 1 && cut.current != null ? cut.current - 1 : dayCount, ids.length - dayCount);
+    cut.current = null;
+  }
+  while (ids.length < dayCount) ids.push(nextLane.current++);
 
   const ghost = (h: number) => <div style={{ height: h, border: "1.5px dashed #3a6b66", borderRadius: h > 50 ? 10 : 9, background: "rgba(95,184,176,.09)", animation: "slotIn .16s ease", transformOrigin: "top" }} />;
 
@@ -330,7 +394,7 @@ export function ItineraryTab() {
             const at = isOver ? Math.max(0, Math.min(over.index, shown.length)) : -1;
             return (
               <div
-                key={d}
+                key={ids[d - 1]}
                 data-dropzone=""
                 data-day={d}
                 style={{ ...(mob ? { width: "100%" } : { flex: "0 0 268px" }), background: isOver ? "#182422" : "#101414", border: `1px solid ${isOver ? T.accent : T.line}`, borderRadius: 14, padding: 12, display: "flex", flexDirection: "column", transition: "border-color .12s,background .12s" }}
@@ -350,10 +414,7 @@ export function ItineraryTab() {
                         aria-label={"Remove day " + d}
                         title={dayCards.length ? "Remove this day (its cards go back to the pool)" : "Remove this day"}
                         onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => {
-                          const r = removeDay(data, trip.id, d);
-                          if (r) void persist({ trips: r.trips, cards: r.cards });
-                        }}
+                        onClick={() => dropDay(d)}
                         style={{ cursor: "pointer", border: "none", background: "none", color: T.dim2, fontSize: 16, lineHeight: 1, padding: "2px 4px", borderRadius: 6 }}
                       >
                         ×
@@ -379,7 +440,7 @@ export function ItineraryTab() {
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => void persist({ trips: data.trips.map((x) => (x.id === trip.id ? { ...x, dayCount: (x.dayCount || 0) + 1 } : x)) })}
-            style={{ background: "none", cursor: "pointer", ...(mob ? { width: "100%", minHeight: 64 } : { flex: "0 0 132px", alignSelf: "stretch", minHeight: 120 }), border: `1.5px dashed ${T.border2}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: T.dim2, fontSize: 13, fontWeight: 600 }}
+            style={{ background: "none", cursor: "pointer", ...(mob ? { width: "100%", minHeight: 64 } : { flex: "0 0 132px", alignSelf: "flex-start", height: 120 }), border: `1.5px dashed ${T.border2}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: T.dim2, fontSize: 13, fontWeight: 600 }}
           >
             + Add day
           </button>

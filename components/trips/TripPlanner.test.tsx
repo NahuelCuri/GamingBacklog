@@ -137,6 +137,80 @@ describe("TripPlanner", () => {
     expect(errors).toEqual([]);
   });
 
+  const laneTitles = () => screen.getAllByText(/^Day \d+$/).map((e) => e.textContent);
+
+  it("removes a day: its cards go to the pool and the later days move up", async () => {
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    expect(laneTitles()).toEqual(["Day 1", "Day 2", "Day 3", "Day 4"]);
+    const before = store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove day 3" }));
+    await waitFor(() => expect(store.data.trips[0].dayCount).toBe(3));
+    expect(laneTitles()).toEqual(["Day 1", "Day 2", "Day 3"]);
+    expect(store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }))).toEqual(before.map(({ id, day }) => ({ id, day: day === 3 ? null : day != null && day > 3 ? day - 1 : day })));
+    // every lane is still there to use: no leftover remove-day state hides one
+    expect(screen.getAllByRole("button", { name: /^Remove day \d$/ })).toHaveLength(3);
+    expect(errors).toEqual([]);
+  });
+
+  it("removing a day leaves the other lanes in place: same elements, same cards, new numbers", async () => {
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    const lane = (d: number) => document.querySelector<HTMLElement>(`[data-day="${d}"]`)!;
+    const [one, two, four] = [lane(1), lane(2), lane(4)];
+    const fourCards = [...four.querySelectorAll("[data-flip]")];
+    fireEvent.click(screen.getByRole("button", { name: "Remove day 3" }));
+    await waitFor(() => expect(store.data.trips[0].dayCount).toBe(3));
+    expect([lane(1), lane(2), lane(3)]).toEqual([one, two, four]);
+    expect(lane(3).textContent).toContain("Day 3");
+    expect([...lane(3).querySelectorAll("[data-flip]")]).toEqual(fourCards);
+    expect(document.querySelector('[data-day="4"]')).toBeNull();
+  });
+
+  it("can remove days down to one, from the first, the last or the middle", async () => {
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    for (const [d, left] of [[1, 3], [3, 2], [2, 1]] as const) {
+      fireEvent.click(screen.getByRole("button", { name: "Remove day " + d }));
+      await waitFor(() => expect(store.data.trips[0].dayCount).toBe(left));
+      expect(laneTitles()).toEqual(Array.from({ length: left }, (_, i) => "Day " + (i + 1)));
+    }
+    // the last day can't be removed
+    expect(screen.queryByRole("button", { name: /^Remove day/ })).toBeNull();
+    expect(errors).toEqual([]);
+  });
+
+  it("the dissolving lane is let go once the days change, so the next day isn't left hidden", async () => {
+    const cancel = vi.fn();
+    const finishers: (() => void)[] = [];
+    Element.prototype.animate = vi.fn(function () {
+      const a = { cancel, onfinish: null as null | (() => void) };
+      finishers.push(() => a.onfinish?.());
+      return a;
+    }) as never;
+    try {
+      const store = await setup();
+      openJapan();
+      fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+      const lane = () => document.querySelector<HTMLElement>('[data-day="3"]')!;
+      fireEvent.click(screen.getByRole("button", { name: "Remove day 3" }));
+      const fade = finishers.length;
+      expect(fade).toBeGreaterThan(0);
+      // while it dissolves nothing has changed yet, and the lane ignores the pointer
+      expect(store.data.trips[0].dayCount).toBe(4);
+      expect(lane().style.pointerEvents).toBe("none");
+      act(() => finishers[fade - 1]());
+      await waitFor(() => expect(store.data.trips[0].dayCount).toBe(3));
+      expect(cancel).toHaveBeenCalled();
+      expect(lane().style.pointerEvents).toBe("");
+    } finally {
+      delete (Element.prototype as { animate?: unknown }).animate;
+    }
+  });
+
   it("warns about a card that repeats one already in the trip", async () => {
     const store = await setup();
     openJapan();

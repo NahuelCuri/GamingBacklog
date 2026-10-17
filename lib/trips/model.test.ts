@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   budget, cleanCard, lookalikes, normTitle, regionFromAddress, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
-  parseLoc, quickAddCard, regionSuggestions, removeDay, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
+  parseLoc, quickAddCard, regionSuggestions, removeDay, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
 } from "./model";
 
 const seeded = () => {
@@ -169,6 +169,54 @@ describe("trip model", () => {
     expect(regionSuggestions(cs, "tok")).toEqual(["Tokyo Station", "Shinjuku, Tokyo", "Ginza, Tokyo"]);
     expect(regionSuggestions(cs, "shinjuku, tokyo")).toEqual([]);
     expect(regionSuggestions(cs, "  ")).toEqual([]);
+  });
+
+  it("removing any day of any trip length renumbers the rest, with or without cards", () => {
+    for (let count = 1; count <= 7; count++) {
+      for (let d = 1; d <= count; d++) {
+        // one card on every day and in the pool, a second one on day d, and another trip using the same day numbers
+        const cards = [
+          ...Array.from({ length: count }, (_, i) => ({ id: "t" + (i + 1), trip: "x", day: i + 1 })),
+          { id: "twin", trip: "x", day: d }, { id: "pool", trip: "x", day: null },
+          ...Array.from({ length: count }, (_, i) => ({ id: "o" + (i + 1), trip: "y", day: i + 1 })),
+        ] as TripCard[];
+        const data = { trips: [{ id: "x", name: "X", dayCount: count }, { id: "y", name: "Y", dayCount: count }], cards };
+        const r = removeDay(data, "x", d);
+        if (count === 1) {
+          expect(r).toBeNull();
+          continue;
+        }
+        expect(r!.trips.map((t) => t.dayCount)).toEqual([count - 1, count]);
+        // same cards, same order; only the days move
+        expect(r!.cards.map((c) => c.id)).toEqual(cards.map((c) => c.id));
+        for (const [i, c] of cards.entries()) {
+          const now = r!.cards[i].day;
+          if (c.trip === "y" || c.day == null) expect(now).toBe(c.day);
+          else if (c.day === d) expect(now).toBeNull();
+          else expect(now).toBe(c.day < d ? c.day : c.day - 1);
+        }
+        // every card left on a day lands inside the new range
+        expect(r!.cards.filter((c) => c.trip === "x").every((c) => c.day == null || (c.day >= 1 && c.day <= count - 1))).toBe(true);
+      }
+    }
+  });
+
+  it("removing days one after another keeps the cards on the days they were on", () => {
+    // days 1..4 hold a, b, c, d; take out day 3, then day 1: b and d are what's left of days 2 and 4
+    let data: TripData = { trips: [{ id: "x", name: "X", dayCount: 4 }], cards: ["a", "b", "c", "d"].map((id, i) => ({ id, trip: "x", day: i + 1 })) as TripCard[] };
+    for (const d of [3, 1]) {
+      const r = removeDay(data, "x", d)!;
+      data = { trips: r.trips, cards: r.cards };
+    }
+    expect(data.trips[0].dayCount).toBe(2);
+    expect(data.cards.map((c) => [c.id, c.day])).toEqual([["a", null], ["b", 1], ["c", null], ["d", 2]]);
+  });
+
+  it("refuses days that aren't there", () => {
+    const data = { trips: [{ id: "x", name: "X", dayCount: 3 }], cards: [] as TripCard[] };
+    expect(removeDay(data, "x", 0)).toBeNull();
+    expect(removeDay(data, "x", 4)).toBeNull();
+    expect(removeDay(data, "nope", 1)).toBeNull();
   });
 
   it("removes a day, sends its cards to the pool and closes the gap", () => {
