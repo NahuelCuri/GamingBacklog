@@ -358,6 +358,20 @@ export function moveCardOrder(cards: TripCard[], id: string, dir: number) {
   return { cards: list, message: (moved.title || "Card") + " moved " + (dir < 0 ? "earlier" : "later") };
 }
 
+/**
+ * Takes day `d` out of a trip: its cards go back to the pool, the later days
+ * close the gap (day 5 becomes 4, ...), and the trip keeps at least one day.
+ * Null when there is nothing to remove.
+ */
+export function removeDay(data: TripData, tripId: string, d: number) {
+  const trip = data.trips.find((t) => t.id === tripId);
+  if (!trip || (trip.dayCount || 0) <= 1 || d < 1 || d > (trip.dayCount || 0)) return null;
+  return {
+    trips: data.trips.map((t) => (t.id === tripId ? { ...t, dayCount: (t.dayCount || 0) - 1 } : t)),
+    cards: data.cards.map((c) => (c.trip !== tripId || c.day == null || c.day < d ? c : { ...c, day: c.day === d ? null : c.day - 1 })),
+  };
+}
+
 export const setCardDay = (cards: TripCard[], id: string, day: number | null) => cards.map((c) => (c.id === id ? { ...c, day } : c));
 
 /** Keyboard help read out for a card on the itinerary board. */

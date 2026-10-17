@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   budget, cleanCard, lookalikes, normTitle, regionFromAddress, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
-  parseLoc, quickAddCard, regionSuggestions, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
+  parseLoc, quickAddCard, regionSuggestions, removeDay, seedTrips, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard,
 } from "./model";
 
 const seeded = () => {
@@ -169,5 +169,21 @@ describe("trip model", () => {
     expect(regionSuggestions(cs, "tok")).toEqual(["Tokyo Station", "Shinjuku, Tokyo", "Ginza, Tokyo"]);
     expect(regionSuggestions(cs, "shinjuku, tokyo")).toEqual([]);
     expect(regionSuggestions(cs, "  ")).toEqual([]);
+  });
+
+  it("removes a day, sends its cards to the pool and closes the gap", () => {
+    const base = seedTrips();
+    const t = base.trips[0];
+    const data = {
+      trips: base.trips.map((x) => (x.id === t.id ? { ...x, dayCount: 3 } : x)),
+      cards: [
+        { id: "a", trip: t.id, day: 1 }, { id: "b", trip: t.id, day: 2 }, { id: "c", trip: t.id, day: 3 }, { id: "p", trip: t.id, day: null },
+        { id: "o", trip: "other", day: 2 },
+      ] as TripCard[],
+    };
+    const r = removeDay(data, t.id, 2)!;
+    expect(r.trips.find((x) => x.id === t.id)!.dayCount).toBe(2);
+    expect(r.cards.map((c) => [c.id, c.day])).toEqual([["a", 1], ["b", null], ["c", 2], ["p", null], ["o", 2]]);
+    expect(removeDay({ ...data, trips: data.trips.map((x) => ({ ...x, dayCount: 1 })) }, t.id, 1)).toBeNull();
   });
 });
