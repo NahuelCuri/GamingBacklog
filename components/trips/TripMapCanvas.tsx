@@ -387,6 +387,8 @@ interface Props {
   districts: Districts | null;
   /** A district just picked in the filter: its outline flares twice. A new tick replays it. */
   glow: { zone: District; tick: number } | null;
+  /** A double-click on a district (not on a pin) while the districts are drawn. */
+  onDistrict(id: number): void;
   /** Rail and metro lines from the basemap. */
   transit: boolean;
   /** Stations and their names from the basemap. */
@@ -409,7 +411,7 @@ const BLOOM_AT = 500;
 /** Bubble's gap above the pin's centre: past the dot, where its title sits. */
 const lift = (p: MapPin) => (p.n ? 19 : 11);
 
-export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts, glow, transit, stations, open, onOpen, nudge, bubble }: Props) {
+export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts, glow, onDistrict, transit, stations, open, onOpen, nudge, bubble }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   // The hover card slots: the hot pin's card, and one still fading out.
@@ -422,6 +424,8 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
   onHotRef.current = onHot;
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
+  const onDistrictRef = useRef(onDistrict);
+  onDistrictRef.current = onDistrict;
   const openRef = useRef(open);
   openRef.current = open;
   // The bubble stays drawn while it fades out, showing what it last showed.
@@ -499,9 +503,17 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     m.on("error", () => !loaded && setFailed("tiles"));
 
     // The pin (or its visible title) under the pointer, with a few pixels of slack.
+    // MapLibre throws if asked while a source's data is being replaced (a pin just added): nothing there yet.
+    const query = (geom: Parameters<MLMap["queryRenderedFeatures"]>[0], layers: string[]) => {
+      try {
+        return m.queryRenderedFeatures(geom, { layers });
+      } catch {
+        return [];
+      }
+    };
     const pinAt = (p: maplibregl.Point) => {
       if (!m.getLayer("pin-dot")) return null;
-      const hits = m.queryRenderedFeatures([[p.x - 4, p.y - 4], [p.x + 4, p.y + 4]], { layers: PIN_LAYERS });
+      const hits = query([[p.x - 4, p.y - 4], [p.x + 4, p.y + 4]], PIN_LAYERS);
       // A pin before a title (a title may cover another pin); only drawn titles count.
       const f = hits.find((h) => h.layer.id === "pin-dot") ?? hits[0];
       return f ? String(f.id) : null;
@@ -526,7 +538,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     m.on("mousemove", (e) => {
       const pin = pinAt(e.point);
       hover(pin);
-      light(pin || !m.getLayer("district-fill") ? null : (m.queryRenderedFeatures(e.point, { layers: ["district-fill"] })[0]?.id ?? null));
+      light(pin || !m.getLayer("district-fill") ? null : (query(e.point, ["district-fill"])[0]?.id ?? null));
     });
     m.on("mouseout", () => {
       hover(null);
@@ -554,7 +566,15 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     // itself); anywhere else it zooms in as usual.
     m.on("dblclick", (e) => {
       const id = pinAt(e.point);
-      if (!id) return;
+      if (!id) {
+        // On a district: its card opens, and the map stays where it is.
+        const z = m.getLayer("district-fill") ? query(e.point, ["district-fill"])[0]?.id : undefined;
+        if (z != null) {
+          e.preventDefault();
+          onDistrictRef.current(Number(z));
+        }
+        return;
+      }
       e.preventDefault();
       clearTimeout(closeSoon);
       onOpenRef.current(id);
