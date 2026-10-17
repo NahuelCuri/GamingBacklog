@@ -52,7 +52,7 @@ describe("TripPlanner", () => {
     expect(screen.getByRole("heading", { name: "Japan · Cherry Season" })).toBeTruthy();
     expect(location.search).toBe("?trip=t1&tab=cards");
     expect(screen.getAllByRole("button", { name: / — open$/ })).toHaveLength(12);
-    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     expect(location.search).toBe("?trip=t1&tab=itinerary");
     fireEvent.click(screen.getByRole("button", { name: "Back to all trips" }));
     expect(location.search).toBe("");
@@ -71,7 +71,7 @@ describe("TripPlanner", () => {
   it("creates, views, edits and deletes a card with undo", async () => {
     const store = await setup();
     openJapan();
-    fireEvent.click(screen.getByRole("button", { name: "+ New card" }));
+    fireEvent.click(screen.getByRole("button", { name: "New card" }));
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Card title" }), { target: { value: "Tsukiji breakfast" } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Food" }));
     // Region offers the ones already used; arrows + Enter pick, Escape closes just the list.
@@ -119,7 +119,7 @@ describe("TripPlanner", () => {
   it("schedules with the keyboard and quick-adds to the pool", async () => {
     const store = await setup();
     openJapan();
-    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     const nishiki = screen.getByRole("button", { name: /^Nishiki Market crawl — in the pool/ });
     fireEvent.keyDown(nishiki, { key: "ArrowRight" });
     await waitFor(() => expect(store.data.cards.find((c) => c.id === "c7")?.day).toBe(1));
@@ -132,17 +132,74 @@ describe("TripPlanner", () => {
     fireEvent.keyDown(quick, { key: "Enter" });
     await waitFor(() => expect(store.data.cards.at(-1)).toMatchObject({ title: "Untitled link", type: "research", source: "https://example.com/onsen", day: null }));
 
-    fireEvent.click(screen.getByRole("button", { name: "+ Add day" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add day" }));
     await waitFor(() => expect(store.data.trips[0].dayCount).toBe(5));
     expect(errors).toEqual([]);
   });
 
-  const laneTitles = () => screen.getAllByText(/^Day \d+$/).map((e) => e.textContent);
+  it("moves a card to any day from its menu, without dragging", async () => {
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Move Nishiki Market crawl" }));
+    const sheet = screen.getByRole("dialog", { name: "Move Nishiki Market crawl" });
+    expect(within(sheet).getByRole("button", { name: /^Pool/ }).getAttribute("aria-current")).toBe("true");
+    fireEvent.click(within(sheet).getByRole("button", { name: /^Day 3/ }));
+    await waitFor(() => expect(store.data.cards.find((c) => c.id === "c7")?.day).toBe(3));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText("Nishiki Market crawl moved to day 3")).toBeTruthy();
+    expect(errors).toEqual([]);
+  });
+
+  it("removing a day can be undone", async () => {
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
+    const before = store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove day 1" }));
+    await screen.findByText("Day 1 removed · 2 cards back in the pool");
+    expect(store.data.trips[0].dayCount).toBe(3);
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(store.data.trips[0].dayCount).toBe(4));
+    expect(store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }))).toEqual(before);
+  });
+
+  it("offers the days the trip's dates cover", async () => {
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
+    expect(screen.getByText(/Your dates cover 12 days/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add the other 8" }));
+    await waitFor(() => expect(store.data.trips[0].dayCount).toBe(12));
+    expect(screen.queryByText(/Your dates cover/)).toBeNull();
+  });
+
+  it("says so when a linked trip isn't there", async () => {
+    history.replaceState(null, "", "/trips/?trip=nope&tab=cards");
+    render(<TripPlanner store={memoryTripStore(seedTrips())} />);
+    await screen.findByText("This trip isn’t here");
+    fireEvent.click(screen.getByRole("button", { name: "See all trips" }));
+    await screen.findByText("Where to next?");
+  });
+
+  it("tabs move with the arrow keys", async () => {
+    await setup();
+    openJapan();
+    const cardsTab = screen.getByRole("tab", { name: /^Cards/ });
+    expect(cardsTab.getAttribute("aria-controls")).toBe("tp-main");
+    fireEvent.keyDown(cardsTab, { key: "ArrowRight" });
+    expect(location.search).toBe("?trip=t1&tab=itinerary");
+    fireEvent.keyDown(screen.getByRole("tab", { name: /^Itinerary/ }), { key: "End" });
+    expect(location.search).toBe("?trip=t1&tab=map");
+    expect(screen.getByRole("tabpanel").getAttribute("aria-labelledby")).toBe("tp-tab-map");
+  });
+
+  const laneTitles = () => screen.getAllByRole("heading", { level: 3, name: /^Day \d+$/ }).map((e) => e.textContent);
 
   it("removes a day: its cards go to the pool and the later days move up", async () => {
     const store = await setup();
     openJapan();
-    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     expect(laneTitles()).toEqual(["Day 1", "Day 2", "Day 3", "Day 4"]);
     const before = store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }));
     fireEvent.click(screen.getByRole("button", { name: "Remove day 3" }));
@@ -157,7 +214,7 @@ describe("TripPlanner", () => {
   it("removing a day leaves the other lanes in place: same elements, same cards, new numbers", async () => {
     const store = await setup();
     openJapan();
-    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     const lane = (d: number) => document.querySelector<HTMLElement>(`[data-day="${d}"]`)!;
     const [one, two, four] = [lane(1), lane(2), lane(4)];
     const fourCards = [...four.querySelectorAll("[data-flip]")];
@@ -172,7 +229,7 @@ describe("TripPlanner", () => {
   it("can remove days down to one, from the first, the last or the middle", async () => {
     const store = await setup();
     openJapan();
-    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     for (const [d, left] of [[1, 3], [3, 2], [2, 1]] as const) {
       fireEvent.click(screen.getByRole("button", { name: "Remove day " + d }));
       await waitFor(() => expect(store.data.trips[0].dayCount).toBe(left));
@@ -194,7 +251,7 @@ describe("TripPlanner", () => {
     try {
       const store = await setup();
       openJapan();
-      fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+      fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
       const lane = () => document.querySelector<HTMLElement>('[data-day="3"]')!;
       fireEvent.click(screen.getByRole("button", { name: "Remove day 3" }));
       const fade = finishers.length;
@@ -216,7 +273,7 @@ describe("TripPlanner", () => {
     openJapan();
     const before = store.data.cards.length;
     // Quick add: a repeated title holds the first Enter back; the second adds it anyway.
-    fireEvent.click(screen.getByRole("tab", { name: "Itinerary · 6" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     const quick = screen.getByRole("textbox", { name: "Quick add a card" });
     fireEvent.change(quick, { target: { value: "golden gai bar crawl" } });
     expect(screen.getByRole("status").textContent).toContain("Golden Gai bar crawlsame title · Day 2");
@@ -228,7 +285,7 @@ describe("TripPlanner", () => {
 
     // New card: the note offers the existing card instead, dropping the draft.
     fireEvent.click(screen.getByRole("tab", { name: /^Cards/ }));
-    fireEvent.click(screen.getByRole("button", { name: "+ New card" }));
+    fireEvent.click(screen.getByRole("button", { name: "New card" }));
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Card title" }), { target: { value: "Fushimi Inari at dawn" } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "edit that one" }));
     expect((within(dialog()).getByRole("textbox", { name: "Card title" }) as HTMLInputElement).value).toBe("Fushimi Inari at dawn");
@@ -256,7 +313,7 @@ describe("TripPlanner", () => {
 
   it("creates a trip, and deleting one needs its name typed", async () => {
     const store = await setup();
-    fireEvent.click(screen.getByRole("button", { name: "+ New trip" }));
+    fireEvent.click(screen.getByRole("button", { name: "New trip" }));
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Trip name" }), { target: { value: "Rome" } });
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Budget in dollars" }), { target: { value: "1500" } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Create trip" }));
@@ -285,11 +342,11 @@ describe("TripPlanner", () => {
     at("c1", 35.649, 139.789); at("c2", 35.66, 139.7); at("c3", 35.685, 139.71); at("c7", 35.005, 135.764);
     await setup(data);
     openJapan();
-    fireEvent.click(screen.getByRole("tab", { name: "Map · 4" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Map/ }));
     const map = await screen.findByTestId("trip-map"); // the canvas loads lazily
     const pins = () => screen.getByTestId("trip-map").querySelectorAll(".pin");
     expect(pins()).toHaveLength(4);
-    expect(screen.getByText("3 numbered · 4 of 12 cards located")).toBeTruthy();
+    expect(screen.getByText("4 of 12 cards on the map")).toBeTruthy();
     expect(localStorage.getItem("trip-map-osm:1,2,3,4")).toBeNull();
     const allFrame = map.dataset.frame;
     fireEvent.click(screen.getByRole("button", { name: "Day 2" }));

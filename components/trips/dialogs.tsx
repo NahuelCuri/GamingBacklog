@@ -2,29 +2,59 @@
 
 // Trip Planner dialogs: read-only card view, card editor, trip editor and the
 // type-the-name delete confirmation.
-import { useEffect, useRef, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { useEffect, useId, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
-  PRIOS, STATUSES, TYPES, addTag, locQuery, locStatus, locStr, lookalikes, money, parseLoc, regionFromAddress, regionSuggestions, reverseUrl, tagSuggestions, typeMeta, type TripCard,
+  PRIOS, STATUSES, TYPES, addTag, dayHint, locQuery, locStatus, locStr, lookalikes, money, parseLoc, regionFromAddress, regionSuggestions, reverseUrl, tagSuggestions, typeMeta, type TripCard,
 } from "@/lib/trips/model";
-import { Fact, StatusPrio, sourceShort } from "./CompareDrawer";
+import { Fact, StatusPrio, sourceShort } from "./cardBits";
 import { LookalikeNote } from "./LookalikeNote";
-import { T, btnGhost, btnPrimary, chip, frame, closeX, dialogFoot, dialogHead, dialogPanel, fieldLabel, input, kicker, overlay, tagChip, typeTag } from "./styles";
 import { useTripCtx, type CardModal, type TripModal } from "./TripPlanner";
+import { Button, Chip, FieldLabel, IconButton, Kicker, TypeLabel, cx, inputCls, tagCls, tint } from "./ui";
 
-function Dialog({ label, onClose, children, panel, z }: { label: string; onClose(): void; children: ReactNode; panel?: CSSProperties; z?: string }) {
+function Dialog({ label, onClose, children, accent, narrow, top }: { label: string; onClose(): void; children: ReactNode; accent?: string; narrow?: boolean; top?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useDialog(ref, onClose);
   return (
-    <div onClick={onClose} style={{ ...overlay, ...(z ? { zIndex: z, background: "rgba(6,8,9,.72)" } : {}), animation: "gfade 160ms ease-out" }}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onClick={(e) => e.stopPropagation()} style={{ ...dialogPanel, ...panel, animation: "gpop 220ms var(--ease-out)" }}>
+    <div onClick={onClose} className={cx("fixed inset-0 flex items-end justify-center overscroll-contain bg-black/60 backdrop-blur-[3px] [animation:gfade_160ms_ease-out] tp:items-center tp:p-6", top ? "z-[var(--z-dialog)]" : "z-[var(--z-overlay)]")}>
+      <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        style={tint(accent)}
+        className={cx(
+          "flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-wh bg-surface shadow-[var(--shadow-pop)] outline-none [animation:gpop_220ms_var(--ease-out)] tp:max-h-[88vh] tp:rounded-2xl",
+          accent && "border-t-[3px] border-t-[var(--c)]",
+          narrow ? "tp:max-w-[400px]" : "tp:max-w-[460px]",
+        )}
+      >
         {children}
       </div>
     </div>
   );
 }
+
+function Head({ children, onClose }: { children: ReactNode; onClose(): void }) {
+  return (
+    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-wf py-2.5 pr-2.5 pl-[18px]">
+      {children}
+      <IconButton onClick={onClose} aria-label="Close">
+        <CloseIcon size={15} />
+      </IconButton>
+    </div>
+  );
+}
+
+function Foot({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cx("flex shrink-0 items-center justify-between gap-2 border-t border-wf px-[18px] py-3 pb-[max(12px,env(safe-area-inset-bottom))]", className)}>{children}</div>;
+}
+
+const body = "g-scroll min-h-0 flex-1 overflow-y-auto p-[18px]";
 
 // ---------------------------------------------------------------- view
 
@@ -35,42 +65,46 @@ export function CardViewBody({ card: d }: { card: TripCard }) {
   const hasPrice = d.price != null && (d.price as unknown) !== "";
   return (
     <>
-      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: T.text, lineHeight: 1.25, marginBottom: 13 }}>{d.title || "Untitled"}</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 15 }}>
+      <div className="mb-3 text-xl leading-[1.25] font-extrabold tracking-[-.01em] text-text">{d.title || "Untitled"}</div>
+      <div className="mb-4 flex flex-wrap gap-1.5">
         <StatusPrio card={d} />
-        <div style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 20, background: "rgba(95,184,176,.1)", border: "1px solid rgba(95,184,176,.28)", color: "#7fd0c8" }}>
-          {d.day != null ? "Day " + d.day : "Pool"}
+        <div className="rounded-full border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2.5 py-1 font-mono text-2xs font-semibold text-accent2">
+          {d.day != null ? "Day " + d.day + (trip ? " · " + dayHint(trip, d.day) : "") : "Pool"}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 15 }}>
-        {hasPrice && <Fact label="Price" value={money(d.price, trip?.currency)} size={15} bold />}
-        {d.startTime && <Fact label="Start" value={d.startTime} size={15} />}
-        {d.duration && <Fact label="Duration" value={d.duration} size={15} />}
-      </div>
+      {(hasPrice || d.startTime || d.duration) && (
+        <div className="mb-4 flex gap-2">
+          {hasPrice && <Fact label="Price" value={money(d.price, trip?.currency)} big />}
+          {d.startTime && <Fact label="Start" value={d.startTime} />}
+          {d.duration && <Fact label="Duration" value={d.duration} />}
+        </div>
+      )}
       {d.region && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.muted, marginBottom: 15 }}>
-          <PinIcon size={13} className="text-[#5fb8b0]" />
+        <div className="mb-4 flex items-center gap-1.5 text-13 text-text2">
+          <span className="text-accent">
+            <PinIcon size={13} />
+          </span>
           {d.region}
         </div>
       )}
       {tags.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 15 }}>
+        <div className="mb-4 flex flex-wrap gap-1.5">
           {tags.map((t, i) => (
-            <div key={i} style={tagChip}>
+            <span key={i} className={tagCls}>
               {t}
-            </div>
+            </span>
           ))}
         </div>
       )}
-      <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", color: T.dim2, marginBottom: 5 }}>Notes</div>
-      <div style={{ fontSize: 13.5, color: T.text2, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{d.notes || "No notes yet."}</div>
+      <Kicker className="mb-1.5">Notes</Kicker>
+      <div className={cx("text-sm leading-relaxed whitespace-pre-wrap", d.notes ? "text-text2" : "text-muted")}>{d.notes || "No notes yet."}</div>
       {d.source && (
-        <a href={d.source} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, color: T.accent, marginTop: 14 }}>
+        <a href={d.source} target="_blank" rel="noopener noreferrer" className="mt-3.5 inline-flex items-center gap-1.5 text-13 text-accent hover:underline">
           <ArrowUpRightIcon size={12} />
           {sourceShort(d.source)}
         </a>
       )}
-      {d.addedBy && <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim3, marginTop: 12 }}>added by {d.addedBy}</div>}
+      {d.addedBy && <div className="mt-3 font-mono text-2xs text-muted">added by {d.addedBy}</div>}
     </>
   );
 }
@@ -78,24 +112,21 @@ export function CardViewBody({ card: d }: { card: TripCard }) {
 export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; onClose(): void; onEdit(): void }) {
   const tm = typeMeta(d.type);
   return (
-    <Dialog label={d.title || "Untitled"} onClose={onClose} panel={frame(T.border, "top", tm.color)}>
-      <div style={{ ...dialogHead, padding: "14px 18px" }}>
-        <span style={typeTag(tm.color)}>{tm.label}</span>
-        <button type="button" onClick={onClose} aria-label="Close" style={closeX}>
-          <CloseIcon size={15} />
-        </button>
-      </div>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18 }}>
+    <Dialog label={d.title || "Untitled"} onClose={onClose} accent={tm.color}>
+      <Head onClose={onClose}>
+        <TypeLabel color={tm.color}>{tm.label}</TypeLabel>
+      </Head>
+      <div className={body}>
         <CardViewBody card={d} />
       </div>
-      <div style={{ ...dialogFoot, justifyContent: "flex-end" }}>
-        <button type="button" onClick={onClose} style={btnGhost}>
+      <Foot className="justify-end">
+        <Button variant="ghost" onClick={onClose}>
           Close
-        </button>
-        <button type="button" onClick={onEdit} style={btnPrimary}>
+        </Button>
+        <Button variant="primary" onClick={onEdit}>
           Edit
-        </button>
-      </div>
+        </Button>
+      </Foot>
     </Dialog>
   );
 }
@@ -103,7 +134,7 @@ export function CardViewDialog({ card: d, onClose, onEdit }: { card: TripCard; o
 // ---------------------------------------------------------------- card editor
 
 /** Region field that offers the regions already used on other cards while typing (arrows + Enter, or click). */
-function RegionInput({ value, onChange, options }: { value: string; onChange(v: string): void; options(typed: string): string[] }) {
+function RegionInput({ id, value, onChange, options }: { id: string; value: string; onChange(v: string): void; options(typed: string): string[] }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const list = open ? options(value) : [];
@@ -112,8 +143,9 @@ function RegionInput({ value, onChange, options }: { value: string; onChange(v: 
     setOpen(false);
   };
   return (
-    <div style={{ position: "relative", marginBottom: 14 }}>
+    <div className="relative">
       <input
+        id={id}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -145,10 +177,10 @@ function RegionInput({ value, onChange, options }: { value: string; onChange(v: 
         aria-label="Region or place"
         autoComplete="off"
         placeholder="Neighborhood, City"
-        style={input}
+        className={inputCls}
       />
       {list.length > 0 && (
-        <div id="region-options" role="listbox" aria-label="Regions used before" style={{ position: "absolute", left: 0, right: 0, top: "calc(100% + 4px)", zIndex: 5, background: T.card, border: `1px solid ${T.border2}`, borderRadius: 9, padding: 4, boxShadow: "0 10px 30px rgba(0,0,0,.5)", animation: "gfade 120ms ease-out" }}>
+        <div id="region-options" role="listbox" aria-label="Regions used before" className="absolute inset-x-0 top-[calc(100%+4px)] z-[5] rounded-[9px] border border-wh bg-card p-1 shadow-[var(--shadow-pop)] [animation:gfade_120ms_ease-out]">
           {list.map((r, i) => (
             <div
               key={r}
@@ -161,7 +193,7 @@ function RegionInput({ value, onChange, options }: { value: string; onChange(v: 
                 pick(r);
               }}
               onMouseEnter={() => setActive(i)}
-              style={{ cursor: "pointer", fontSize: 13, color: T.text2, padding: "7px 10px", borderRadius: 6, background: i === active ? "rgba(95,184,176,.12)" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              className={cx("cursor-pointer truncate rounded-md px-2.5 py-2 text-13 text-text2", i === active && "bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]")}
             >
               {r}
             </div>
@@ -172,7 +204,29 @@ function RegionInput({ value, onChange, options }: { value: string; onChange(v: 
   );
 }
 
-const optBtn: CSSProperties ={ font: "inherit", cursor: "pointer", fontSize: 11.5, fontWeight: 600, padding: "6px 10px", borderRadius: 7 };
+/** A labelled block of the editor. */
+function Field({ label, htmlFor, aside, children, className }: { label: string; htmlFor?: string; aside?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <div className={cx("mb-4", className)}>
+      <div className="flex items-baseline justify-between gap-2">
+        <FieldLabel htmlFor={htmlFor}>{label}</FieldLabel>
+        {aside}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mt-2 border-t border-wf pt-4">
+      <Kicker as="h3" className="mb-3">
+        {title}
+      </Kicker>
+      {children}
+    </section>
+  );
+}
 
 export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDelete, onClose }: {
   modal: CardModal;
@@ -183,6 +237,7 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
   onClose(): void;
 }) {
   const { data, trip, cards, moveOrder, openEdit } = useTripCtx();
+  const uid = useId();
   const set = (patch: Partial<CardModal>) => setModal((s) => (s ? { ...s, ...patch } : s));
   const header = m.__new ? "New card" : "Edit card";
   const loc = locStatus(m);
@@ -232,181 +287,184 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
       .catch(() => set({ locBusy: false, locErr: "none" }));
   };
 
+  const id = (k: string) => uid + k;
+  const locTone = loc.hint === "✓ on the map" ? "text-accent" : loc.hint === "no coordinates yet" ? "text-warn" : "text-muted";
+
   return (
-    <Dialog label={header} onClose={onClose}>
-      <div style={dialogHead}>
-        <div style={kicker}>{header}</div>
-        <button type="button" onClick={onClose} aria-label="Close" style={closeX}>
-          <CloseIcon size={15} />
-        </button>
-      </div>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18 }}>
-        <input value={m.title} onChange={(e) => set({ title: e.target.value })} aria-label="Card title" autoComplete="off" placeholder="Title" style={{ ...input, padding: "11px 13px", fontSize: 15, fontWeight: 600, marginBottom: 15 }} />
+    <Dialog label={header} onClose={onClose} accent={typeMeta(m.type).color}>
+      <Head onClose={onClose}>
+        <Kicker>{header}</Kicker>
+      </Head>
+      <div className={body}>
+        <input value={m.title} onChange={(e) => set({ title: e.target.value })} aria-label="Card title" autoComplete="off" placeholder="What is it? e.g. Fushimi Inari at dawn" className={cx(inputCls, "mb-4 py-3 text-base font-semibold")} />
         {/* A new card can switch to the one it repeats (dropping the draft); an edit only hears about it. */}
-        <LookalikeNote found={lookalikes(cards, { id: m.id, title: m.title, source: m.source, loc: parseLoc(locText) })} onOpen={m.__new ? openEdit : undefined} style={{ margin: "-7px 0 15px" }} />
+        <LookalikeNote found={lookalikes(cards, { id: m.id, title: m.title, source: m.source, loc: parseLoc(locText) })} onOpen={m.__new ? openEdit : undefined} className="-mt-2 mb-4" />
 
-        <div style={fieldLabel}>Type</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
-          {TYPES.map((t) => (
-            <button key={t.value} type="button" aria-pressed={m.type === t.value} onClick={() => set({ type: t.value })} style={{ ...optBtn, ...chip(m.type === t.value, t.color) }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={fieldLabel}>Status</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
-          {STATUSES.map((s) => (
-            <button key={s.value} type="button" aria-pressed={m.status === s.value} onClick={() => set({ status: s.value })} style={{ ...optBtn, display: "flex", alignItems: "center", gap: 6, ...chip(m.status === s.value, s.value === "idea" ? T.muted2 : s.dot) }}>
-              <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", background: s.dot === "transparent" ? "#4a514c" : s.dot }} />
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <div>
-            <div style={fieldLabel}>Price</div>
-            <input value={String(m.price ?? "")} onChange={(e) => set({ price: e.target.value as never })} aria-label="Price" placeholder="0" inputMode="decimal" autoComplete="off" style={input} />
-          </div>
-          <div>
-            <div style={fieldLabel}>Start time</div>
-            <input type="time" value={m.startTime || ""} onChange={(e) => set({ startTime: e.target.value })} aria-label="Start time" style={input} />
-          </div>
-        </div>
-
-        <div style={fieldLabel}>Priority</div>
-        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-          {PRIOS.map((p) => (
-            <button key={p.value} type="button" aria-pressed={m.priority === p.value} onClick={() => set({ priority: p.value })} style={{ ...optBtn, flex: 1, textAlign: "center", fontSize: 12, padding: "9px 6px", borderRadius: 8, ...chip(m.priority === p.value, T.must) }}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={fieldLabel}>Region / place</div>
-        <RegionInput value={m.region || ""} onChange={(region) => set({ region })} options={(typed) => regionSuggestions(data.cards, typed)} />
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
-          <div style={{ ...fieldLabel, marginBottom: 0 }}>Location</div>
-          <div style={{ fontFamily: T.mono, fontSize: 10.5, color: loc.color, whiteSpace: "nowrap" }}>{loc.hint}</div>
-        </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-          <input
-            value={locText}
-            onChange={(e) => set({ locText: e.target.value, locErr: null })}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                lookup();
-              }
-            }}
-            aria-label="Location — place name, Maps link or coordinates"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Place name, Maps link, or 35.6764, 139.6500"
-            style={{ ...input, flex: 1, minWidth: 0 }}
-          />
-          <button type="button" onClick={lookup} style={{ font: "inherit", cursor: "pointer", flex: "0 0 auto", display: "flex", alignItems: "center", fontSize: 12.5, fontWeight: 600, color: "#9fd8d1", background: "rgba(95,184,176,.12)", border: "1px solid rgba(95,184,176,.32)", borderRadius: 9, padding: "0 13px", whiteSpace: "nowrap" }}>
-            {loc.button}
-          </button>
-        </div>
-        <div style={{ fontSize: 11, color: T.dim3, lineHeight: 1.5, marginBottom: 14, textWrap: "pretty" }}>{loc.note}</div>
-
-        <div style={fieldLabel}>Time to allow</div>
-        <input value={m.duration || ""} onChange={(e) => set({ duration: e.target.value })} aria-label="Time to allow" autoComplete="off" placeholder="e.g. 2h · half day" style={{ ...input, marginBottom: 14 }} />
-
-        <div style={fieldLabel}>Tags</div>
-        {(m.tags || []).length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 7 }}>
-            {(m.tags || []).map((t, i) => (
-              <button key={i} type="button" onClick={() => set({ tags: (m.tags || []).filter((x) => x !== t) })} aria-label={"Remove tag " + t} style={{ ...tagChip, font: "inherit", fontSize: 11.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
-                {t} <CloseIcon size={9} className="text-[#6b8f8a]" />
-              </button>
+        <Field label="Type">
+          <div role="group" aria-label="Type" className="flex flex-wrap gap-1.5">
+            {TYPES.map((t) => (
+              <Chip key={t.value} on={m.type === t.value} color={t.color} onClick={() => set({ type: t.value })}>
+                {t.label}
+              </Chip>
             ))}
           </div>
-        )}
-        <input
-          value={m.tagInput || ""}
-          onChange={(e) => set({ tagInput: e.target.value })}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === ",") {
-              e.preventDefault();
-              commitTag(m.tagInput || "");
-            }
-          }}
-          aria-label="Add a tag"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="Type a tag, Enter…"
-          style={{ ...input, marginBottom: 9 }}
-        />
-        {suggest.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
-            {suggest.map((t) => (
-              <button key={t} type="button" onClick={() => commitTag(t)} aria-label={"Add tag " + t} style={{ font: "inherit", background: "none", cursor: "pointer", fontSize: 11, padding: "4px 9px", borderRadius: 20, color: T.muted2, border: `1px solid ${T.border2}` }}>
-                + {t}
-              </button>
+        </Field>
+
+        <Field label="Status">
+          <div role="group" aria-label="Status" className="flex flex-wrap gap-1.5">
+            {STATUSES.map((s) => (
+              <Chip key={s.value} on={m.status === s.value} color={s.value === "idea" ? undefined : s.dot} onClick={() => set({ status: s.value })}>
+                {s.label}
+              </Chip>
             ))}
           </div>
-        )}
+        </Field>
 
-        <div style={fieldLabel}>Source link</div>
-        <input type="url" value={m.source || ""} onChange={(e) => set({ source: e.target.value })} aria-label="Source link" autoComplete="off" spellCheck={false} placeholder="https://" style={{ ...input, marginBottom: 14 }} />
-
-        <div style={fieldLabel}>Day</div>
-        <div role="group" aria-label="Schedule this card" style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
-          {Array.from({ length: days + 1 }, (_, d) => {
-            const active = (m.day == null ? 0 : m.day) === d;
-            return (
-              <button key={d} type="button" aria-pressed={active} onClick={() => set({ day: d === 0 ? null : d })} style={{ ...optBtn, ...chip(active) }}>
-                {d === 0 ? "Pool" : "Day " + d}
-              </button>
-            );
-          })}
-        </div>
-        {m.day != null && !m.__new && (
-          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-            <button type="button" onClick={() => moveOrder(m.id, -1)} style={{ ...btnGhost, fontSize: 11.5, padding: "6px 11px", borderRadius: 7 }}>
-              ↑ Move earlier
-            </button>
-            <button type="button" onClick={() => moveOrder(m.id, 1)} style={{ ...btnGhost, fontSize: 11.5, padding: "6px 11px", borderRadius: 7 }}>
-              ↓ Move later
-            </button>
+        <Field label="Priority">
+          <div role="group" aria-label="Priority" className="grid grid-cols-3 gap-1.5">
+            {PRIOS.map((p) => (
+              <Chip key={p.value} on={m.priority === p.value} color="var(--must)" onClick={() => set({ priority: p.value })} className="justify-center">
+                {p.label}
+              </Chip>
+            ))}
           </div>
-        )}
+        </Field>
 
-        <div style={fieldLabel}>Notes</div>
-        <textarea value={m.notes || ""} onChange={(e) => set({ notes: e.target.value })} aria-label="Notes" placeholder="Tips, why it made the list…" style={{ ...input, minHeight: 90, resize: "vertical", padding: "10px 12px", lineHeight: 1.55 }} />
+        <Section title="When">
+          <Field label="Day">
+            <div role="group" aria-label="Schedule this card" className="flex flex-wrap gap-1.5">
+              {Array.from({ length: days + 1 }, (_, d) => (
+                <Chip key={d} on={(m.day == null ? 0 : m.day) === d} onClick={() => set({ day: d === 0 ? null : d })}>
+                  {d === 0 ? "Pool" : "Day " + d}
+                </Chip>
+              ))}
+            </div>
+            {m.day != null && !m.__new && (
+              <div className="mt-2 flex gap-1.5">
+                <Button size="sm" variant="ghost" onClick={() => moveOrder(m.id, -1)}>
+                  ↑ Move earlier
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => moveOrder(m.id, 1)}>
+                  ↓ Move later
+                </Button>
+              </div>
+            )}
+          </Field>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field label="Start time" htmlFor={id("time")}>
+              <input id={id("time")} type="time" value={m.startTime || ""} onChange={(e) => set({ startTime: e.target.value })} aria-label="Start time" className={inputCls} />
+            </Field>
+            <Field label="Time to allow" htmlFor={id("dur")}>
+              <input id={id("dur")} value={m.duration || ""} onChange={(e) => set({ duration: e.target.value })} aria-label="Time to allow" autoComplete="off" placeholder="2h · half day" className={inputCls} />
+            </Field>
+          </div>
+        </Section>
+
+        <Section title="Where">
+          <Field label="Region / place" htmlFor={id("region")}>
+            <RegionInput id={id("region")} value={m.region || ""} onChange={(region) => set({ region })} options={(typed) => regionSuggestions(data.cards, typed)} />
+          </Field>
+          <Field label="Location" htmlFor={id("loc")} aside={<span className={cx("font-mono text-2xs whitespace-nowrap", locTone)}>{loc.hint}</span>}>
+            <div className="flex gap-2">
+              <input
+                id={id("loc")}
+                value={locText}
+                onChange={(e) => set({ locText: e.target.value, locErr: null })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    lookup();
+                  }
+                }}
+                aria-label="Location — place name, Maps link or coordinates"
+                aria-describedby={id("locnote")}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="Place name, Maps link, or 35.6764, 139.6500"
+                className={cx(inputCls, "min-w-0 flex-1")}
+              />
+              <Button variant="soft" onClick={lookup} aria-busy={!!m.locBusy}>
+                {loc.button}
+              </Button>
+            </div>
+            <div id={id("locnote")} className="mt-1.5 text-xs leading-normal text-pretty text-muted">
+              {loc.note}
+            </div>
+          </Field>
+        </Section>
+
+        <Section title="Details">
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field label="Price" htmlFor={id("price")}>
+              <input id={id("price")} value={String(m.price ?? "")} onChange={(e) => set({ price: e.target.value as never })} aria-label="Price" placeholder="0" inputMode="decimal" autoComplete="off" className={inputCls} />
+            </Field>
+            <Field label="Source link" htmlFor={id("src")}>
+              <input id={id("src")} type="url" value={m.source || ""} onChange={(e) => set({ source: e.target.value })} aria-label="Source link" autoComplete="off" spellCheck={false} placeholder="https://" className={inputCls} />
+            </Field>
+          </div>
+          <Field label="Tags" htmlFor={id("tag")}>
+            {(m.tags || []).length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {(m.tags || []).map((t, i) => (
+                  <button key={i} type="button" onClick={() => set({ tags: (m.tags || []).filter((x) => x !== t) })} aria-label={"Remove tag " + t} className={cx(tagCls, "cursor-pointer hover:brightness-110")}>
+                    {t} <CloseIcon size={9} />
+                  </button>
+                ))}
+              </div>
+            )}
+            <input
+              id={id("tag")}
+              value={m.tagInput || ""}
+              onChange={(e) => set({ tagInput: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  commitTag(m.tagInput || "");
+                }
+              }}
+              aria-label="Add a tag"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Type a tag, then Enter"
+              className={inputCls}
+            />
+            {suggest.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {suggest.map((t) => (
+                  <button key={t} type="button" onClick={() => commitTag(t)} aria-label={"Add tag " + t} className="cursor-pointer rounded-full border border-wh px-2.5 py-1 text-xs text-muted transition-colors hover:border-wl hover:text-text">
+                    + {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </Field>
+          <Field label="Notes" htmlFor={id("notes")} className="mb-0">
+            <textarea id={id("notes")} value={m.notes || ""} onChange={(e) => set({ notes: e.target.value })} aria-label="Notes" placeholder="Tips, why it made the list…" className={cx(inputCls, "min-h-[90px] resize-y leading-normal")} />
+          </Field>
+        </Section>
       </div>
-      <div style={dialogFoot}>
+      <Foot>
         {m.__new ? (
           <div />
         ) : (
-          <button type="button" onClick={() => onDelete(m)} style={{ font: "inherit", background: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, color: confirmDel ? "#fff" : T.danger, padding: "9px 13px", borderRadius: 8, border: `1px solid ${confirmDel ? "#c14b4b" : "#3a2828"}` }}>
+          <Button variant={confirmDel ? "dangerSolid" : "danger"} onClick={() => onDelete(m)}>
             {confirmDel ? "Tap again to delete" : "Delete"}
-          </button>
+          </Button>
         )}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" onClick={onClose} style={btnGhost}>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={onClose}>
             Cancel
-          </button>
-          <button type="button" onClick={() => onSave(m)} style={btnPrimary}>
+          </Button>
+          <Button variant="primary" onClick={() => onSave(m)}>
             Save
-          </button>
+          </Button>
         </div>
-      </div>
+      </Foot>
     </Dialog>
   );
 }
 
 // ---------------------------------------------------------------- trip editor
-
-/** DatePicker tokens inside the always-dark Trip Planner. */
-const pickerVars = {
-  "--accent": T.accent, "--inset": T.bg, "--card": T.card, "--bg": T.bg, "--chip": "#161a1b", "--text": T.text, "--text2": T.text2,
-  "--muted": T.muted2, "--dim": "#59605b", "--wh": T.border, "--wi": T.border2, "--we": T.line2, "--onAccent": T.onAccent,
-} as CSSProperties;
 
 export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete }: {
   modal: TripModal;
@@ -415,54 +473,57 @@ export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete
   onClose(): void;
   onDelete(): void;
 }) {
+  const uid = useId();
   const set = (patch: Partial<TripModal>) => setModal((s) => (s ? { ...s, ...patch } : s));
   const header = d.__new ? "New trip" : "Edit trip";
   return (
-    <Dialog label={header} onClose={onClose} panel={{ maxWidth: 440 }}>
-      <div style={dialogHead}>
-        <div style={kicker}>{header}</div>
-        <button type="button" onClick={onClose} aria-label="Close" style={closeX}>
-          <CloseIcon size={15} />
-        </button>
-      </div>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18 }}>
-        <div style={fieldLabel}>Trip name</div>
-        <input value={d.name || ""} onChange={(e) => set({ name: e.target.value })} aria-label="Trip name" autoComplete="off" placeholder="e.g. Japan · Cherry Season" style={{ ...input, padding: "11px 13px", fontSize: 15, fontWeight: 600, marginBottom: 15 }} />
-        <div style={fieldLabel}>Route / subtitle</div>
-        <input value={d.subtitle || ""} onChange={(e) => set({ subtitle: e.target.value })} aria-label="Route or subtitle" autoComplete="off" placeholder="Tokyo → Kyoto → Osaka" style={{ ...input, marginBottom: 14 }} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14, ...pickerVars }}>
+    <Dialog label={header} onClose={onClose} narrow>
+      <Head onClose={onClose}>
+        <Kicker>{header}</Kicker>
+      </Head>
+      <div className={body}>
+        <Field label="Trip name" htmlFor={uid + "name"}>
+          <input id={uid + "name"} value={d.name || ""} onChange={(e) => set({ name: e.target.value })} aria-label="Trip name" autoComplete="off" placeholder="e.g. Japan · Cherry Season" className={cx(inputCls, "py-3 text-base font-semibold")} />
+        </Field>
+        <Field label="Route / subtitle" htmlFor={uid + "sub"}>
+          <input id={uid + "sub"} value={d.subtitle || ""} onChange={(e) => set({ subtitle: e.target.value })} aria-label="Route or subtitle" autoComplete="off" placeholder="Tokyo → Kyoto → Osaka" className={inputCls} />
+        </Field>
+        <div className="mb-4 grid grid-cols-2 gap-2.5">
           <div>
-            <div style={fieldLabel}>Start date</div>
+            <FieldLabel>Start date</FieldLabel>
             <DatePicker value={d.start || ""} placeholder="Pick a date" onChange={(iso) => set({ start: iso })} />
           </div>
           <div>
-            <div style={fieldLabel}>End date</div>
+            <FieldLabel>End date</FieldLabel>
             <DatePicker value={d.end || ""} placeholder="Pick a date" onChange={(iso) => set({ end: iso })} />
           </div>
         </div>
-        <div style={fieldLabel}>Budget</div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ flex: "0 0 auto", fontSize: 14, fontWeight: 700, color: T.muted2, padding: "9px 13px", borderRadius: 8, background: T.bg, border: `1px solid ${T.border}` }}>$</div>
-          <input value={String(d.budget ?? "")} onChange={(e) => set({ budget: e.target.value as never })} aria-label="Budget in dollars" placeholder="2000" inputMode="decimal" autoComplete="off" style={{ ...input, flex: 1, minWidth: 0 }} />
-        </div>
+        <Field label="Budget" htmlFor={uid + "budget"} className="mb-0">
+          <div className="flex items-stretch gap-2">
+            <span aria-hidden className="flex items-center rounded-[9px] border border-wh bg-inset px-3 text-sm font-bold text-muted">
+              $
+            </span>
+            <input id={uid + "budget"} value={String(d.budget ?? "")} onChange={(e) => set({ budget: e.target.value as never })} aria-label="Budget in dollars" placeholder="2000" inputMode="decimal" autoComplete="off" className={cx(inputCls, "min-w-0 flex-1")} />
+          </div>
+        </Field>
       </div>
-      <div style={dialogFoot}>
+      <Foot>
         {d.__new ? (
           <div />
         ) : (
-          <button type="button" onClick={onDelete} style={{ font: "inherit", background: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, color: T.danger, padding: "9px 13px", borderRadius: 8, border: "1px solid #3a2828" }}>
+          <Button variant="danger" onClick={onDelete}>
             Delete trip
-          </button>
+          </Button>
         )}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" onClick={onClose} style={btnGhost}>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={onClose}>
             Cancel
-          </button>
-          <button type="button" onClick={() => onSave(d)} style={btnPrimary}>
+          </Button>
+          <Button variant="primary" onClick={() => onSave(d)}>
             {d.__new ? "Create trip" : "Save"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Foot>
     </Dialog>
   );
 }
@@ -470,31 +531,27 @@ export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete
 // ---------------------------------------------------------------- delete trip
 
 export function DeleteTripDialog({ name, onCancel, onConfirm }: { name: string; onCancel(): void; onConfirm(): void }) {
+  const uid = useId();
   const [typed, setTyped] = useState("");
   const match = !!name.trim() && typed.trim() === name.trim();
   return (
-    <Dialog label="Delete this trip?" onClose={onCancel} z="var(--z-dialog)" panel={{ maxWidth: 400, ...frame("#3a2828", "top", "#3a2828", 1), maxHeight: undefined }}>
-      <div style={{ padding: "20px 20px 16px" }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 8 }}>Delete this trip?</div>
-        <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.55, marginBottom: 16 }}>
-          This permanently deletes <b style={{ color: T.text }}>{name}</b> and every card, note and plan in it. This can’t be undone.
+    <Dialog label="Delete this trip?" onClose={onCancel} top narrow accent="var(--neg)">
+      <div className="px-5 pt-5 pb-4">
+        <div className="mb-2 text-base font-bold text-text">Delete this trip?</div>
+        <div className="mb-4 text-13 leading-normal text-muted">
+          This permanently deletes <b className="text-text">{name}</b> and every card, note and plan in it. This can’t be undone.
         </div>
-        <div style={fieldLabel}>Type the trip name to confirm</div>
-        <input value={typed} onChange={(e) => setTyped(e.target.value)} aria-label="Type the trip name to confirm" autoComplete="off" spellCheck={false} placeholder={name} style={{ ...input, border: "1px solid #3a2828", padding: "10px 12px" }} />
+        <FieldLabel htmlFor={uid}>Type the trip name to confirm</FieldLabel>
+        <input id={uid} value={typed} onChange={(e) => setTyped(e.target.value)} aria-label="Type the trip name to confirm" autoComplete="off" spellCheck={false} placeholder={name} className={inputCls} />
       </div>
-      <div style={{ ...dialogFoot, justifyContent: "flex-end" }}>
-        <button type="button" onClick={onCancel} style={btnGhost}>
+      <Foot className="justify-end">
+        <Button variant="ghost" onClick={onCancel}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={() => match && onConfirm()}
-          aria-disabled={!match}
-          style={{ font: "inherit", fontSize: 12.5, fontWeight: 700, padding: "9px 18px", borderRadius: 8, border: "none", ...(match ? { cursor: "pointer", color: "#fff", background: "#c14b4b" } : { cursor: "not-allowed", color: "#6b5555", background: "#2a1c1c" }) }}
-        >
+        </Button>
+        <Button variant="dangerSolid" onClick={() => match && onConfirm()} aria-disabled={!match}>
           Delete trip
-        </button>
-      </div>
+        </Button>
+      </Foot>
     </Dialog>
   );
 }

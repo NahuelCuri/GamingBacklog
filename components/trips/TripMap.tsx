@@ -4,14 +4,18 @@
 // numbered per day and joined by a dashed route; unscheduled ones show as
 // rings. Picking a day frames its stops; the side list and the pins light each
 // other up. The map (MapLibre) loads lazily, the first time this tab opens.
-import { Component, lazy, useCallback, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+//
+// One toolbar holds every control: days, pin types, districts and map layers.
+import { Component, lazy, useCallback, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
+import { PinIcon, ResetIcon } from "@/components/icons";
 import { loadDistricts, stopsIn, zoneAt, type District, type Districts } from "@/lib/trips/districts";
 import { boxOf, framePoints, frameKey, mapScene } from "@/lib/trips/map-scene";
 import { blankCard, cleanCard, mapStops, normTitle, TYPES, typeMeta, type MapDay, type TripCard } from "@/lib/trips/model";
 import { play } from "@/lib/motion";
 import { CardViewBody } from "./dialogs";
-import { T, btnGhost, btnPrimary, input, typeTag } from "./styles";
+import { MapLoading } from "./MapLoading";
 import { useTripCtx } from "./TripPlanner";
+import { Button, Chip, IconButton, Kicker, Sheet, TypeLabel, cx, inputCls, tint } from "./ui";
 
 const TripMapCanvas = lazy(() => import("./TripMapCanvas"));
 
@@ -33,11 +37,9 @@ class MapBoundary extends Component<{ children: ReactNode }, { failed: boolean }
     return { failed: true };
   }
   render() {
-    return this.state.failed ? <Centered text="Map unavailable — check your connection and reopen the tab." /> : this.props.children;
+    return this.state.failed ? <Notice title="Map unavailable" text="Check your connection and reopen the tab." /> : this.props.children;
   }
 }
-
-const mapBtn: CSSProperties = { pointerEvents: "auto", cursor: "pointer", fontFamily: T.mono, fontSize: 11, color: T.muted, background: "rgba(14,17,18,.9)", borderWidth: 1, borderStyle: "solid", borderColor: "#232a2b", borderRadius: 8, padding: "6px 11px", whiteSpace: "nowrap" };
 
 /**
  * A row that opens to its height and closes to nothing, so the box around it
@@ -47,41 +49,38 @@ const mapBtn: CSSProperties = { pointerEvents: "auto", cursor: "pointer", fontFa
 function Fold({ open, children }: { open: boolean; children: ReactNode }) {
   return (
     <div aria-hidden={!open} style={{ display: "grid", gridTemplateColumns: "max-content", gridTemplateRows: open ? "1fr" : "0fr", opacity: open ? 1 : 0, transition: "grid-template-rows 260ms var(--ease-out), opacity 200ms ease-out" }}>
-      <div style={{ overflow: "hidden", minHeight: 0 }}>{children}</div>
+      <div className="min-h-0 overflow-hidden">{children}</div>
     </div>
   );
 }
 
 /**
- * What the transit lines and station marks mean. Always mounted, so it can
- * animate: it fades in under the buttons with its first row, each row folds
- * open or shut as its toggle flips, and it fades out with its last one.
+ * What the transit lines and station marks mean, over the map's bottom-left
+ * corner. Always mounted, so it can animate: each row folds open or shut as
+ * its layer flips, and the box fades out with its last one.
  */
 function TransitKey({ lines, stations }: { lines: boolean; stations: boolean }) {
   const on = lines || stations;
-  const row: CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "2.5px 0", whiteSpace: "nowrap" };
   const line = (dash?: string) => (
     <svg width="22" height="6" aria-hidden="true">
       <line x1="1" y1="3" x2="21" y2="3" stroke="#6d86a8" strokeWidth="1.8" strokeDasharray={dash} opacity={dash ? 0.75 : 0.9} />
     </svg>
   );
+  const row = "flex items-center gap-2 py-0.5 whitespace-nowrap";
   return (
     <div
       aria-hidden={!on}
-      style={{
-        fontFamily: T.mono, fontSize: 10.5, color: T.dim2, background: "rgba(14,17,18,.86)", border: "1px solid #232a2b", borderRadius: 8, padding: "4.5px 10px",
-        opacity: on ? 1 : 0, transform: on ? "none" : "translateY(-4px) scale(.97)", transformOrigin: "top right",
-        transition: "opacity 180ms ease-out, transform 240ms var(--ease-out)",
-      }}
+      className="pointer-events-none absolute bottom-3 left-3 z-[6] origin-bottom-left rounded-lg border border-white/10 bg-[#0e1112]/90 px-2.5 py-1 font-mono text-2xs text-[#9aa7a4]"
+      style={{ opacity: on ? 1 : 0, transform: on ? "none" : "translateY(4px) scale(.97)", transition: "opacity 180ms ease-out, transform 240ms var(--ease-out)" }}
     >
       <Fold open={lines}>
-        <div style={row}>{line()}rail · surface</div>
-        <div style={row}>{line("3.5 3.5")}underground</div>
+        <div className={row}>{line()}rail · surface</div>
+        <div className={row}>{line("3.5 3.5")}underground</div>
       </Fold>
       <Fold open={stations}>
-        <div style={row}>
-          <span aria-hidden="true" style={{ width: 22, display: "flex", justifyContent: "center" }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: "#0f1517", boxShadow: "inset 0 0 0 1.5px #a9bcd6" }} />
+        <div className={row}>
+          <span aria-hidden="true" className="flex w-[22px] justify-center">
+            <span className="size-2 rounded-[2px] bg-[#0f1517] shadow-[inset_0_0_0_1.5px_#a9bcd6]" />
           </span>
           station
         </div>
@@ -95,39 +94,47 @@ function TransitKey({ lines, stations }: { lines: boolean; stations: boolean }) 
  * at it: down at its pin on the map, or right at its row in the side list.
  * Whoever shows it places it; any click closes it.
  */
-function CardBubble({ card, n, compact, onEdit, onClose, tail = "down", tailRef }: { card: TripCard; n: number; compact: boolean; onEdit(): void; onClose?(): void; tail?: "down" | "right" | null; tailRef?: Ref<SVGSVGElement> }) {
+function CardBubble({ card, n, compact, onEdit, onShow, onClose, tail = "down", tailRef }: { card: TripCard; n: number; compact: boolean; onEdit(): void; onShow?(): void; onClose?(): void; tail?: "down" | "right" | null; tailRef?: Ref<SVGSVGElement> }) {
   const tm = typeMeta(card.type);
   return (
-    <div role="dialog" aria-label={card.title || "Untitled"} style={{ position: "relative", width: compact ? 290 : 340, filter: "drop-shadow(0 18px 40px rgba(0,0,0,.55))" }}>
-      <div style={{ display: "flex", flexDirection: "column", maxHeight: "var(--bubble-max)", background: T.dialog, border: `1px solid ${T.border}`, borderTop: `3px solid ${tm.color}`, borderRadius: 14, overflow: "hidden" }}>
-        <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 16px 0" }}>
-          <span style={typeTag(tm.color)}>{tm.label}</span>
-          {n > 0 && <span style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim2 }}>stop #{n}</span>}
-          {onClose && (
-            <button type="button" onClick={onClose} aria-label="Close" style={{ marginLeft: "auto", cursor: "pointer", border: "none", background: "none", color: T.dim2, fontSize: 16, lineHeight: 1, padding: 4 }}>
+    <div role="dialog" aria-label={card.title || "Untitled"} className="relative drop-shadow-[0_18px_40px_rgba(0,0,0,.55)]" style={{ width: compact ? 290 : 340 }}>
+      <div style={tint(tm.color, { maxHeight: "var(--bubble-max)" })} className="flex flex-col overflow-hidden rounded-[14px] border border-t-[3px] border-wh border-t-[var(--c)] bg-surface">
+        <div className="flex shrink-0 items-center justify-between gap-2.5 pt-1.5 pr-1.5 pl-4">
+          <TypeLabel color={tm.color}>{tm.label}</TypeLabel>
+          {n > 0 && <span className="font-mono text-2xs text-muted">stop #{n}</span>}
+          {onClose ? (
+            <IconButton aria-label="Close" onClick={onClose} className="ml-auto">
               ×
-            </button>
+            </IconButton>
+          ) : (
+            <span className="h-8" />
           )}
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "10px 16px 14px" }}>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1.5 pb-3.5">
           <CardViewBody card={card} />
         </div>
-        <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "flex-end", padding: "10px 12px", borderTop: `1px solid ${T.line}` }}>
-          <button type="button" onClick={onEdit} style={{ ...btnPrimary, padding: "7px 16px" }}>
+        <div className="flex shrink-0 justify-end gap-2 border-t border-wf px-3 py-2.5">
+          {onShow && (
+            <Button size="sm" variant="ghost" onClick={onShow}>
+              <PinIcon size={13} />
+              Show on map
+            </Button>
+          )}
+          <Button size="sm" variant="primary" onClick={onEdit}>
             Edit
-          </button>
+          </Button>
         </div>
       </div>
       {/* The tail, down to the pin or across to the row (its height set by the list). */}
       {tail === null ? null : tail === "down" ? (
-        <svg width="22" height="10" aria-hidden="true" style={{ position: "absolute", left: "50%", bottom: -9, transform: "translateX(-50%)", display: "block" }}>
-          <path d="M0 0 L11 10 L22 0" fill={T.dialog} stroke={T.border} strokeWidth="1" />
-          <rect x="0" y="-1" width="22" height="1.5" fill={T.dialog} />
+        <svg width="22" height="10" aria-hidden="true" className="absolute -bottom-[9px] left-1/2 block -translate-x-1/2">
+          <path d="M0 0 L11 10 L22 0" fill="var(--surface)" stroke="var(--wh)" strokeWidth="1" />
+          <rect x="0" y="-1" width="22" height="1.5" fill="var(--surface)" />
         </svg>
       ) : (
-        <svg ref={tailRef} width="10" height="22" aria-hidden="true" style={{ position: "absolute", right: -9, top: 0, display: "block" }}>
-          <path d="M0 0 L10 11 L0 22" fill={T.dialog} stroke={T.border} strokeWidth="1" />
-          <rect x="-1" y="0" width="1.5" height="22" fill={T.dialog} />
+        <svg ref={tailRef} width="10" height="22" aria-hidden="true" className="absolute top-0 -right-[9px] block">
+          <path d="M0 0 L10 11 L0 22" fill="var(--surface)" stroke="var(--wh)" strokeWidth="1" />
+          <rect x="-1" y="0" width="1.5" height="22" fill="var(--surface)" />
         </svg>
       )}
     </div>
@@ -162,7 +169,7 @@ function DistrictPanel({ on, onClose, children }: { on: boolean; onClose(): void
     <div
       aria-hidden={!on}
       style={{
-        position: "absolute", left: 14, top: 58, zIndex: 5, pointerEvents: on ? "auto" : "none", ["--bubble-max" as string]: "calc(100vh - 260px)",
+        position: "absolute", left: 12, top: 12, zIndex: 5, pointerEvents: on ? "auto" : "none", ["--bubble-max" as string]: "calc(100vh - 220px)",
         visibility: vis ? "visible" : "hidden", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateX(-18px)",
         transition: vis ? "opacity 180ms ease-out, transform 280ms var(--ease-out), visibility 0s" : "opacity 140ms ease-out, transform 180ms ease-in, visibility 0s linear 180ms",
       }}
@@ -177,48 +184,62 @@ function DistrictDraft({ name, onSave, onClose }: { name: string; onSave(notes: 
   const [notes, setNotes] = useState("");
   const field = useRef<HTMLTextAreaElement>(null);
   useEffect(() => field.current?.focus(), []);
+  const color = typeMeta("place").color;
   return (
-    <div role="dialog" aria-label={name} style={{ width: 340, maxWidth: "calc(100vw - 60px)", background: T.dialog, border: `1px solid ${T.border}`, borderTop: `3px solid ${typeMeta("place").color}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 18px 40px rgba(0,0,0,.55)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 12px 0 16px" }}>
-        <span style={typeTag(typeMeta("place").color)}>New card</span>
-        <button type="button" onClick={onClose} aria-label="Close" style={{ cursor: "pointer", border: "none", background: "none", color: T.dim2, fontSize: 16, lineHeight: 1, padding: 4 }}>
+    <div role="dialog" aria-label={name} style={tint(color)} className="w-[340px] max-w-[calc(100vw-60px)] overflow-hidden rounded-[14px] border border-t-[3px] border-wh border-t-[var(--c)] bg-surface shadow-[var(--shadow-pop)]">
+      <div className="flex items-center justify-between gap-2.5 pt-1.5 pr-1.5 pl-4">
+        <TypeLabel color={color}>New card</TypeLabel>
+        <IconButton aria-label="Close" onClick={onClose}>
           ×
-        </button>
+        </IconButton>
       </div>
-      <div style={{ padding: "8px 16px 14px" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{name}</div>
-        <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim2, margin: "3px 0 10px" }}>No card for this district yet</div>
-        <textarea ref={field} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What to remember about it: where to eat, how to get around, what to skip…" rows={6} style={{ ...input, resize: "vertical", lineHeight: 1.5 }} />
+      <div className="px-4 pt-1 pb-3.5">
+        <div className="text-base font-bold text-text">{name}</div>
+        <div className="mt-0.5 mb-2.5 text-xs text-muted">No card for this district yet</div>
+        <textarea ref={field} value={notes} onChange={(e) => setNotes(e.target.value)} aria-label={"Notes about " + name} placeholder="What to remember about it: where to eat, how to get around, what to skip…" rows={6} className={cx(inputCls, "resize-y leading-normal")} />
       </div>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "10px 12px", borderTop: `1px solid ${T.line}` }}>
-        <button type="button" onClick={onClose} style={{ ...btnGhost, padding: "7px 14px" }}>
+      <div className="flex justify-end gap-2 border-t border-wf px-3 py-2.5">
+        <Button size="sm" variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button type="button" onClick={() => onSave(notes.trim())} style={{ ...btnPrimary, padding: "7px 16px" }}>
+        </Button>
+        <Button size="sm" variant="primary" onClick={() => onSave(notes.trim())}>
           Create card
-        </button>
+        </Button>
       </div>
     </div>
   );
 }
 
-/** Set once the user has opened a pin by double-click: the side list's hint then stays away. */
-const HINT_KEY = "trip-map-dblclick-seen";
-
-function Centered({ text }: { text: string }) {
+function Notice({ title, text }: { title: string; text: ReactNode }) {
   return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontFamily: T.mono, fontSize: 12, color: T.dim2, padding: "0 30px", textAlign: "center" }}>
-      {text}
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-[#0a0c0d] px-8 text-center">
+      <div className="text-sm font-semibold text-[#c6cfcc]">{title}</div>
+      <div className="max-w-[380px] text-xs text-pretty text-[#8a9693]">{text}</div>
     </div>
   );
 }
+
+/** A checkbox-style row in the Layers and Districts menus. */
+function ToggleRow({ on, onClick, children, aside }: { on: boolean; onClick(): void; children: ReactNode; aside?: ReactNode }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick} className="flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left text-sm text-text2 transition-colors hover:bg-wc pointer-coarse:min-h-12">
+      <span aria-hidden className={cx("flex size-4 shrink-0 items-center justify-center rounded-[4px] border-[1.5px] text-[10px] font-bold", on ? "border-accent bg-accent text-on-accent" : "border-wl")}>
+        {on ? "✓" : ""}
+      </span>
+      <span className="flex-1">{children}</span>
+      {aside}
+    </button>
+  );
+}
+
+const Divider = () => <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-wh" />;
 
 export function TripMap() {
   const { cards, isMobile, openEdit, trip, data, persist } = useTripCtx();
   const [day, setDay] = useState<MapDay>("all");
   const [hot, setHot] = useState<string | null>(null);
   const [opened, setOpened] = useState<string | null>(null);
-  // Bumped when the open stop is double-clicked again: the bubble calls attention to itself.
+  // Bumped when the open stop is opened again: the bubble calls attention to itself.
   const [nudge, setNudge] = useState(0);
   // A row's own bubble: a click on it opens the card beside the list, over the
   // map's edge, pointing at the row; the map stays put.
@@ -227,33 +248,23 @@ export function TripMap() {
   const list = useRef<HTMLDivElement>(null);
   const sideEl = useRef<HTMLDivElement>(null);
   const sideTail = useRef<SVGSVGElement>(null);
-  // The double-click hint: unknown until storage is read (so it never flashes), then shown until first use.
-  const [hintSeen, setHintSeen] = useState<boolean | null>(null);
-  useEffect(() => {
-    try {
-      setHintSeen(localStorage.getItem(HINT_KEY) === "1");
-    } catch {
-      setHintSeen(false);
-    }
-  }, []);
-  // A row's click opens its bubble beside the list, unless a second click makes
-  // it a double-click, which flies to the pin and opens its bubble there instead.
-  const rowClick = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(rowClick.current), []);
   const [resets, setResets] = useState(0);
   const [showZones, setShowZones] = useState(false);
   const [transit, setTransit] = useState(false);
   const [stations, setStations] = useState(false);
   const [zones, setZones] = useState<{ key: string; d: Districts | null; status: "loading" | "ready" | "error" }>({ key: "", d: null, status: "ready" });
   const [retries, setRetries] = useState(0);
+  // Which toolbar menu is open, and their buttons (the popovers hang from them).
+  const [menu, setMenu] = useState<"layers" | "districts" | null>(null);
+  const layersBtn = useRef<HTMLButtonElement>(null);
+  const distBtn = useRef<HTMLButtonElement>(null);
 
   useEffect(forgetOldStreetCache, []);
 
   const stops = useMemo(() => mapStops(cards), [cards]);
   // Pin filters. Types come from the located cards; districts from the zones
-  // behind the districts toggle, judged by where a stop lies, not by its text.
+  // around the stops, judged by where a stop lies, not by its text.
   // Picks that no longer exist are ignored.
-  const [distOpen, setDistOpen] = useState(false);
   const [pickTypes, setPickTypes] = useState<string[]>([]);
   const [glow, setGlow] = useState<{ zone: District; tick: number } | null>(null);
   const [pickZones, setPickZones] = useState<number[]>([]);
@@ -270,22 +281,9 @@ export function TripMap() {
   const baseFrame = useMemo(() => framePoints(baseScene), [baseScene]);
   const overview = useMemo(() => stops.loc.map((c) => [c.loc!.lng, c.loc!.lat] as [number, number]), [stops.loc]);
   // Districts around the stops on show (before the district filter, so picking one doesn't refetch):
-  // fetched when the toggle or the filter needs them and again only when those stops change;
-  // a click after a failure retries.
-  // The districts list closes on a click anywhere else, or Escape.
-  const distBox = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!distOpen) return;
-    const away = (e: PointerEvent) => !distBox.current?.contains(e.target as Node) && setDistOpen(false);
-    const key = (e: KeyboardEvent) => e.key === "Escape" && setDistOpen(false);
-    document.addEventListener("pointerdown", away, true);
-    document.addEventListener("keydown", key);
-    return () => {
-      document.removeEventListener("pointerdown", away, true);
-      document.removeEventListener("keydown", key);
-    };
-  }, [distOpen]);
-  const needZones = showZones || distOpen || pickZones.length > 0;
+  // fetched when the layer or the filter needs them and again only when those stops change;
+  // opening the menu after a failure retries.
+  const needZones = showZones || menu === "districts" || pickZones.length > 0;
   const zKey = baseFrame.map((p) => p.map((v) => v.toFixed(3)).join(",")).join(";");
   useEffect(() => {
     if (!needZones || !baseFrame.length || (zones.key === zKey && zones.status === "ready")) return;
@@ -300,7 +298,6 @@ export function TripMap() {
   }, [needZones, zKey, retries]);
   const loadState = !needZones ? null : zones.key !== zKey || zones.status === "loading" ? "loading" : zones.status === "error" ? "error" : zones.d ? "on" : "none";
   const zoneState = showZones ? loadState : null;
-  const zoneLabel = { loading: "finding districts", error: "districts unavailable · retry", none: "no districts here", on: "districts" }[zoneState ?? "on"];
   // The last districts found stay for the filter while the next ones load.
   const lastZones = useRef<Districts | null>(null);
   if (zones.d) lastZones.current = zones.d;
@@ -374,17 +371,9 @@ export function TripMap() {
     setSide(null);
     if (id && id === open) setNudge((n) => n + 1);
     else setOpened(id);
-    if (!id || hintSeen) return;
-    setHintSeen(true);
-    try {
-      localStorage.setItem(HINT_KEY, "1");
-    } catch {
-      /* storage blocked: hidden for this visit only */
-    }
   };
   // Any click closes it (a drag, panning the map, doesn't); so does Escape.
-  // The map decides for its own clicks, and the open stop's row leaves it be:
-  // either may be the start of a double-click on it.
+  // The map decides for its own clicks, and the open stop's row leaves it be.
   const active = open ?? sideOpen;
   useEffect(() => {
     if (!active) return;
@@ -393,10 +382,10 @@ export function TripMap() {
     const click = (e: MouseEvent) => {
       if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
       const t = e.target instanceof Element ? e.target : null;
-      if ((open && t?.closest("[data-testid=trip-map]")) || t?.closest("[data-stop]")?.getAttribute("data-stop") === active) return;
+      if ((open && t?.closest("[data-testid=trip-map]")) || t?.closest("[data-stop]")?.getAttribute("data-stop") === active || t?.closest("[data-bubble]")) return;
       closeAll();
     };
-    const key = (e: KeyboardEvent) => e.key === "Escape" && closeAll();
+    const key = (e: KeyboardEvent) => e.key === "Escape" && !document.querySelector('[aria-modal="true"]') && closeAll();
     document.addEventListener("pointerdown", press, true);
     document.addEventListener("click", click, true);
     document.addEventListener("keydown", key);
@@ -455,9 +444,8 @@ export function TripMap() {
   const days: number[] = [];
   stops.sched.forEach((c) => !days.includes(c.day!) && days.push(c.day!));
   const chips: { v: MapDay; label: string }[] = [{ v: "all", label: "All stops" }, ...days.map((d) => ({ v: d, label: "Day " + d })), ...(stops.un.length ? [{ v: "none" as const, label: "Unscheduled" }] : [])];
-  const shown = scene.pins.filter((p) => p.n).length;
   const toggle = <V,>(set: (f: (l: V[]) => V[]) => void, v: V) => set((l) => (l.includes(v) ? l.filter((x) => x !== v) : [...l, v]));
-  const chip = (on: boolean): CSSProperties => ({ pointerEvents: "auto", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: T.mono, fontSize: 10.5, padding: "4px 9px", borderRadius: 7, background: on ? "rgba(95,184,176,.14)" : "transparent", color: on ? "#9fd8d1" : T.muted2, border: `1px solid ${on ? "rgba(95,184,176,.4)" : "#232a2b"}` });
+  const layersOn = +showZones + +transit + +stations;
 
   // Side list: stops grouped by day, then unscheduled ones.
   const rows: ({ header: string } | { pin: (typeof scene.pins)[number] })[] = [];
@@ -474,32 +462,78 @@ export function TripMap() {
   }
 
   return (
-    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: "#0a0c0d" }}>
-      <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "11px 24px", borderBottom: `1px solid ${T.line}`, background: T.panel }}>
-        {chips.map((c) => {
-          const on = day === c.v;
-          return (
-            <button key={String(c.v)} type="button" aria-pressed={on} onClick={() => setDay(c.v)} style={{ cursor: "pointer", whiteSpace: "nowrap", fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "6px 11px", borderRadius: 7, background: on ? T.accent : "transparent", color: on ? T.onAccent : T.muted2, border: `1px solid ${on ? "transparent" : T.border2}` }}>
+    <div className="flex min-h-0 flex-1 flex-col bg-[#0a0c0d]">
+      <div className="g-noscroll flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-wf bg-surface px-4 py-2.5 tp:px-6">
+        <div role="group" aria-label="Show stops for" className="flex gap-1.5">
+          {chips.map((c) => (
+            <Chip key={String(c.v)} on={day === c.v} onClick={() => setDay(c.v)}>
               {c.label}
-            </button>
-          );
-        })}
-        <div style={{ marginLeft: "auto", fontFamily: T.mono, fontSize: 11, color: T.dim2 }}>{stops.loc.length ? `${shown} numbered · ${stops.loc.length} of ${cards.length} cards located` : ""}</div>
+            </Chip>
+          ))}
+        </div>
+        {stops.loc.length > 0 && (
+          <>
+            {typeOpts.length > 1 && (
+              <>
+                <Divider />
+                <div role="group" aria-label="Pin types" className="flex gap-1.5">
+                  {typeOpts.map((t) => (
+                    <Chip key={t.value} on={types.includes(t.value)} color={t.color} onClick={() => toggle(setPickTypes, t.value)}>
+                      {t.label}
+                    </Chip>
+                  ))}
+                </div>
+              </>
+            )}
+            <Divider />
+            <Button ref={distBtn} size="sm" variant={picked.length ? "soft" : "secondary"} aria-haspopup="dialog" aria-expanded={menu === "districts"} onClick={() => (loadState === "error" && setRetries((n) => n + 1), setMenu("districts"))}>
+              {picked.length ? `Districts · ${picked.length}` : "Districts"}
+            </Button>
+            <Button ref={layersBtn} size="sm" variant={layersOn ? "soft" : "secondary"} aria-haspopup="dialog" aria-expanded={menu === "layers"} onClick={() => setMenu("layers")} className={zoneState === "loading" ? "tp-scan" : undefined}>
+              {layersOn ? `Layers · ${layersOn}` : "Layers"}
+            </Button>
+            {filtered > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setPickTypes([]);
+                  setPickZones([]);
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+            <span className="ml-auto pl-3 text-xs whitespace-nowrap text-muted">{`${stops.loc.length} of ${cards.length} cards on the map`}</span>
+            <IconButton aria-label="Reset view" title="Reset view" onClick={() => setResets((n) => n + 1)}>
+              <ResetIcon size={15} />
+            </IconButton>
+          </>
+        )}
       </div>
-      <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-        <div ref={area} style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+      <div className="flex min-h-0 flex-1">
+        <div ref={area} className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           {lastSide.current && (
-            <div ref={sideEl} style={{ position: "absolute", right: 12, top: 12, zIndex: 7, pointerEvents: sideOpen ? "auto" : "none" }}>
+            <div ref={sideEl} data-bubble="" className="absolute top-3 right-3 z-[7]" style={{ pointerEvents: sideOpen ? "auto" : "none" }}>
               <div>
-                <CardBubble card={lastSide.current.card} n={lastSide.current.n} compact={false} onEdit={() => openEdit(lastSide.current!.card.id)} tail="right" tailRef={sideTail} />
+                <CardBubble card={lastSide.current.card} n={lastSide.current.n} compact={false} onEdit={() => openEdit(lastSide.current!.card.id)} onShow={() => openStop(lastSide.current!.card.id)} tail="right" tailRef={sideTail} />
               </div>
             </div>
           )}
           {stops.loc.length > 0 ? (
             <>
               <MapBoundary>
-                <Suspense fallback={<Centered text="loading map…" />}>
-                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} glow={glow}
+                <Suspense fallback={<MapLoading />}>
+                  <TripMapCanvas
+                    scene={scene}
+                    frame={frame}
+                    overview={overview}
+                    frameKey={fKey}
+                    hot={hot}
+                    compact={isMobile}
+                    onHot={setHot}
+                    districts={zoneState === "on" ? zones.d : null}
+                    glow={glow}
                     onDistrict={openDistrict}
                     transit={transit}
                     stations={stations}
@@ -515,132 +549,32 @@ export function TripMap() {
                   {dzNew != null ? <DistrictDraft name={dzNew} onSave={(notes) => createDz(dzNew, notes)} onClose={closeDz} /> : <CardBubble card={dzData!} n={0} compact={false} onEdit={() => openEdit(dzData!.id)} onClose={closeDz} tail={null} />}
                 </DistrictPanel>
               )}
-              {/* Map controls, and under them the transit key while it's needed. */}
-              <div style={{ position: "absolute", top: 12, right: 14, left: 14, zIndex: 6, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, pointerEvents: "none" }}>
-                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 6 }}>
-                  <button
-                    type="button"
-                    aria-pressed={showZones}
-                    aria-busy={zoneState === "loading"}
-                    className={zoneState === "loading" ? "tp-scan" : undefined}
-                    onClick={() => (zoneState === "error" ? setRetries((n) => n + 1) : setShowZones((v) => !v))}
-                    style={{ ...mapBtn, display: "flex", alignItems: "center", gap: 7, ...(showZones && { color: zoneState === "on" ? "#9fd8d1" : T.muted, borderColor: "rgba(95,184,176,.4)" }) }}
-                  >
-                    {zoneState === "loading" && <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: T.accent, animation: "gpulse 1s ease-in-out infinite" }} />}
-                    {zoneLabel}
-                  </button>
-                  {(
-                    [
-                      ["transit", transit, setTransit],
-                      ["stations", stations, setStations],
-                    ] as const
-                  ).map(([label, on, flip]) => (
-                    <button key={label} type="button" aria-pressed={on} onClick={() => flip((v) => !v)} style={{ ...mapBtn, ...(on && { color: "#a9bcd6", borderColor: "rgba(169,188,214,.4)" }) }}>
-                      {label}
-                    </button>
-                  ))}
-                  <button type="button" onClick={() => setResets((n) => n + 1)} style={mapBtn}>
-                    reset view
-                  </button>
-                </div>
-                <TransitKey lines={transit} stations={stations} />
-              </div>
-              {/* Pin filters, top left: one chip per type, side by side, and a districts list that drops down. */}
-              {(typeOpts.length > 1 || zoneOpts.length > 0 || distOpen) && (
-                <div style={{ position: "absolute", top: 12, left: 14, maxWidth: "46%", zIndex: 6, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, pointerEvents: "none" }}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {typeOpts.length > 1 &&
-                      typeOpts.map((t) => {
-                        const on = types.includes(t.value);
-                        return (
-                          <button key={t.value} type="button" aria-pressed={on} onClick={() => toggle(setPickTypes, t.value)} style={{ ...mapBtn, ...chip(on), background: on ? "rgba(14,17,18,.95)" : mapBtn.background, padding: "6px 10px", fontSize: 11 }}>
-                            <span aria-hidden style={{ width: 7, height: 7, borderRadius: "50%", background: t.color }} />
-                            {t.label}
-                          </button>
-                        );
-                      })}
-                    <div ref={distBox} style={{ position: "relative", display: "flex" }}>
-                      <button type="button" aria-pressed={distOpen} aria-expanded={distOpen} onClick={() => (loadState === "error" ? setRetries((n) => n + 1) : setDistOpen((v) => !v))} style={{ ...mapBtn, ...((distOpen || picked.length > 0) && { color: "#9fd8d1", borderColor: "rgba(95,184,176,.4)" }), borderRadius: 8 }}>
-                        {picked.length ? `districts · ${picked.length}` : "districts"}{" "}
-                        <span aria-hidden style={{ display: "inline-block", transition: "transform 220ms var(--ease-out)", transform: distOpen ? "rotate(180deg)" : "none" }}>▾</span>
-                      </button>
-                    {(
-                      <div aria-hidden={!distOpen} style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, zIndex: 1, pointerEvents: distOpen ? "auto" : "none", visibility: distOpen ? "visible" : "hidden", opacity: distOpen ? 1 : 0, transform: distOpen ? "none" : "translateY(-5px) scale(.96)", transformOrigin: "top left", transition: distOpen ? "opacity 180ms ease-out, transform 240ms var(--ease-out)" : "opacity 140ms ease-out, transform 160ms ease-in, visibility 0s linear 160ms", display: "flex", flexDirection: "column", minWidth: 190, maxHeight: 260, overflowY: "auto", padding: 4, fontFamily: T.mono, fontSize: 11, background: "rgba(14,17,18,.94)", border: "1px solid #232a2b", borderRadius: 8, boxShadow: "0 10px 28px rgba(0,0,0,.45)" }}>
-                        {zoneOpts.length === 0 && <div style={{ padding: "6px 8px", color: T.dim2 }}>{loadState === "loading" ? "finding districts…" : loadState === "error" ? "districts unavailable" : "no districts here"}</div>}
-                        {zoneOpts.map((z) => {
-                          const on = picked.includes(z.id);
-                          return (
-                            <button key={z.id} type="button" aria-pressed={on} onClick={() => {
-                              toggle(setPickZones, z.id);
-                              const zone = !on && zd?.zones.find((d) => d.id === z.id);
-                              if (zone) setGlow((g) => ({ zone, tick: (g?.tick ?? 0) + 1 }));
-                            }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8, textAlign: "left", padding: "5px 8px", borderRadius: 6, border: "none", background: on ? "rgba(95,184,176,.14)" : "transparent", color: on ? "#9fd8d1" : T.muted2, fontFamily: "inherit", fontSize: "inherit" }}>
-                              <span aria-hidden style={{ width: 11, height: 11, borderRadius: 3, boxShadow: `inset 0 0 0 1.5px ${on ? "#5fb8b0" : "#3a4446"}`, background: on ? "#5fb8b0" : "transparent" }} />
-                              <span style={{ flex: 1 }}>{z.name}</span>
-                              <span style={{ color: T.dim2 }}>{z.n}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    </div>
-                    {filtered > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPickTypes([]);
-                          setPickZones([]);
-                        }}
-                        style={{ ...mapBtn, background: "transparent", borderColor: "transparent", textDecoration: "underline", padding: "6px 4px" }}
-                      >
-                        clear
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+              <TransitKey lines={transit} stations={stations} />
             </>
           ) : (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "0 30px", textAlign: "center" }}>
-              <div style={{ fontSize: 14, color: T.dim }}>No stops have coordinates yet</div>
-              <div style={{ fontSize: 12.5, color: T.faint, maxWidth: 380, textWrap: "pretty" }}>
-                Open a card and paste a Google Maps link — or type <span style={{ fontFamily: T.mono, color: T.dim2 }}>35.6764, 139.6500</span> — into its Location field.
-              </div>
-            </div>
+            <Notice
+              title="No stops have coordinates yet"
+              text={
+                <>
+                  Open a card and paste a Google Maps link — or coordinates like <span className="font-mono text-[#c6cfcc]">35.6764, 139.6500</span> — into its Location field.
+                </>
+              }
+            />
           )}
         </div>
         {!isMobile && rows.length > 0 && (
-          <div ref={list} onScroll={() => sideOpen && placeSide()} style={{ flex: "0 0 262px", borderLeft: `1px solid ${T.line}`, background: T.panel, overflowY: "auto", padding: "6px 16px 26px" }}>
-            {hintSeen !== null && (
-              <Fold open={!hintSeen}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, width: 218, margin: "10px 0 2px", padding: "7px 10px", borderRadius: 8, border: `1px dashed ${T.border2}`, fontFamily: T.mono, fontSize: 10.5, lineHeight: 1.45, color: T.dim2, textWrap: "pretty" }}>
-                  <span aria-hidden="true" style={{ color: T.accent }}>✦</span>
-                  Click a stop to see its card; double-click it, here or on the map, to fly there.
-                </div>
-              </Fold>
-            )}
+          <div ref={list} onScroll={() => sideOpen && placeSide()} className="g-scroll w-[272px] shrink-0 overflow-y-auto border-l border-wf bg-surface px-3 pt-1.5 pb-24">
             {rows.map((r, i) =>
               "header" in r ? (
-                <div key={"h" + i} style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: T.dim3, padding: "15px 0 7px" }}>
+                <Kicker key={"h" + i} as="h3" className="px-1 pt-4 pb-1.5 font-bold">
                   {r.header}
-                </div>
+                </Kicker>
               ) : (
                 <button
                   key={r.pin.id}
                   type="button"
-                  onClick={(e) => {
-                    clearTimeout(rowClick.current);
-                    if (e.detail > 1) return;
-                    const id = r.pin.id;
-                    const show = () => openSide(id);
-                    // Keyboard presses (detail 0) open at once.
-                    if (!e.detail) return show();
-                    rowClick.current = setTimeout(show, 250);
-                  }}
-                  onDoubleClick={() => {
-                    clearTimeout(rowClick.current);
-                    openStop(r.pin.id);
-                  }}
+                  onClick={() => openSide(r.pin.id)}
+                  onDoubleClick={() => openStop(r.pin.id)}
                   // Hovering a stop lights up its pin (and shows its tooltip), and the other way round.
                   onPointerEnter={() => setHot(r.pin.id)}
                   onPointerLeave={() => setHot(null)}
@@ -649,28 +583,78 @@ export function TripMap() {
                   aria-label={"Open " + r.pin.title}
                   aria-expanded={sideOpen === r.pin.id}
                   data-stop={r.pin.id}
-                  title="Click to open · double-click to show on the map"
-                  style={{ width: "calc(100% + 16px)", margin: "0 -8px", textAlign: "left", background: hot === r.pin.id ? "rgba(95,184,176,.08)" : "none", display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 8px", cursor: "pointer", border: "none", borderBottom: "1px solid #171c1d", borderRadius: 8, transition: "background .15s" }}
+                  className={cx("flex w-full cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors", hot === r.pin.id || sideOpen === r.pin.id ? "bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]" : "hover:bg-wc")}
                 >
-                  <div
-                    style={
-                      r.pin.n
-                        ? { flex: "0 0 auto", width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.mono, fontSize: 11, fontWeight: 700, background: r.pin.color, color: "#0a0c0d" }
-                        : { flex: "0 0 auto", width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: T.dim2, border: `2px solid ${r.pin.color}` }
-                    }
+                  <span
+                    aria-hidden
+                    style={r.pin.n ? { background: r.pin.color } : { borderColor: r.pin.color }}
+                    className={cx("flex size-[22px] shrink-0 items-center justify-center rounded-full font-mono text-2xs font-bold", r.pin.n ? "text-[#0a0c0d]" : "border-2 text-muted")}
                   >
                     {r.pin.n || "·"}
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: T.text2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.pin.title}</div>
-                    <div style={{ fontFamily: T.mono, fontSize: 10, color: T.dim2, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.pin.meta}</div>
-                  </div>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-13 font-semibold text-text2">{r.pin.title}</span>
+                    <span className="mt-0.5 block truncate font-mono text-2xs text-muted">{r.pin.meta}</span>
+                  </span>
                 </button>
               ),
             )}
           </div>
         )}
       </div>
+
+      {menu === "layers" && (
+        <Sheet label="Map layers" anchor={layersBtn} mobile={isMobile} onClose={() => setMenu(null)} width={250}>
+          <Kicker className="px-3 pt-1 pb-1.5">Show on the map</Kicker>
+          <ToggleRow
+            on={showZones}
+            onClick={() => (zoneState === "error" ? setRetries((n) => n + 1) : setShowZones((v) => !v))}
+            aside={<span className={cx("text-2xs", zoneState === "error" ? "text-warn" : "text-muted")}>{zoneState === "loading" ? "finding…" : zoneState === "error" ? "retry" : zoneState === "none" ? "none here" : ""}</span>}
+          >
+            Districts
+          </ToggleRow>
+          <ToggleRow on={transit} onClick={() => setTransit((v) => !v)}>
+            Rail lines
+          </ToggleRow>
+          <ToggleRow on={stations} onClick={() => setStations((v) => !v)}>
+            Stations
+          </ToggleRow>
+        </Sheet>
+      )}
+      {menu === "districts" && (
+        <Sheet label="Filter by district" anchor={distBtn} mobile={isMobile} onClose={() => setMenu(null)} width={260}>
+          <Kicker className="px-3 pt-1 pb-1.5">Only stops in</Kicker>
+          {zoneOpts.length === 0 && (
+            <div className="px-3 py-2 text-13 text-muted">
+              {loadState === "loading" ? "Finding districts…" : loadState === "error" ? (
+                <>
+                  Districts unavailable.{" "}
+                  <button type="button" onClick={() => setRetries((n) => n + 1)} className="cursor-pointer font-semibold text-accent hover:underline">
+                    Retry
+                  </button>
+                </>
+              ) : "No districts around these stops."}
+            </div>
+          )}
+          {zoneOpts.map((z) => {
+            const on = picked.includes(z.id);
+            return (
+              <ToggleRow
+                key={z.id}
+                on={on}
+                onClick={() => {
+                  toggle(setPickZones, z.id);
+                  const zone = !on && zd?.zones.find((d) => d.id === z.id);
+                  if (zone) setGlow((g) => ({ zone, tick: (g?.tick ?? 0) + 1 }));
+                }}
+                aside={<span className="font-mono text-2xs text-muted">{z.n}</span>}
+              >
+                {z.name}
+              </ToggleRow>
+            );
+          })}
+        </Sheet>
+      )}
     </div>
   );
 }

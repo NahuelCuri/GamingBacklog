@@ -2,14 +2,14 @@
 
 // Cards tab: search, type filters and a grid of every card in the trip. In
 // compare mode a tap adds or removes the card from the compare drawer.
-import { useRef, useState, type KeyboardEvent } from "react";
-import { ClockIcon, PencilIcon, StarIcon, SwapIcon, WarningCircleIcon } from "@/components/icons";
+import { useRef, useState } from "react";
+import { ClockIcon, CloseIcon, PencilIcon, PlusIcon, SearchIcon, StarIcon, SwapIcon, WarningCircleIcon } from "@/components/icons";
 import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
 import { matchesSearch, matchesType, money, statusMeta, typeFilterOptions, typeMeta } from "@/lib/trips/model";
 import { toggleInCompare } from "./CompareDrawer";
 import { FxPanel } from "./FxPanel";
-import { IMPORTANT_EDGE, T, filterPill, frame, importantCard, input, statusDot, typeTag } from "./styles";
 import { useTripCtx } from "./TripPlanner";
+import { Button, Chip, IconButton, TypeLabel, cx, inputCls, tint } from "./ui";
 
 export function CardsTab() {
   const { trip, cards, poolFilter, setPoolFilter, compare, setCompare, openCard, openEdit, newCard } = useTripCtx();
@@ -17,17 +17,21 @@ export function CardsTab() {
   const [fxOpen, setFxOpen] = useState(false);
   const shown = cards.filter((c) => matchesType(c, poolFilter) && matchesSearch(c, search));
   const open = (id: string) => (compare.on ? setCompare((c) => toggleInCompare(c, id)) : openCard(id));
-  const cardEls = useRef(new Map<string, HTMLDivElement>());
+  const cardEls = useRef(new Map<string, HTMLElement>());
   useEnterStagger(
     shown.map((c) => c.id),
     (id) => cardEls.current.get(id),
   );
+  const filters = typeFilterOptions(cards);
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", background: T.bg }}>
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "20px 24px 100px" }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-          <div style={{ position: "relative", flex: 1, minWidth: 220, display: "flex" }}>
+    <div className="g-scroll min-h-0 flex-1 overflow-y-auto bg-bg">
+      <div className="mx-auto max-w-[1180px] px-4 pt-5 pb-28 tp:px-6">
+        <div className="mb-3.5 flex flex-wrap items-center gap-2.5">
+          <div className="relative flex min-w-[220px] flex-1">
+            <span aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted">
+              <SearchIcon size={15} />
+            </span>
             <input
               type="text"
               value={search}
@@ -35,125 +39,129 @@ export function CardsTab() {
               aria-label="Search cards"
               autoComplete="off"
               spellCheck={false}
-              placeholder="Search cards — title, tag or place…"
-              style={{ ...input, flex: 1, width: "100%", background: T.panel, borderRadius: 10, padding: "11px 38px 11px 14px", fontSize: 13.5 }}
+              placeholder="Search title, tag, place or notes"
+              className={cx(inputCls, "h-10 bg-surface pr-10 pl-10 text-sm pointer-coarse:h-11")}
             />
             {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                aria-label="Clear search"
-                title="Clear search"
-                style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, border: "none", borderRadius: 999, background: "transparent", color: T.muted }}
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                  <path d="M2 2l8 8M10 2l-8 8" />
-                </svg>
-              </button>
+              <IconButton aria-label="Clear search" onClick={() => setSearch("")} className="absolute top-1/2 right-1 -translate-y-1/2">
+                <CloseIcon size={12} />
+              </IconButton>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setFxOpen((o) => !o)}
-            title="Currency converter"
-            aria-expanded={fxOpen}
-            style={{
-              cursor: "pointer", flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, fontSize: 13.5, fontWeight: 600, padding: "11px 14px", borderRadius: 10, transition: "color .15s,border-color .15s",
-              ...(fxOpen ? { background: "rgba(95,184,176,.14)", color: "#7fe3d8", border: "1px solid #3a6b66" } : { background: T.panel, color: T.muted, border: `1px solid ${T.border}` }),
-            }}
-          >
-            <SwapIcon size={15} />
-            Convert
-          </button>
-          <button type="button" onClick={() => newCard()} style={{ cursor: "pointer", flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, background: T.accent, color: T.onAccent, fontWeight: 700, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 10, boxShadow: "0 4px 16px rgba(95,184,176,.22)" }}>
-            + New card
-          </button>
+          <div className="flex gap-2">
+            <Button variant={compare.on ? "soft" : "secondary"} aria-pressed={compare.on} title="Compare cards side by side" onClick={() => setCompare((c) => (c.on ? { ...c, on: false, open: [], min: false } : { ...c, on: true, min: false }))}>
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 4 4 8l4 4M4 8h13M16 20l4-4-4-4M20 16H7" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Compare
+            </Button>
+            <Button variant={fxOpen ? "soft" : "secondary"} aria-expanded={fxOpen} title="Currency converter" onClick={() => setFxOpen((o) => !o)}>
+              <SwapIcon size={15} />
+              Convert
+            </Button>
+            <Button variant="primary" onClick={() => newCard()}>
+              <PlusIcon size={14} />
+              New card
+            </Button>
+          </div>
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
-          {typeFilterOptions(cards).map((f) => (
-            <button key={f.value} type="button" aria-pressed={poolFilter === f.value} onClick={() => setPoolFilter(f.value)} style={{ whiteSpace: "nowrap", cursor: "pointer", fontSize: 12, fontWeight: 600, padding: "5px 11px", borderRadius: 999, ...filterPill(poolFilter === f.value, f.color) }}>
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {filters.length > 2 && (
+          <div role="group" aria-label="Show" className="mb-5 flex flex-wrap gap-1.5">
+            {filters.map((f) => (
+              <Chip key={f.value} on={poolFilter === f.value} color={f.color} onClick={() => setPoolFilter(f.value)}>
+                {f.label}
+              </Chip>
+            ))}
+          </div>
+        )}
+        {compare.on && <p className="mt-0 mb-4 text-13 text-muted">Pick cards to compare them side by side below.</p>}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 244px), 1fr))", gap: 14 }}>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,250px),1fr))] gap-3.5">
           {shown.map((c) => {
             const tm = typeMeta(c.type), sm = statusMeta(c.status);
-            const isOpen = compare.open.some((o) => o.id === c.id);
+            const inCompare = compare.open.some((o) => o.id === c.id);
             const important = c.type === "important";
             const tags = c.tags || [];
-            const onKey = (e: KeyboardEvent) => {
-              if (e.target !== e.currentTarget) return;
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                open(c.id);
-              }
-            };
             return (
-              <div
+              <article
                 key={c.id}
                 ref={(el) => {
                   if (el) cardEls.current.set(c.id, el);
                   else cardEls.current.delete(c.id);
                 }}
-                role="button"
-                tabIndex={0}
-                aria-label={(c.title || "Card") + " — open"}
-                onClick={() => open(c.id)}
-                onKeyDown={onKey}
-                style={{ cursor: "pointer", ...importantCard(important, T.card), ...frame(isOpen ? T.accent : important ? IMPORTANT_EDGE : "#232a2b", "left", tm.color), borderRadius: 12, padding: "13px 14px", display: "flex", flexDirection: "column", gap: 9, transition: "border-color .15s" }}
+                style={tint(tm.color)}
+                className={cx(
+                  "relative flex flex-col gap-2 rounded-xl border border-l-[3px] border-l-[var(--c)] px-3.5 py-3 transition-[border-color,background-color] duration-150 hover:border-wl hover:border-l-[var(--c)]",
+                  inCompare ? "border-accent" : important ? "border-[color-mix(in_srgb,var(--must)_40%,transparent)]" : "border-wf",
+                  important ? "bg-[color-mix(in_srgb,var(--must)_7%,var(--card))]" : "bg-card",
+                )}
               >
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.3, color: T.text }}>{c.title}</div>
-                  <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
-                    <button
-                      type="button"
-                      title="Edit card"
-                      aria-label={"Edit " + (c.title || "card")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEdit(c.id);
-                      }}
-                      className="hover:!border-[#5fb8b0] hover:!text-[#e9edee]"
-                      style={{ cursor: "pointer", width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", color: T.muted2, background: "#0e1214", border: "1px solid #23292b", fontSize: 12 }}
-                    >
-                      <PencilIcon size={12} />
-                    </button>
-                    <div style={statusDot(sm.dot, sm.glow)} />
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-                  <span style={{ ...typeTag(tm.color), display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    {important && <WarningCircleIcon size={11} />}
+                <h3 className="m-0 pr-9 text-sm leading-[1.3] font-bold text-text">
+                  {/* The whole card opens it; the button's box is stretched over the card. */}
+                  <button type="button" aria-label={(c.title || "Card") + " — open"} aria-pressed={compare.on ? inCompare : undefined} onClick={() => open(c.id)} className="cursor-pointer text-left after:absolute after:inset-0 after:rounded-[inherit] after:content-['']">
+                    {c.title || "Untitled"}
+                  </button>
+                </h3>
+                <IconButton aria-label={"Edit " + (c.title || "card")} title="Edit card" onClick={() => openEdit(c.id)} className="absolute top-2 right-2 z-[1]">
+                  <PencilIcon size={13} />
+                </IconButton>
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
+                  <TypeLabel color={tm.color} icon={important ? <WarningCircleIcon size={11} /> : undefined}>
                     {tm.label}
+                  </TypeLabel>
+                  <span style={tint(c.status === "idea" ? undefined : sm.dot)} className={cx("font-semibold", c.status === "idea" ? "text-muted" : "tp-ink")}>
+                    {sm.label}
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: sm.text }}>{sm.label}</span>
-                  {c.price != null && <span style={{ fontFamily: T.mono, fontSize: 11.5, color: T.price }}>{money(c.price, trip?.currency)}</span>}
+                  {c.price != null && <span className="font-mono text-price">{money(c.price, trip?.currency)}</span>}
                 </div>
-                {c.region && <div style={{ fontSize: 12, color: T.muted2 }}>{c.region}</div>}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  {c.duration && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: T.dim }}>
-                      <ClockIcon size={11} />
-                      {c.duration}
-                    </span>
-                  )}
-                  {tags.length > 0 && <span style={{ fontSize: 11, color: T.dim2 }}>{tags.slice(0, 3).join(" · ")}</span>}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, color: c.day != null ? T.accent : T.dim2 }}>{c.day != null ? "Day " + c.day : "Pool"}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {c.priority === "must" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: T.must }}><StarIcon size={10} />must</span>}
-                    {isOpen && <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: T.onAccent, background: T.accent, padding: "2px 6px", borderRadius: 5 }}>Open</span>}
+                {c.region && <div className="text-xs text-muted">{c.region}</div>}
+                {(c.duration || tags.length > 0) && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                    {c.duration && (
+                      <span className="inline-flex items-center gap-1">
+                        <ClockIcon size={11} />
+                        {c.duration}
+                      </span>
+                    )}
+                    {tags.length > 0 && <span>{tags.slice(0, 3).join(" · ")}</span>}
+                  </div>
+                )}
+                <div className="mt-auto flex items-center justify-between pt-0.5">
+                  <span className={cx("font-mono text-2xs font-semibold", c.day != null ? "text-accent2" : "text-muted")}>{c.day != null ? "Day " + c.day : "Pool"}</span>
+                  <div className="flex items-center gap-2">
+                    {c.priority === "must" && (
+                      <span className="inline-flex items-center gap-0.5 text-2xs font-bold text-must">
+                        <StarIcon size={10} />
+                        must
+                      </span>
+                    )}
+                    {inCompare && <span className="rounded bg-accent px-1.5 py-0.5 text-2xs font-bold text-on-accent">In compare</span>}
                   </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
-        {shown.length === 0 && <div style={{ textAlign: "center", color: T.faint, fontSize: 13, padding: "60px 10px" }}>No cards yet — quick-add above to start collecting ideas.</div>}
+        {shown.length === 0 && (
+          <div className="px-3 py-16 text-center">
+            <div className="text-sm font-semibold text-text2">{cards.length ? "No cards match" : "No cards yet"}</div>
+            <div className="mt-1 text-13 text-muted">{cards.length ? "Try another word or type." : "Add places, food and plans with New card, or quick-add them from the Itinerary."}</div>
+            {cards.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3"
+                onClick={() => {
+                  setSearch("");
+                  setPoolFilter("all");
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       {fxOpen && <FxPanel onClose={() => setFxOpen(false)} />}
     </div>
