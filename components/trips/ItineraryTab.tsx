@@ -13,11 +13,16 @@ import { IMPORTANT_EDGE, T, filterPill, frame, importantCard, input, statusDot }
 import { useTripCtx } from "./TripPlanner";
 import { Tick } from "@/components/ui/Tick";
 import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
-import { play } from "@/lib/motion";
+import { play, reducedMotion } from "@/lib/motion";
 
 type Over = { day: number | null; index: number } | "none" | null;
 
-const clampZoom = (z: number) => Math.min(1.6, Math.max(0.4, +z.toFixed(2)));
+const clampZoom = (z: number) => Math.min(1.6, Math.max(0.4, z));
+
+type View = { zoom: number; x: number; y: number };
+
+/** How quickly the view catches up with where it's headed: it covers 63% of the way every GLIDE ms. */
+const GLIDE = 85;
 const dotGrid: CSSProperties = { backgroundImage: "radial-gradient(circle at 1px 1px,#161c1e 1px,transparent 0)", backgroundSize: "26px 26px" };
 
 function dropTarget(x: number, y: number): { day: number | null; index: number } | null {
@@ -70,7 +75,47 @@ export function ItineraryTab() {
   const [held, setHeld] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null);
   const [over, setOver] = useState<Over>(null);
-  const [view, setView] = useState({ zoom: 1, x: 0, y: 0 });
+  const [view, setView] = useState<View>({ zoom: 1, x: 0, y: 0 });
+  // Zoom glides: `goal` is where the view is headed (zoom steps add up there), `now` what's on screen.
+  // Panning by hand goes straight there, with no lag.
+  const goal = useRef<View>(view);
+  const now = useRef<View>(view);
+  const glideRaf = useRef(0);
+  const show = (v: View) => {
+    now.current = v;
+    setView(v);
+  };
+  const jump = (v: View) => {
+    cancelAnimationFrame(glideRaf.current);
+    glideRaf.current = 0;
+    goal.current = v;
+    show(v);
+  };
+  const glide = () => {
+    if (reducedMotion()) return jump(goal.current);
+    if (glideRaf.current) return;
+    let last = performance.now();
+    const step = (t: number) => {
+      const k = 1 - Math.exp(-Math.min(t - last, 50) / GLIDE);
+      last = t;
+      const a = now.current, g = goal.current;
+      const near = Math.abs(g.zoom - a.zoom) < 0.0015 && Math.abs(g.x - a.x) < 0.2 && Math.abs(g.y - a.y) < 0.2;
+      show(near ? g : { zoom: a.zoom + (g.zoom - a.zoom) * k, x: a.x + (g.x - a.x) * k, y: a.y + (g.y - a.y) * k });
+      glideRaf.current = near ? 0 : requestAnimationFrame(step);
+    };
+    glideRaf.current = requestAnimationFrame(step);
+  };
+  // Zoom to `zoom`, keeping the point under `at` (canvas pixels) where it is.
+  const zoomTo = (zoom: number, at: { x: number; y: number }) => {
+    const g = goal.current, z = clampZoom(zoom);
+    goal.current = { zoom: z, x: at.x - ((at.x - g.x) / g.zoom) * z, y: at.y - ((at.y - g.y) / g.zoom) * z };
+    glide();
+  };
+  const centre = () => {
+    const r = canvas.current?.getBoundingClientRect();
+    return { x: (r?.width ?? 0) / 2, y: (r?.height ?? 0) / 2 };
+  };
+  useEffect(() => () => cancelAnimationFrame(glideRaf.current), []);
   const canvas = useRef<HTMLDivElement>(null);
   const pending = useRef<{ id: string; sx: number; sy: number; moved: boolean; armed: boolean } | null>(null);
   const cleanup = useRef<() => void>(() => {});
@@ -121,11 +166,22 @@ export function ItineraryTab() {
     if (!el || mob) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      if (e.ctrlKey || e.metaKey) setView((v) => ({ ...v, zoom: clampZoom(v.zoom + (e.deltaY < 0 ? 0.1 : -0.1)) }));
-      else setView((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }));
+      if (e.ctrlKey || e.metaKey) {
+        // Proportional to the wheel, so a pinch's many small events and a mouse's big notch both feel even.
+        const r = el.getBoundingClientRect();
+        zoomTo(goal.current.zoom * Math.exp(-Math.max(-40, Math.min(40, e.deltaY)) * 0.0075), { x: e.clientX - r.left, y: e.clientY - r.top });
+      } else {
+        const g = goal.current;
+        goal.current = { ...g, x: g.x - e.deltaX, y: g.y - e.deltaY };
+        // Mid-glide the pan joins it; otherwise it just moves.
+        if (glideRaf.current) glide();
+        else show(goal.current);
+      }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
+    // zoomTo, glide and show only touch refs and a state setter, so the first render's copies do.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mob]);
 
   if (!trip) return null;
@@ -237,8 +293,8 @@ export function ItineraryTab() {
 
   const canvasDown = (e: RPointerEvent) => {
     if (mob) return;
-    const sx = e.clientX, sy = e.clientY, ox = view.x, oy = view.y;
-    const move = (ev: PointerEvent) => setView((v) => ({ ...v, x: ox + ev.clientX - sx, y: oy + ev.clientY - sy }));
+    const sx = e.clientX, sy = e.clientY, ox = now.current.x, oy = now.current.y;
+    const move = (ev: PointerEvent) => jump({ ...now.current, x: ox + ev.clientX - sx, y: oy + ev.clientY - sy });
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
@@ -369,13 +425,16 @@ export function ItineraryTab() {
       >
         {!mob && (
           <div onPointerDown={(e) => e.stopPropagation()} style={{ position: "absolute", bottom: 14, left: 14, zIndex: 30, display: "flex", alignItems: "center", gap: 2, background: "rgba(14,17,18,.92)", border: "1px solid #232a2b", borderRadius: 10, padding: 4, backdropFilter: "blur(6px)" }}>
-            <button type="button" aria-label="Zoom out" onClick={() => setView((v) => ({ ...v, zoom: clampZoom(v.zoom - 0.15) }))} style={zoomBtn}>
+            <button type="button" aria-label="Zoom out" onClick={() => zoomTo(goal.current.zoom / 1.2, centre())} style={zoomBtn}>
               <MinusIcon size={15} />
             </button>
-            <button type="button" aria-label="Reset zoom" onClick={() => setView({ zoom: 1, x: 0, y: 0 })} style={{ cursor: "pointer", background: "none", border: "none", fontFamily: T.mono, fontSize: 11, color: T.muted, padding: "0 6px", minWidth: 44, textAlign: "center" }}>
+            <button type="button" aria-label="Reset zoom" onClick={() => {
+                goal.current = { zoom: 1, x: 0, y: 0 };
+                glide();
+              }} style={{ cursor: "pointer", background: "none", border: "none", fontFamily: T.mono, fontSize: 11, color: T.muted, padding: "0 6px", minWidth: 44, textAlign: "center" }}>
               {Math.round(view.zoom * 100) + "%"}
             </button>
-            <button type="button" aria-label="Zoom in" onClick={() => setView((v) => ({ ...v, zoom: clampZoom(v.zoom + 0.15) }))} style={zoomBtn}>
+            <button type="button" aria-label="Zoom in" onClick={() => zoomTo(goal.current.zoom * 1.2, centre())} style={zoomBtn}>
               <PlusIcon size={15} />
             </button>
           </div>
