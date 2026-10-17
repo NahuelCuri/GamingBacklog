@@ -7,7 +7,7 @@
 // or the buttons).
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
 import { MinusIcon, PlusIcon, StarIcon, WarningCircleIcon } from "@/components/icons";
-import { cardAriaLabel, dayHint, lookalikes, money, quickAddCard, setCardDay, statusMeta, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
+import { cardAriaLabel, dayHint, lookalikes, money, quickAddCard, removeDay, setCardDay, statusMeta, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
 import { LookalikeNote } from "./LookalikeNote";
 import { IMPORTANT_EDGE, T, filterPill, frame, importantCard, input, statusDot } from "./styles";
 import { useTripCtx } from "./TripPlanner";
@@ -340,8 +340,25 @@ export function ItineraryTab() {
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{"Day " + d}</div>
                     <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim2, marginTop: 1 }}>{dayHint(trip, d)}</div>
                   </div>
-                  <div style={{ fontFamily: T.mono, fontSize: 11, color: T.dim2, background: T.panel, padding: "3px 7px", borderRadius: 6 }}>
-                    <Tick value={dayCards.length} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ fontFamily: T.mono, fontSize: 11, color: T.dim2, background: T.panel, padding: "3px 7px", borderRadius: 6 }}>
+                      <Tick value={dayCards.length} />
+                    </div>
+                    {dayCount > 1 && (
+                      <button
+                        type="button"
+                        aria-label={"Remove day " + d}
+                        title={dayCards.length ? "Remove this day (its cards go back to the pool)" : "Remove this day"}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => {
+                          const r = removeDay(data, trip.id, d);
+                          if (r) void persist({ trips: r.trips, cards: r.cards });
+                        }}
+                        style={{ cursor: "pointer", border: "none", background: "none", color: T.dim2, fontSize: 16, lineHeight: 1, padding: "2px 4px", borderRadius: 6 }}
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div style={{ minHeight: 40, display: "flex", flexDirection: "column", gap: 7 }}>
