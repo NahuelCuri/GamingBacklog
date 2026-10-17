@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   budget, cleanCard, lookalikes, normTitle, regionFromAddress, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
-  countryNames, parseLoc, pickPlace, placeSearchUrl, placesFrom, quickAddCard, regionSuggestions, removeDay, reorderDay, seedTrips, tripArea, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
+  countryNames, parseLoc, pickPlace, placeSearchUrl, placesFrom, quickAddCard, regionSuggestions, placeCard, removeDay, reorderDay, seedTrips, tripArea, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
 } from "./model";
 
 const seeded = () => {
@@ -238,6 +238,26 @@ describe("trip model", () => {
     }
     expect(reorderDay([], "x", 0, 2, 3)).toBeNull();
     expect(reorderDay([], "x", 1, 4, 3)).toBeNull();
+  });
+
+  it("places a dropped card at the spot it was dropped on, among that day's cards", () => {
+    // day 1: a, b, c; day 2: x; z is another trip's card on day 1, and p is in the pool
+    const cards = [
+      { id: "a", trip: "t", day: 1 }, { id: "x", trip: "t", day: 2 }, { id: "b", trip: "t", day: 1 },
+      { id: "z", trip: "o", day: 1 }, { id: "c", trip: "t", day: 1 }, { id: "p", trip: "t", day: null },
+    ] as TripCard[];
+    const day = (cs: TripCard[], d: number) => cs.filter((c) => c.trip === "t" && c.day === d).map((c) => c.id);
+    expect(day(placeCard(cards, "p", 1, 0), 1)).toEqual(["p", "a", "b", "c"]);
+    expect(day(placeCard(cards, "p", 1, 2), 1)).toEqual(["a", "b", "p", "c"]);
+    expect(day(placeCard(cards, "p", 1, 9), 1)).toEqual(["a", "b", "c", "p"]);
+    expect(day(placeCard(cards, "x", 1, 1), 1)).toEqual(["a", "x", "b", "c"]);
+    // within its own day: the index counts the day's other cards
+    expect(day(placeCard(cards, "c", 1, 0), 1)).toEqual(["c", "a", "b"]);
+    expect(day(placeCard(cards, "a", 1, 1), 1)).toEqual(["b", "a", "c"]);
+    // onto an empty day, and nothing else moves
+    const r = placeCard(cards, "a", 3, 0);
+    expect(day(r, 3)).toEqual(["a"]);
+    expect(r.filter((c) => c.id !== "a")).toEqual(cards.filter((c) => c.id !== "a"));
   });
 
   it("refuses days that aren't there", () => {

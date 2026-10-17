@@ -18,7 +18,7 @@ import { CaretUpIcon, DotsIcon, PlusIcon, StarIcon, WarningCircleIcon } from "@/
 import { Tick } from "@/components/ui/Tick";
 import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
 import { play, reducedMotion } from "@/lib/motion";
-import { cardAriaLabel, dayHint, lookalikes, money, quickAddCard, removeDay, reorderDay, setCardDay, statusMeta, tripSpan, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
+import { cardAriaLabel, dayHint, lookalikes, money, placeCard, quickAddCard, removeDay, reorderDay, setCardDay, statusMeta, tripSpan, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
 import { LookalikeNote } from "./LookalikeNote";
 import { useTripCtx } from "./TripPlanner";
 import { Button, Chip, IconButton, Kicker, Sheet, SheetItem, TypeLabel, cx, inputCls, tint } from "./ui";
@@ -262,7 +262,7 @@ export function ItineraryTab() {
       const t = dropTarget(ev.clientX, ev.clientY);
       if (t) {
         landed.current = { id: p.id, at: Date.now() };
-        void persist({ cards: setCardDay(data.cards, p.id, t.day) });
+        void persist({ cards: t.day == null ? setCardDay(data.cards, p.id, null) : placeCard(data.cards, p.id, t.day, t.index) });
       }
     };
     cleanup.current = cancel;
