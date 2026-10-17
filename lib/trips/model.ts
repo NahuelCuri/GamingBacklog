@@ -382,7 +382,34 @@ export function removeDay(data: TripData, tripId: string, d: number) {
   };
 }
 
-export const setCardDay = (cards: TripCard[], id: string, day: number | null) => cards.map((c) => (c.id === id ? { ...c, day } : c));
+/**
+ * Moves day `from`'s plan to position `to`: the days between shift over by one
+ * (moving 3 to 4 swaps them, moving 5 to 1 pushes 1–4 later). The dates stay
+ * where they are, so the cards take the date of their new position.
+ * Null when nothing would change.
+ */
+export function reorderDay(cards: TripCard[], tripId: string, from: number, to: number, dayCount: number) {
+  if (from === to || from < 1 || to < 1 || from > dayCount || to > dayCount) return null;
+  const at = (d: number) => (d === from ? to : from < to ? (d > from && d <= to ? d - 1 : d) : d >= to && d < from ? d + 1 : d);
+  return cards.map((c) => (c.trip !== tripId || c.day == null ? c : at(c.day) === c.day ? c : { ...c, day: at(c.day) }));
+}
+
+/**
+ * Puts a card on a day at a place among that day's other cards (0 = first;
+ * past the end = last). The list order is the card order, so it moves in the list.
+ */
+export function placeCard(cards: TripCard[], id: string, day: number, index: number): TripCard[] {
+  const c = cards.find((x) => x.id === id);
+  if (!c) return cards;
+  const rest = cards.filter((x) => x.id !== id);
+  const sibs = rest.filter((x) => x.trip === c.trip && x.day === day);
+  const moved = { ...c, day };
+  if (!sibs.length) return c.day === day ? cards : [...rest, moved];
+  const at = index < sibs.length ? rest.indexOf(sibs[Math.max(0, index)]) : rest.indexOf(sibs[sibs.length - 1]) + 1;
+  return [...rest.slice(0, at), moved, ...rest.slice(at)];
+}
+
+export const setCardDay =(cards: TripCard[], id: string, day: number | null) => cards.map((c) => (c.id === id ? { ...c, day } : c));
 
 /** Keyboard help read out for a card on the itinerary board. */
 export const cardAriaLabel = (c: TripCard) =>

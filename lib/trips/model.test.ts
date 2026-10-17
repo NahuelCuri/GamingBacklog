@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   budget, cleanCard, lookalikes, normTitle, regionFromAddress, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
-  countryNames, parseLoc, pickPlace, placeSearchUrl, placesFrom, quickAddCard, regionSuggestions, removeDay, seedTrips, tripArea, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
+  countryNames, parseLoc, pickPlace, placeSearchUrl, placesFrom, quickAddCard, regionSuggestions, placeCard, removeDay, reorderDay, seedTrips, tripArea, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
 } from "./model";
 
 const seeded = () => {
@@ -210,6 +210,54 @@ describe("trip model", () => {
     }
     expect(data.trips[0].dayCount).toBe(2);
     expect(data.cards.map((c) => [c.id, c.day])).toEqual([["a", null], ["b", 1], ["c", null], ["d", 2]]);
+  });
+
+  it("moving a day shifts the days between it and its new place, and leaves the rest alone", () => {
+    for (let count = 1; count <= 6; count++) {
+      for (let from = 1; from <= count; from++) {
+        for (let to = 1; to <= count; to++) {
+          // day n holds card "dn"; the pool and another trip use the same numbers
+          const cards = [
+            ...Array.from({ length: count }, (_, i) => ({ id: "d" + (i + 1), trip: "x", day: i + 1 })),
+            { id: "pool", trip: "x", day: null },
+            ...Array.from({ length: count }, (_, i) => ({ id: "o" + (i + 1), trip: "y", day: i + 1 })),
+          ] as TripCard[];
+          const r = reorderDay(cards, "x", from, to, count);
+          if (from === to) {
+            expect(r).toBeNull();
+            continue;
+          }
+          // read the days back in order: the moved day's plan sits at `to`, the others keep their order
+          const order = Array.from({ length: count }, (_, i) => r!.find((c) => c.trip === "x" && c.day === i + 1)!.id);
+          const expected = Array.from({ length: count }, (_, i) => "d" + (i + 1)).filter((id) => id !== "d" + from);
+          expected.splice(to - 1, 0, "d" + from);
+          expect(order).toEqual(expected);
+          expect(r!.filter((c) => c.trip === "y" || c.day == null)).toEqual(cards.filter((c) => c.trip === "y" || c.day == null));
+        }
+      }
+    }
+    expect(reorderDay([], "x", 0, 2, 3)).toBeNull();
+    expect(reorderDay([], "x", 1, 4, 3)).toBeNull();
+  });
+
+  it("places a dropped card at the spot it was dropped on, among that day's cards", () => {
+    // day 1: a, b, c; day 2: x; z is another trip's card on day 1, and p is in the pool
+    const cards = [
+      { id: "a", trip: "t", day: 1 }, { id: "x", trip: "t", day: 2 }, { id: "b", trip: "t", day: 1 },
+      { id: "z", trip: "o", day: 1 }, { id: "c", trip: "t", day: 1 }, { id: "p", trip: "t", day: null },
+    ] as TripCard[];
+    const day = (cs: TripCard[], d: number) => cs.filter((c) => c.trip === "t" && c.day === d).map((c) => c.id);
+    expect(day(placeCard(cards, "p", 1, 0), 1)).toEqual(["p", "a", "b", "c"]);
+    expect(day(placeCard(cards, "p", 1, 2), 1)).toEqual(["a", "b", "p", "c"]);
+    expect(day(placeCard(cards, "p", 1, 9), 1)).toEqual(["a", "b", "c", "p"]);
+    expect(day(placeCard(cards, "x", 1, 1), 1)).toEqual(["a", "x", "b", "c"]);
+    // within its own day: the index counts the day's other cards
+    expect(day(placeCard(cards, "c", 1, 0), 1)).toEqual(["c", "a", "b"]);
+    expect(day(placeCard(cards, "a", 1, 1), 1)).toEqual(["b", "a", "c"]);
+    // onto an empty day, and nothing else moves
+    const r = placeCard(cards, "a", 3, 0);
+    expect(day(r, 3)).toEqual(["a"]);
+    expect(r.filter((c) => c.id !== "a")).toEqual(cards.filter((c) => c.id !== "a"));
   });
 
   it("refuses days that aren't there", () => {

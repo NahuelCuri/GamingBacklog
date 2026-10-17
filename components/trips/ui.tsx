@@ -153,7 +153,7 @@ export function Sheet({ label, anchor, mobile, onClose, children, width = 260 }:
 }
 
 /** A row in a Sheet. */
-export function SheetItem({ on, disabled, onClick, children, hint }: { on?: boolean; disabled?: boolean; onClick(): void; children: ReactNode; hint?: ReactNode }) {
+export function SheetItem({ on, disabled, danger, onClick, children, hint }: { on?: boolean; disabled?: boolean; danger?: boolean; onClick(): void; children: ReactNode; hint?: ReactNode }) {
   return (
     <button
       type="button"
@@ -163,7 +163,8 @@ export function SheetItem({ on, disabled, onClick, children, hint }: { on?: bool
       className={cx(
         "flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm pointer-coarse:min-h-12",
         PRESS,
-        on ? "bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] font-semibold text-accent2" : "text-text2 hover:bg-wc",
+        on ? "bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] font-semibold text-accent2" : danger ? "font-semibold text-neg hover:bg-[color-mix(in_srgb,var(--neg)_10%,transparent)]" : "text-text2 hover:bg-wc",
+        "disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent",
       )}
     >
       <span className="flex-1">{children}</span>
