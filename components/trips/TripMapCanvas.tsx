@@ -9,7 +9,11 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { stopsIn, type District, type Districts } from "@/lib/trips/districts";
 import { boxOf, minZoomFor, type LngLat, type MapPin, type MapScene } from "@/lib/trips/map-scene";
 import { play, reducedMotion } from "@/lib/motion";
-import { T } from "./styles";
+import { TRIP_ACCENT } from "@/lib/trips/model";
+import { MapLoading } from "./MapLoading";
+
+/** MapLibre paints with real colours, not CSS variables; the basemap stays dark in either theme. */
+const PIN_TIP = "#9aa7a4";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
 /** Furthest a fit zooms in; users can go a bit closer by hand. */
@@ -175,7 +179,7 @@ const labelLayout = (text: maplibregl.ExpressionSpecification, pad: Pad | null, 
 const cardText = (details: boolean): maplibregl.ExpressionSpecification => [
   "format",
   ["get", "tip"],
-  { "text-font": ["literal", ["Noto Sans Regular"]], "font-scale": 0.9, "text-color": details ? T.muted2 : CLEAR },
+  { "text-font": ["literal", ["Noto Sans Regular"]], "font-scale": 0.9, "text-color": details ? PIN_TIP : CLEAR },
   "\n",
   {},
   ["get", "title"],
@@ -435,8 +439,12 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
   const [, closed] = useState(0);
   const [bubbleMax, setBubbleMax] = useState(400);
   const [ready, setReady] = useState(false);
+  // The first tiles are drawn: until then the loading state covers an empty dark box.
+  const [painted, setPainted] = useState(false);
   const [failed, setFailed] = useState<null | "webgl" | "tiles">(null);
   const padding = compact ? 40 : 70;
+  // Fits leave more room at the sides and top: a pin's title sits above it, centred, and runs wider than the pin.
+  const fitPad = compact ? { top: 56, bottom: 32, left: 64, right: 64 } : { top: 72, bottom: 48, left: 120, right: 120 };
   // Latest frame for handlers set up once; and whether the user has moved the map themselves.
   const frameRef = useRef(frame);
   frameRef.current = frame;
@@ -450,6 +458,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     let loaded = false;
     // A new map (remount, hot reload) isn't ready until its own style loads.
     setReady(false);
+    setPainted(false);
     const el = box.current!;
     const size = () => [el.clientWidth || innerWidth, el.clientHeight || innerHeight] as const;
     const limitZoom = () => {
@@ -460,7 +469,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
         container: box.current!,
         style: STYLE_URL,
         bounds: boundsOf(frame),
-        fitBoundsOptions: { padding, maxZoom: MAX_ZOOM },
+        fitBoundsOptions: { padding: fitPad, maxZoom: MAX_ZOOM },
         attributionControl: false,
         dragRotate: false,
         pitchWithRotate: false,
@@ -492,7 +501,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
         type: "line",
         source: "route",
         layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": T.accent, "line-width": 1.6, "line-dasharray": [2, 2.5], "line-opacity": 0 },
+        paint: { "line-color": TRIP_ACCENT, "line-width": 1.6, "line-dasharray": [2, 2.5], "line-opacity": 0 },
       });
       // Stations under the pins, so a pin's title wins the spot over a station's name.
       addStationLayer(m);
@@ -589,9 +598,12 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     });
     m.on("resize", () => {
       limitZoom();
-      if (!touched.current && frameRef.current.length) m.fitBounds(boundsOf(frameRef.current), { padding, maxZoom: MAX_ZOOM, duration: 0 });
+      if (!touched.current && frameRef.current.length) m.fitBounds(boundsOf(frameRef.current), { padding: fitPad, maxZoom: MAX_ZOOM, duration: 0 });
     });
-    m.on("load", limitZoom);
+    m.on("load", () => {
+      limitZoom();
+      setPainted(true);
+    });
     map.current = m;
     return () => {
       clearTimeout(closeSoon);
@@ -647,6 +659,8 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     const z = glow.zone;
     (m.getSource("district-glow") as GeoJSONSource | undefined)?.setData({ type: "Feature", properties: {}, geometry: { type: "MultiPolygon", coordinates: z.rings.map((r) => [r]) } });
     const set = (v: number) => {
+      // Leaving the tab removes the map before this effect's cleanup runs: nothing left to paint.
+      if (map.current !== m) return;
       m.setPaintProperty("district-glow-halo", "line-opacity", v * 0.75);
       m.setPaintProperty("district-glow-line", "line-opacity", v);
     };
@@ -699,7 +713,7 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     }
     if (!frame.length) return;
     touched.current = false;
-    m.fitBounds(boundsOf(frame), { padding, maxZoom: MAX_ZOOM, duration: reducedMotion() ? 0 : 700 });
+    m.fitBounds(boundsOf(frame), { padding: fitPad, maxZoom: MAX_ZOOM, duration: reducedMotion() ? 0 : 700 });
     // frame is read through frameKey, which changes exactly when it should re-frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameKey, padding]);
@@ -841,15 +855,11 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
           <div style={{ transformOrigin: "50% 100%", pointerEvents: open ? "auto" : "none", ["--bubble-max" as string]: bubbleMax + "px" }}>{shown.current.node}</div>
         </div>
       )}
-      {!ready && !failed && (
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontFamily: T.mono, fontSize: 12, color: T.dim2 }}>
-          loading map…
-        </div>
-      )}
+      {!(ready && painted) && !failed && <MapLoading />}
       {failed && (
-        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", gap: 6, alignItems: "center", justifyContent: "center", padding: "0 30px", textAlign: "center" }}>
-          <div style={{ fontSize: 14, color: T.dim }}>{failed === "webgl" ? "This browser can't draw the map" : "Map tiles unavailable"}</div>
-          <div style={{ fontSize: 12.5, color: T.faint }}>{failed === "webgl" ? "WebGL is off or unsupported. The stop list still works." : "Check your connection and reopen the tab."}</div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-[#0a0c0d] px-8 text-center">
+          <div className="text-sm font-semibold text-[#c6cfcc]">{failed === "webgl" ? "This browser can't draw the map" : "Map tiles unavailable"}</div>
+          <div className="text-xs text-[#8a9693]">{failed === "webgl" ? "WebGL is off or unsupported. The stop list still works." : "Check your connection and reopen the tab."}</div>
         </div>
       )}
     </div>

@@ -1,29 +1,25 @@
 "use client";
 
-// Itinerary tab: the pool of unscheduled cards and one lane per day. Cards are
-// dragged between them (on phones after a short hold, so a swipe still
-// scrolls), or moved with the keyboard: ←/→ change day, ↑/↓ reorder. On desktop
-// the lanes sit on a canvas that pans (drag or scroll) and zooms (Ctrl+scroll
-// or the buttons).
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
-import { MinusIcon, PlusIcon, StarIcon, WarningCircleIcon } from "@/components/icons";
-import { cardAriaLabel, dayHint, lookalikes, money, quickAddCard, removeDay, setCardDay, statusMeta, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
-import { LookalikeNote } from "./LookalikeNote";
-import { IMPORTANT_EDGE, T, filterPill, frame, importantCard, input, statusDot } from "./styles";
-import { useTripCtx } from "./TripPlanner";
+// Itinerary tab: the pool of unscheduled cards and one lane per day.
+//
+// Every card has a "⋯" button that moves it to any day (a bottom sheet on
+// phones), so nothing needs a drag. Dragging still works as a shortcut: right
+// away with a mouse, after a short hold on touch screens (so a swipe still
+// scrolls). With the keyboard, ←/→ change day and ↑/↓ reorder.
+//
+// Desktop: the pool sits on the left and the days scroll sideways like any
+// board. Phones: one vertical scroll, the pool first and then the days.
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent, type ReactNode } from "react";
+import { CaretUpIcon, CloseIcon, DotsIcon, PlusIcon, StarIcon, WarningCircleIcon } from "@/components/icons";
 import { Tick } from "@/components/ui/Tick";
 import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
-import { play, reducedMotion } from "@/lib/motion";
+import { play } from "@/lib/motion";
+import { cardAriaLabel, dayHint, lookalikes, money, quickAddCard, removeDay, setCardDay, statusMeta, tripSpan, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
+import { LookalikeNote } from "./LookalikeNote";
+import { useTripCtx } from "./TripPlanner";
+import { Button, Chip, IconButton, Kicker, Sheet, SheetItem, TypeLabel, cx, inputCls, tint } from "./ui";
 
 type Over = { day: number | null; index: number } | "none" | null;
-
-const clampZoom = (z: number) => Math.min(1.6, Math.max(0.4, z));
-
-type View = { zoom: number; x: number; y: number };
-
-/** How quickly the view catches up with where it's headed: it covers 63% of the way every GLIDE ms. */
-const GLIDE = 85;
-const dotGrid: CSSProperties = { backgroundImage: "radial-gradient(circle at 1px 1px,#161c1e 1px,transparent 0)", backgroundSize: "26px 26px" };
 
 function dropTarget(x: number, y: number): { day: number | null; index: number } | null {
   const z = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-dropzone]");
@@ -42,7 +38,7 @@ function dropTarget(x: number, y: number): { day: number | null; index: number }
   return { day: Number(d), index };
 }
 
-/** Slides cards from their old position when the list re-orders (legacy FLIP). */
+/** Slides cards from their old position when the list re-orders (FLIP). */
 function useFlip(deps: unknown) {
   const last = useRef(new Map<string, DOMRect>());
   // Takes the cards' current places as where they were: a move already made (a lane that closed up) isn't slid again.
@@ -68,55 +64,23 @@ function useFlip(deps: unknown) {
   return settle;
 }
 
+/** How far from a scroller's edge a dragged card starts scrolling it, px. */
+const EDGE = 72;
+
 export function ItineraryTab() {
-  const { trip, cards, data, isMobile: mob, persist, poolFilter, setPoolFilter, openCard, moveDay, moveOrder } = useTripCtx();
+  const { trip, cards, data, isMobile: mob, persist, poolFilter, setPoolFilter, openCard, openEdit, moveDay, moveOrder, moveCard, offerUndo } = useTripCtx();
   const [quick, setQuick] = useState("");
   // The text a first Enter was held back for, as a likely repeat; Enter again adds it.
   const [held, setHeld] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null);
   const [over, setOver] = useState<Over>(null);
-  const [view, setView] = useState<View>({ zoom: 1, x: 0, y: 0 });
-  // Zoom glides: `goal` is where the view is headed (zoom steps add up there), `now` what's on screen.
-  // Panning by hand goes straight there, with no lag.
-  const goal = useRef<View>(view);
-  const now = useRef<View>(view);
-  const glideRaf = useRef(0);
-  const show = (v: View) => {
-    now.current = v;
-    setView(v);
-  };
-  const jump = (v: View) => {
-    cancelAnimationFrame(glideRaf.current);
-    glideRaf.current = 0;
-    goal.current = v;
-    show(v);
-  };
-  const glide = () => {
-    if (reducedMotion()) return jump(goal.current);
-    if (glideRaf.current) return;
-    let last = performance.now();
-    const step = (t: number) => {
-      const k = 1 - Math.exp(-Math.min(t - last, 50) / GLIDE);
-      last = t;
-      const a = now.current, g = goal.current;
-      const near = Math.abs(g.zoom - a.zoom) < 0.0015 && Math.abs(g.x - a.x) < 0.2 && Math.abs(g.y - a.y) < 0.2;
-      show(near ? g : { zoom: a.zoom + (g.zoom - a.zoom) * k, x: a.x + (g.x - a.x) * k, y: a.y + (g.y - a.y) * k });
-      glideRaf.current = near ? 0 : requestAnimationFrame(step);
-    };
-    glideRaf.current = requestAnimationFrame(step);
-  };
-  // Zoom to `zoom`, keeping the point under `at` (canvas pixels) where it is.
-  const zoomTo = (zoom: number, at: { x: number; y: number }) => {
-    const g = goal.current, z = clampZoom(zoom);
-    goal.current = { zoom: z, x: at.x - ((at.x - g.x) / g.zoom) * z, y: at.y - ((at.y - g.y) / g.zoom) * z };
-    glide();
-  };
-  const centre = () => {
-    const r = canvas.current?.getBoundingClientRect();
-    return { x: (r?.width ?? 0) / 2, y: (r?.height ?? 0) / 2 };
-  };
-  useEffect(() => () => cancelAnimationFrame(glideRaf.current), []);
-  const canvas = useRef<HTMLDivElement>(null);
+  const [poolOpen, setPoolOpen] = useState(true);
+  // The card whose "⋯" menu is open, and the button it hangs from.
+  const [menu, setMenu] = useState<string | null>(null);
+  const menuBtn = useRef<HTMLElement | null>(null);
+  // What scrolls while a card is dragged near its edge: the whole tab on phones, the days on desktop.
+  const scroller = useRef<HTMLDivElement>(null);
+  const board = useRef<HTMLDivElement>(null);
   const pending = useRef<{ id: string; sx: number; sy: number; moved: boolean; armed: boolean } | null>(null);
   const cleanup = useRef<() => void>(() => {});
   const leaving = useRef(false);
@@ -125,8 +89,7 @@ export function ItineraryTab() {
   const laneIds = useRef<number[]>([]);
   const nextLane = useRef(1);
   const cut = useRef<number | null>(null);
-  // The lane being dissolved. Lanes are keyed by day number, so the next day takes over its
-  // element: the animation must be dropped as soon as the days change, or it would stay on it.
+  // The lane being dissolved, until the days change (or saving fails and it comes back).
   const fading = useRef<{ el: HTMLElement; as: Animation[] } | null>(null);
   const unfade = () => {
     const f = fading.current;
@@ -150,56 +113,35 @@ export function ItineraryTab() {
     play(el, [{ scale: "1.03" }, { scale: "1" }], { duration: 260 });
   }, [cards]);
 
-  // "+ Add day": only columns added after mount slide in.
+  // "+ Add day": only lanes added after mount slide in.
   useEnterStagger(
     Array.from({ length: trip?.dayCount || 0 }, (_, i) => String(i + 1)),
-    (d) => canvas.current?.querySelector(`[data-day="${d}"]`),
+    (d) => board.current?.querySelector(`[data-day="${d}"]`),
     { skipInitial: true, keyframes: [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }] },
   );
 
   useEffect(() => () => cleanup.current(), []);
   useLayoutEffect(unfade, [trip?.dayCount]);
 
-  // Wheel on the canvas: pan, or zoom with Ctrl/⌘ (desktop only).
-  useEffect(() => {
-    const el = canvas.current;
-    if (!el || mob) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (e.ctrlKey || e.metaKey) {
-        // Proportional to the wheel, so a pinch's many small events and a mouse's big notch both feel even.
-        const r = el.getBoundingClientRect();
-        zoomTo(goal.current.zoom * Math.exp(-Math.max(-40, Math.min(40, e.deltaY)) * 0.0075), { x: e.clientX - r.left, y: e.clientY - r.top });
-      } else {
-        const g = goal.current;
-        goal.current = { ...g, x: g.x - e.deltaX, y: g.y - e.deltaY };
-        // Mid-glide the pan joins it; otherwise it just moves.
-        if (glideRaf.current) glide();
-        else show(goal.current);
-      }
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-    // zoomTo, glide and show only touch refs and a state setter, so the first render's copies do.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mob]);
-
   if (!trip) return null;
+  const dayCount = trip.dayCount || 0;
 
   const onCardDown = (id: string) => (e: RPointerEvent) => {
     if (e.button !== undefined && e.button !== 0) return;
-    e.stopPropagation();
     pending.current = { id, sx: e.clientX, sy: e.clientY, moved: false, armed: !mob };
     let hold: ReturnType<typeof setTimeout> | undefined;
-    let auto: number | null = null, autoDir = 0;
+    let auto: number | null = null;
+    let dir = { x: 0, y: 0 };
     const autoStep = () => {
-      if (!autoDir || !canvas.current) return (auto = null);
-      canvas.current.scrollTop += autoDir * 11;
+      const el = scroller.current;
+      if (!el || (!dir.x && !dir.y)) return (auto = null);
+      el.scrollLeft += dir.x * 12;
+      el.scrollTop += dir.y * 12;
       auto = requestAnimationFrame(autoStep);
     };
-    const setAuto = (dir: number) => {
-      autoDir = dir;
-      if (dir && auto == null) auto = requestAnimationFrame(autoStep);
+    const setAuto = (x: number, y: number) => {
+      dir = { x, y };
+      if ((x || y) && auto == null) auto = requestAnimationFrame(autoStep);
     };
     const touchMove = (ev: TouchEvent) => {
       if (pending.current?.armed) ev.preventDefault();
@@ -211,7 +153,7 @@ export function ItineraryTab() {
       window.removeEventListener("pointercancel", up);
       window.removeEventListener("touchmove", touchMove);
       document.body.style.userSelect = "";
-      setAuto(0);
+      setAuto(0, 0);
     };
     const cancel = () => {
       teardown();
@@ -227,17 +169,13 @@ export function ItineraryTab() {
         if (dist > 10) cancel(); // a real move before the hold: the user is scrolling
         return;
       }
-      if (mob) {
-        if (dist > 3) p.moved = true;
-        const cv = canvas.current;
-        if (cv) {
-          const r = cv.getBoundingClientRect();
-          setAuto(ev.clientY < r.top + 72 ? -1 : ev.clientY > r.bottom - 72 ? 1 : 0);
-        }
-      } else if (!p.moved) {
-        if (dist < 5) return;
+      if (!p.moved) {
+        if (dist < (mob ? 3 : 5)) return;
         p.moved = true;
+        document.body.style.userSelect = "none";
       }
+      const r = scroller.current?.getBoundingClientRect();
+      if (r) setAuto(mob ? 0 : ev.clientX < r.left + EDGE ? -1 : ev.clientX > r.right - EDGE ? 1 : 0, ev.clientY < r.top + EDGE ? -1 : ev.clientY > r.bottom - EDGE ? 1 : 0);
       setDrag({ id: p.id, x: ev.clientX, y: ev.clientY });
       setOver(dropTarget(ev.clientX, ev.clientY) ?? "none");
     };
@@ -274,70 +212,64 @@ export function ItineraryTab() {
         setDrag({ id: p.id, x: p.sx, y: p.sy });
         setOver("none");
       }, 260);
-    } else {
-      e.preventDefault();
-      document.body.style.userSelect = "none";
     }
   };
 
   const cardKey = (id: string) => (e: KeyboardEvent) => {
     const k = e.key;
-    if (k === "Enter" || k === " ") openCard(id);
-    else if (k === "ArrowRight") moveDay(id, 1);
+    if (k === "ArrowRight") moveDay(id, 1);
     else if (k === "ArrowLeft") moveDay(id, -1);
     else if (k === "ArrowDown") moveOrder(id, 1);
     else if (k === "ArrowUp") moveOrder(id, -1);
     else return;
     e.preventDefault();
   };
-
-  const canvasDown = (e: RPointerEvent) => {
-    if (mob) return;
-    const sx = e.clientX, sy = e.clientY, ox = now.current.x, oy = now.current.y;
-    const move = (ev: PointerEvent) => jump({ ...now.current, x: ox + ev.clientX - sx, y: oy + ev.clientY - sy });
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
+  // Pointer presses open the card when they let go (see onCardDown); this is
+  // Enter, Space and screen readers, whose clicks carry no pointer.
+  const cardClick = (id: string) => (e: RMouseEvent) => {
+    if (e.detail === 0) openCard(id);
+  };
+  const openMenu = (id: string) => (e: RMouseEvent<HTMLButtonElement>) => {
+    menuBtn.current = e.currentTarget;
+    setMenu(id);
   };
 
-  // Removing a day: the lane dissolves (fades, blurs and shrinks away), then closes up so its
-  // neighbours slide over; the change lands when it's gone. Without animation it lands at once.
+  // Removing a day: the lane dissolves, then closes up so its neighbours slide
+  // over; the change lands when it's gone, with an Undo. Without animation it lands at once.
   const dropDay = (d: number) => {
     const r = removeDay(data, trip.id, d);
     if (!r || leaving.current) return;
-    const done = () => {
-      // The lane stays gone until the days change (see unfade); if saving fails it comes back.
-      settle();
-      cut.current = d;
-      persist({ trips: r.trips, cards: r.cards }).catch(unfade);
-    };
-    const el = canvas.current?.querySelector<HTMLElement>(`[data-day="${d}"]`);
-    const gone = { opacity: 0, filter: "blur(9px)", transform: "scale(.9) translateY(-8px)" };
+    const n = cards.filter((c) => c.day === d).length;
+    const before = { trips: data.trips, cards: data.cards };
+    const label = `Day ${d} removed` + (n ? ` · ${n} ${n === 1 ? "card" : "cards"} back in the pool` : "");
+    const commit = () => persist({ trips: r.trips, cards: r.cards }).then(() => offerUndo(label, before));
+    const el = board.current?.querySelector<HTMLElement>(`[data-day="${d}"]`);
+    const gone = { opacity: 0, filter: "blur(6px)", transform: "scale(.94)" };
     const size = mob ? { height: el?.offsetHeight + "px", paddingBlock: "12px", borderWidth: "1px", marginBottom: "0px" } : { flexBasis: el?.offsetWidth + "px", paddingInline: "12px", borderWidth: "1px", marginRight: "0px" };
-    const shut = mob ? { height: "0px", paddingBlock: "0px", borderWidth: "0px", marginBottom: "-14px" } : { flexBasis: "0px", paddingInline: "0px", borderWidth: "0px", marginRight: "-14px" };
+    const shut = mob ? { height: "0px", paddingBlock: "0px", borderWidth: "0px", marginBottom: "-12px" } : { flexBasis: "0px", paddingInline: "0px", borderWidth: "0px", marginRight: "-12px" };
     leaving.current = true;
-    // In order: the lane dissolves where it is; then the ones after it slide over into its
-    // place (the lane closes up); only when that has settled does the day really go.
-    const FADE = 360;
-    const fade = play(el, [{ opacity: 1, filter: "blur(0px)", transform: "none" }, gone], { duration: FADE, easing: "ease-out", fill: "forwards" });
-    const close = play(el, [size, shut], { duration: 460, delay: FADE, easing: "cubic-bezier(.45, 0, .2, 1)", fill: "forwards" });
+    const fade = play(el, [{ opacity: 1, filter: "blur(0px)", transform: "none" }, gone], { duration: 240, easing: "ease-out", fill: "forwards" });
+    const close = play(el, [size, shut], { duration: 320, delay: 240, easing: "cubic-bezier(.45, 0, .2, 1)", fill: "forwards" });
     if (!fade || !close) {
       fade?.cancel();
       close?.cancel();
       leaving.current = false;
       cut.current = d;
-      void persist({ trips: r.trips, cards: r.cards });
+      void commit();
       return;
     }
     // A flex item won't shrink below its content (min-width / min-height: auto): without this the
     // lane stops closing at the width of its header, and the days after it stall, then jump.
     Object.assign(el!.style, { pointerEvents: "none", minWidth: "0", minHeight: "0", overflow: "hidden" });
     fading.current = { el: el!, as: [fade, close] };
-    close.onfinish = done;
+    close.onfinish = () => {
+      settle();
+      cut.current = d;
+      commit().catch(unfade);
+    };
   };
+
+  const setDays = (n: number) => void persist({ trips: data.trips.map((x) => (x.id === trip.id ? { ...x, dayCount: n } : x)) });
 
   const quickCard = quickAddCard(quick, trip.id);
   const quickLike = quickCard ? lookalikes(cards, quickCard) : [];
@@ -355,169 +287,193 @@ export function ItineraryTab() {
   const poolShown = pool.filter((c) => c.id !== drag?.id && (poolFilter === "all" || c.type === poolFilter));
   const poolGhost = !!drag && over !== "none" && over?.day === null;
   const dragCard = drag ? data.cards.find((c) => c.id === drag.id) : undefined;
-  const dayCount = trip.dayCount || 0;
   const ids = laneIds.current;
   if (ids.length > dayCount) {
     ids.splice(ids.length - dayCount === 1 && cut.current != null ? cut.current - 1 : dayCount, ids.length - dayCount);
     cut.current = null;
   }
   while (ids.length < dayCount) ids.push(nextLane.current++);
+  const span = tripSpan(trip);
+  const menuCard = menu ? cards.find((c) => c.id === menu) : undefined;
 
-  const ghost = (h: number) => <div style={{ height: h, border: "1.5px dashed #3a6b66", borderRadius: h > 50 ? 10 : 9, background: "rgba(95,184,176,.09)", animation: "slotIn .16s ease", transformOrigin: "top" }} />;
+  const ghost = (h: number) => <div aria-hidden style={{ height: h }} className="origin-top rounded-[10px] border-[1.5px] border-dashed border-accent bg-[color-mix(in_srgb,var(--accent)_9%,transparent)] [animation:slotIn_.16s_ease]" />;
+  const card = (c: TripCard, inPool: boolean) => (
+    <BoardCard key={c.id} card={c} inPool={inPool} mob={mob} currency={trip.currency} dragging={drag?.id === c.id} onDown={onCardDown(c.id)} onKey={cardKey(c.id)} onClick={cardClick(c.id)} onMenu={openMenu(c.id)} />
+  );
 
-  return (
-    <div style={{ flex: 1, minHeight: 0, display: "flex", ...(mob ? { flexDirection: "column" } : {}) }}>
-      {/* pool */}
-      <div
-        data-dropzone=""
-        data-day="pool"
-        style={
-          mob
-            ? { flex: "0 0 auto", width: "100%", borderBottom: `1px solid ${T.line}`, display: "flex", flexDirection: "column", background: T.panel }
-            : { flex: "0 0 340px", borderRight: `1px solid ${T.line}`, display: "flex", flexDirection: "column", background: T.panel }
-        }
-      >
-        <div style={{ flex: "0 0 auto", padding: "16px 16px 10px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 11 }}>
-            <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "#7f8c89" }}>{`Pool · ${pool.length}`}</div>
-            <div style={{ fontSize: 11.5, color: T.dim3 }}>unscheduled</div>
-          </div>
-          <input value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={onQuickKey} aria-label="Quick add a card" autoComplete="off" spellCheck={false} placeholder="Quick add — paste a link or title, Enter" style={{ ...input, padding: "10px 12px" }} />
-          <LookalikeNote found={quickLike} hint={quickRepeat ? (held === quick ? "Press Enter again to add it anyway." : "Enter checks first; press it again to add anyway.") : undefined} style={{ marginTop: 8 }} />
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 10 }}>
-            {typeFilterOptions(pool).map((f) => (
-              <button key={f.value} type="button" aria-pressed={poolFilter === f.value} onClick={() => setPoolFilter(f.value)} style={{ whiteSpace: "nowrap", cursor: "pointer", fontSize: 11.5, fontWeight: 600, padding: "4px 9px", borderRadius: 999, ...filterPill(poolFilter === f.value, f.color) }}>
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div
-          style={
-            mob
-              ? { flex: "0 0 auto", overflowX: "auto", overflowY: "hidden", padding: "4px 12px 12px", display: "flex", flexDirection: "row", gap: 8, alignItems: "stretch" }
-              : { flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 12px 24px", display: "flex", flexDirection: "column", gap: 8 }
-          }
-        >
-          {poolShown.map((c) => (
-            <BoardCard key={c.id} card={c} lane={false} mob={mob} currency={trip.currency} onDown={onCardDown(c.id)} onKey={cardKey(c.id)} />
-          ))}
-          {poolGhost && ghost(52)}
-          {poolShown.length === 0 && !poolGhost && (
-            <div style={{ textAlign: "center", color: T.faint, fontSize: 12.5, padding: "30px 10px" }}>
-              Nothing here — quick-add above,
-              <br />
-              or drag a card back from a day.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* days */}
-      <div
-        ref={canvas}
-        onPointerDown={canvasDown}
-        style={
-          mob
-            ? { flex: 1, minWidth: 0, minHeight: 0, position: "relative", overflowY: "auto", overflowX: "hidden", ...dotGrid }
-            : { flex: 1, minWidth: 0, position: "relative", overflow: "hidden", cursor: "grab", ...dotGrid }
-        }
-      >
+  // ---- pool
+  const poolBody = (
+    <>
+      <div className="px-4 pt-4 pb-2.5">
         {!mob && (
-          <div onPointerDown={(e) => e.stopPropagation()} style={{ position: "absolute", bottom: 14, left: 14, zIndex: 30, display: "flex", alignItems: "center", gap: 2, background: "rgba(14,17,18,.92)", border: "1px solid #232a2b", borderRadius: 10, padding: 4, backdropFilter: "blur(6px)" }}>
-            <button type="button" aria-label="Zoom out" onClick={() => zoomTo(goal.current.zoom / 1.2, centre())} style={zoomBtn}>
-              <MinusIcon size={15} />
-            </button>
-            <button type="button" aria-label="Reset zoom" onClick={() => {
-                goal.current = { zoom: 1, x: 0, y: 0 };
-                glide();
-              }} style={{ cursor: "pointer", background: "none", border: "none", fontFamily: T.mono, fontSize: 11, color: T.muted, padding: "0 6px", minWidth: 44, textAlign: "center" }}>
-              {Math.round(view.zoom * 100) + "%"}
-            </button>
-            <button type="button" aria-label="Zoom in" onClick={() => zoomTo(goal.current.zoom * 1.2, centre())} style={zoomBtn}>
-              <PlusIcon size={15} />
-            </button>
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <Kicker as="h2">{`Pool · ${pool.length}`}</Kicker>
+            <span className="text-xs text-muted">not scheduled yet</span>
           </div>
         )}
-        <div
-          style={
-            mob
-              ? { padding: 14, display: "flex", flexDirection: "column", gap: 14 }
-              : { position: "absolute", top: 0, left: 0, transform: `translate(${view.x}px,${view.y}px) scale(${view.zoom})`, transformOrigin: "0 0", padding: 18, display: "flex", gap: 14, alignItems: "flex-start" }
-          }
-        >
-          {Array.from({ length: dayCount }, (_, i) => i + 1).map((d) => {
-            const dayCards = cards.filter((c) => c.day === d);
-            const shown = dayCards.filter((c) => c.id !== drag?.id);
-            const isOver = over !== "none" && over?.day === d;
-            const at = isOver ? Math.max(0, Math.min(over.index, shown.length)) : -1;
-            return (
-              <div
-                key={ids[d - 1]}
-                data-dropzone=""
-                data-day={d}
-                style={{ ...(mob ? { width: "100%" } : { flex: "0 0 268px" }), background: isOver ? "#182422" : "#101414", border: `1px solid ${isOver ? T.accent : T.line}`, borderRadius: 14, padding: 12, display: "flex", flexDirection: "column", transition: "border-color .12s,background .12s" }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>{"Day " + d}</div>
-                    <div style={{ fontFamily: T.mono, fontSize: 10.5, color: T.dim2, marginTop: 1 }}>{dayHint(trip, d)}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ fontFamily: T.mono, fontSize: 11, color: T.dim2, background: T.panel, padding: "3px 7px", borderRadius: 6 }}>
-                      <Tick value={dayCards.length} />
-                    </div>
-                    {dayCount > 1 && (
-                      <button
-                        type="button"
-                        aria-label={"Remove day " + d}
-                        title={dayCards.length ? "Remove this day (its cards go back to the pool)" : "Remove this day"}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => dropDay(d)}
-                        style={{ cursor: "pointer", border: "none", background: "none", color: T.dim2, fontSize: 16, lineHeight: 1, padding: "2px 4px", borderRadius: 6 }}
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div style={{ minHeight: 40, display: "flex", flexDirection: "column", gap: 7 }}>
-                  {shown.map((c, i) => (
-                    <FragmentWithGhost key={c.id} ghost={i === at ? ghost(46) : null}>
-                      <BoardCard card={c} lane mob={mob} currency={trip.currency} onDown={onCardDown(c.id)} onKey={cardKey(c.id)} />
-                    </FragmentWithGhost>
-                  ))}
-                  {at === shown.length && ghost(46)}
-                  {shown.length === 0 && !isOver && (
-                    <div style={{ border: `1.5px dashed ${T.border2}`, borderRadius: 9, color: T.faint, fontSize: 11.5, textAlign: "center", padding: "16px 8px" }}>Drop cards here</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => void persist({ trips: data.trips.map((x) => (x.id === trip.id ? { ...x, dayCount: (x.dayCount || 0) + 1 } : x)) })}
-            style={{ background: "none", cursor: "pointer", ...(mob ? { width: "100%", minHeight: 64 } : { flex: "0 0 132px", alignSelf: "flex-start", height: 120 }), border: `1.5px dashed ${T.border2}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: T.dim2, fontSize: 13, fontWeight: 600 }}
-          >
-            + Add day
-          </button>
+        <input value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={onQuickKey} aria-label="Quick add a card" aria-describedby="tp-quick-help" autoComplete="off" spellCheck={false} placeholder="Add an idea — a title or a link" className={inputCls} />
+        <div id="tp-quick-help" className="mt-1.5 text-2xs text-muted">
+          Press Enter to add it to the pool.
         </div>
+        <LookalikeNote found={quickLike} hint={quickRepeat ? (held === quick ? "Press Enter again to add it anyway." : "Enter checks first; press it again to add anyway.") : undefined} className="mt-2" />
+        {typeFilterOptions(pool).length > 2 && (
+          <div role="group" aria-label="Show in the pool" className="mt-3 flex flex-wrap gap-1.5">
+            {typeFilterOptions(pool).map((f) => (
+              <Chip key={f.value} on={poolFilter === f.value} color={f.color} onClick={() => setPoolFilter(f.value)}>
+                {f.label}
+              </Chip>
+            ))}
+          </div>
+        )}
       </div>
+      <div className={cx("flex flex-col gap-2 px-3", mob ? "pb-4" : "min-h-0 flex-1 overflow-y-auto pb-24 g-scroll")}>
+        {poolShown.map((c) => card(c, true))}
+        {poolGhost && ghost(52)}
+        {poolShown.length === 0 && !poolGhost && (
+          <div className="rounded-[10px] border border-dashed border-wh px-3 py-6 text-center text-xs text-muted">
+            {pool.length ? "No cards of this type in the pool." : "Everything is scheduled. New ideas land here."}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  // ---- days
+  const toolbar = (
+    <div className={cx("flex flex-wrap items-center gap-x-3 gap-y-2", mob ? "px-4 pt-4 pb-3" : "border-b border-wf px-5 py-3")}>
+      <Kicker as="h2">{`Days · ${dayCount}`}</Kicker>
+      {span != null && span !== dayCount && (
+        <span className="text-xs text-muted">
+          {span > dayCount ? `Your dates cover ${span} days.` : `Your dates cover ${span} ${span === 1 ? "day" : "days"}.`}
+          {span > dayCount && (
+            <button type="button" onClick={() => setDays(span)} className="ml-1.5 cursor-pointer font-semibold text-accent underline-offset-2 hover:underline">
+              {`Add the other ${span - dayCount}`}
+            </button>
+          )}
+        </span>
+      )}
+      <Button size="sm" variant="secondary" className="ml-auto" onClick={() => setDays(dayCount + 1)}>
+        <PlusIcon size={13} />
+        Add day
+      </Button>
+    </div>
+  );
+  const lanes = (
+    <div ref={board} className={mob ? "flex flex-col gap-3 px-4 pb-28" : "flex w-max items-start gap-3 p-5 pb-28"}>
+      {Array.from({ length: dayCount }, (_, i) => i + 1).map((d) => {
+        const dayCards = cards.filter((c) => c.day === d);
+        const shown = dayCards.filter((c) => c.id !== drag?.id);
+        const isOver = over !== "none" && over?.day === d;
+        const at = isOver ? Math.max(0, Math.min(over.index, shown.length)) : -1;
+        return (
+          <section
+            key={ids[d - 1]}
+            data-dropzone=""
+            data-day={d}
+            aria-labelledby={`tp-day-${ids[d - 1]}`}
+            className={cx(
+              "flex flex-col rounded-[14px] border p-3 transition-[border-color,background-color] duration-150",
+              mob ? "w-full" : "w-[280px] shrink-0 snap-start scroll-ml-5",
+              isOver ? "border-accent bg-[color-mix(in_srgb,var(--accent)_7%,var(--surface))]" : "border-wf bg-surface",
+            )}
+          >
+            <div className="mb-2.5 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 id={`tp-day-${ids[d - 1]}`} className="m-0 text-sm font-bold text-text">{"Day " + d}</h3>
+                <div className="mt-0.5 font-mono text-2xs text-muted">{dayHint(trip, d)}</div>
+              </div>
+              <div className="flex items-center gap-1">
+                <span aria-label={`${dayCards.length} ${dayCards.length === 1 ? "card" : "cards"}`} className="rounded-md bg-chip2 px-2 py-0.5 font-mono text-2xs text-muted">
+                  <Tick value={dayCards.length} />
+                </span>
+                {dayCount > 1 && (
+                  <IconButton aria-label={"Remove day " + d} title={dayCards.length ? "Remove this day (its cards go back to the pool)" : "Remove this day"} onPointerDown={(e) => e.stopPropagation()} onClick={() => dropDay(d)} className="-mr-1">
+                    <CloseIcon size={14} />
+                  </IconButton>
+                )}
+              </div>
+            </div>
+            <div className="flex min-h-11 flex-col gap-2">
+              {shown.map((c, i) => (
+                <WithGhost key={c.id} ghost={i === at ? ghost(46) : null}>
+                  {card(c, false)}
+                </WithGhost>
+              ))}
+              {at === shown.length && ghost(46)}
+              {shown.length === 0 && !isOver && <div className="rounded-[10px] border border-dashed border-wh px-2 py-4 text-center text-xs text-muted">Nothing planned yet</div>}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col tp:flex-row">
+      {mob ? (
+        <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
+          <section data-dropzone="" data-day="pool" aria-label="Pool" className="border-b border-wf bg-surface">
+            <button type="button" onClick={() => setPoolOpen((o) => !o)} aria-expanded={poolOpen} className="flex w-full cursor-pointer items-center gap-2 px-4 pt-4 text-left">
+              <Kicker as="span">{`Pool · ${pool.length}`}</Kicker>
+              <span className="text-xs text-muted">not scheduled yet</span>
+              <span aria-hidden className={cx("ml-auto text-muted transition-transform duration-200", !poolOpen && "rotate-180")}>
+                <CaretUpIcon size={14} />
+              </span>
+            </button>
+            {poolOpen ? poolBody : <div className="h-4" />}
+          </section>
+          {toolbar}
+          {lanes}
+        </div>
+      ) : (
+        <>
+          <aside data-dropzone="" data-day="pool" aria-label="Pool" className="flex w-[320px] shrink-0 flex-col border-r border-wf bg-surface">
+            {poolBody}
+          </aside>
+          <div className="flex min-w-0 flex-1 flex-col bg-bg">
+            {toolbar}
+            <div ref={scroller} className="g-scroll min-h-0 flex-1 snap-x snap-proximity overflow-auto">
+              {lanes}
+            </div>
+          </div>
+        </>
+      )}
+
+      {menuCard && (
+        <Sheet label={"Move " + (menuCard.title || "card")} anchor={menuBtn} mobile={mob} onClose={() => setMenu(null)}>
+          <div className="truncate px-3 pt-1 pb-2 text-sm font-bold text-text">{menuCard.title || "Untitled"}</div>
+          <Kicker className="px-3 pb-1">Move to</Kicker>
+          <SheetItem on={menuCard.day == null} onClick={() => (moveCard(menuCard.id, null), setMenu(null))}>
+            Pool
+          </SheetItem>
+          {Array.from({ length: dayCount }, (_, i) => i + 1).map((d) => (
+            <SheetItem key={d} on={menuCard.day === d} hint={dayHint(trip, d)} onClick={() => (moveCard(menuCard.id, d), setMenu(null))}>
+              {"Day " + d}
+            </SheetItem>
+          ))}
+          <div className="my-1.5 h-px bg-wf" />
+          <div className="grid grid-cols-2 gap-1">
+            <SheetItem onClick={() => moveOrder(menuCard.id, -1)}>↑ Earlier</SheetItem>
+            <SheetItem onClick={() => moveOrder(menuCard.id, 1)}>↓ Later</SheetItem>
+          </div>
+          <SheetItem onClick={() => (setMenu(null), openEdit(menuCard.id))}>Edit card…</SheetItem>
+        </Sheet>
+      )}
 
       {drag && dragCard && (
-        <div style={{ position: "fixed", left: drag.x - 18, top: drag.y - 16, pointerEvents: "none", zIndex: "calc(var(--z-float) + 2)", animation: "gliftin 140ms var(--ease-out)", background: "#1b2123", ...frame("#3a6b66", "left", typeMeta(dragCard.type).color), borderRadius: 9, padding: "9px 12px", boxShadow: "0 14px 34px rgba(0,0,0,.55)", transform: "rotate(-2deg)", maxWidth: 240 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dragCard.title}</div>
+        <div
+          aria-hidden
+          style={tint(typeMeta(dragCard.type).color, { left: drag.x - 18, top: drag.y - 16, zIndex: "calc(var(--z-float) + 2)" })}
+          className="pointer-events-none fixed max-w-[240px] -rotate-2 rounded-[10px] border border-l-[3px] border-wh border-l-[var(--c)] bg-card px-3 py-2.5 shadow-[var(--shadow-pop)] [animation:gliftin_140ms_var(--ease-out)]"
+        >
+          <div className="truncate text-13 font-semibold text-text">{dragCard.title}</div>
         </div>
       )}
     </div>
   );
 }
 
-const zoomBtn: CSSProperties = { cursor: "pointer", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", borderRadius: 7, color: T.text2, fontSize: 18 };
-
-function FragmentWithGhost({ ghost, children }: { ghost: React.ReactNode; children: React.ReactNode }) {
+function WithGhost({ ghost, children }: { ghost: ReactNode; children: ReactNode }) {
   return (
     <>
       {ghost}
@@ -526,46 +482,59 @@ function FragmentWithGhost({ ghost, children }: { ghost: React.ReactNode; childr
   );
 }
 
-function BoardCard({ card: c, lane, mob, currency, onDown, onKey }: { card: TripCard; lane: boolean; mob: boolean; currency?: string; onDown(e: RPointerEvent): void; onKey(e: KeyboardEvent): void }) {
+function BoardCard({ card: c, inPool, mob, currency, dragging, onDown, onKey, onClick, onMenu }: {
+  card: TripCard;
+  inPool: boolean;
+  mob: boolean;
+  currency?: string;
+  dragging: boolean;
+  onDown(e: RPointerEvent): void;
+  onKey(e: KeyboardEvent): void;
+  onClick(e: RMouseEvent): void;
+  onMenu(e: RMouseEvent<HTMLButtonElement>): void;
+}) {
   const tm = typeMeta(c.type), sm = statusMeta(c.status);
-  const tags = c.tags || [];
   const important = c.type === "important";
-  const base: CSSProperties = { cursor: "grab", touchAction: mob ? "auto" : "none" };
-  const edge = (plain: string) => (important ? IMPORTANT_EDGE : plain);
-  const label = (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-      {important && <WarningCircleIcon size={10} />}
-      {tm.label}
-    </span>
-  );
   const price = c.price != null ? money(c.price, currency) : "";
-  if (lane)
-    return (
-      <div data-flip={c.id} role="button" tabIndex={0} aria-label={cardAriaLabel(c)} onPointerDown={onDown} onKeyDown={onKey} style={{ ...base, ...importantCard(important, "#161a1b"), ...frame(edge("#232a2b"), "left", tm.color), borderRadius: 9, padding: "9px 10px" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.3 }}>{c.title}</div>
-          <div style={{ ...statusDot(sm.dot, sm.glow, 8), marginTop: 4 }} />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6, flexWrap: "wrap" }}>
-          {c.startTime && <span style={{ fontFamily: T.mono, fontSize: 10.5, fontWeight: 600, color: "#93ddd5" }}>{c.startTime}</span>}
-          <span style={{ fontFamily: T.mono, fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", color: tm.color }}>{label}</span>
-          {c.duration && <span style={{ fontSize: 10.5, color: T.dim }}>{c.duration}</span>}
-          {price && <span style={{ fontFamily: T.mono, fontSize: 10.5, color: T.price }}>{price}</span>}
-        </div>
-      </div>
-    );
+  const tags = c.tags || [];
   return (
-    <div data-flip={c.id} role="button" tabIndex={0} aria-label={cardAriaLabel(c)} onPointerDown={onDown} onKeyDown={onKey} style={{ ...base, ...(mob ? { flex: "0 0 auto", width: 212 } : {}), ...importantCard(important, "#171b1d"), ...frame(edge("#23292b"), "left", tm.color), borderRadius: 10, padding: "10px 12px" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.3, color: T.text }}>{c.title}</div>
-        <div style={{ ...statusDot(sm.dot, sm.glow), marginTop: 4 }} />
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: tm.color }}>{label}</span>
-        {price && <span style={{ fontFamily: T.mono, fontSize: 11, color: T.price }}>{price}</span>}
-        {tags.length > 0 && <span style={{ fontSize: 11, color: T.dim2 }}>{tags.slice(0, 2).join(" · ")}</span>}
-        {c.priority === "must" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: T.must }}><StarIcon size={10} />must</span>}
-      </div>
+    <div
+      data-flip={c.id}
+      onPointerDown={onDown}
+      onContextMenu={mob ? (e) => e.preventDefault() : undefined}
+      style={tint(tm.color, { touchAction: mob ? "auto" : "none" })}
+      className={cx(
+        "group relative cursor-grab select-none rounded-[10px] border border-l-[3px] border-l-[var(--c)] transition-[border-color,background-color,opacity] duration-150 [-webkit-touch-callout:none] hover:border-wl hover:border-l-[var(--c)]",
+        important ? "border-[color-mix(in_srgb,var(--must)_40%,transparent)] bg-[color-mix(in_srgb,var(--must)_7%,var(--card))]" : "border-wf bg-card",
+        dragging && "opacity-40",
+      )}
+    >
+      <button type="button" aria-label={cardAriaLabel(c)} onKeyDown={onKey} onClick={onClick} className="block w-full cursor-[inherit] rounded-[inherit] py-2.5 pr-11 pl-3 text-left">
+        <div className="text-13 leading-[1.3] font-semibold text-text">{c.title || "Untitled"}</div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs">
+          {c.startTime && !inPool && <span className="font-mono font-semibold text-accent2">{c.startTime}</span>}
+          <TypeLabel color={tm.color} icon={important ? <WarningCircleIcon size={11} /> : undefined}>
+            {tm.label}
+          </TypeLabel>
+          {c.status !== "idea" && (
+            <span style={tint(sm.dot)} className="tp-ink font-semibold">
+              {sm.label}
+            </span>
+          )}
+          {c.duration && <span className="text-muted">{c.duration}</span>}
+          {price && <span className="font-mono text-price">{price}</span>}
+          {inPool && tags.length > 0 && <span className="text-muted">{tags.slice(0, 2).join(" · ")}</span>}
+          {c.priority === "must" && (
+            <span className="inline-flex items-center gap-0.5 font-bold text-must">
+              <StarIcon size={10} />
+              must
+            </span>
+          )}
+        </div>
+      </button>
+      <IconButton aria-label={"Move " + (c.title || "card")} aria-haspopup="dialog" title="Move to another day" onPointerDown={(e) => e.stopPropagation()} onClick={onMenu} className="absolute top-1 right-1">
+        <DotsIcon size={16} />
+      </IconButton>
     </div>
   );
 }

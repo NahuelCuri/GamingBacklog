@@ -10,16 +10,16 @@ import { TRIPS_MOBILE_QUERY, useIsMobile } from "@/lib/hooks/useIsMobile";
 import { useAuth } from "@/lib/auth";
 import { rememberSummary, tripsSummary } from "@/lib/home";
 import {
-  blankCard, blankTrip, cleanCard, cleanTrip, moveCardDay, moveCardOrder, tripCards,
+  blankCard, blankTrip, cleanCard, cleanTrip, moveCardDay, moveCardOrder, setCardDay, tripCards,
   type CardDraft, type Trip, type TripCard, type TripData,
 } from "@/lib/trips/model";
 import type { TripStore } from "@/lib/trips/store";
 import { useTripStore, useTrips, type TripsState } from "@/lib/trips/useTrips";
-import { CompareButton, CompareDrawer, type CompareState, openInCompare } from "./CompareDrawer";
+import { CompareDrawer, type CompareState, openInCompare } from "./CompareDrawer";
 import { CardEditorDialog, CardViewDialog, DeleteTripDialog, TripEditorDialog } from "./dialogs";
-import { T } from "./styles";
 import { TripBoard } from "./TripBoard";
 import { TripsHome } from "./TripsHome";
+import { Button, IconButton } from "./ui";
 
 export type BoardTab = "cards" | "itinerary" | "map";
 
@@ -103,6 +103,10 @@ export interface TripCtx {
   editTrip(id: string): void;
   moveDay(id: string, dir: number): void;
   moveOrder(id: string, dir: number): void;
+  /** Puts a card on a day (null = the pool), announced. */
+  moveCard(id: string, day: number | null): void;
+  /** Shows an Undo notice that puts `before` back. */
+  offerUndo(label: string, before: Partial<TripData>): void;
   announce(msg: string): void;
   poolFilter: string;
   setPoolFilter(v: string): void;
@@ -118,8 +122,12 @@ export function useTripCtx(): TripCtx {
   return c;
 }
 
+/** After a move re-renders the board, focus goes back to the card that moved (unless a menu has it). */
 const refocusCard = (id: string) =>
-  setTimeout(() => document.querySelector<HTMLElement>(`[data-flip="${id.replace(/["\\]/g, "\\$&")}"]`)?.focus(), 30);
+  setTimeout(() => {
+    if (document.querySelector('[aria-modal="true"]')) return;
+    document.querySelector<HTMLElement>(`[data-flip="${id.replace(/["\\]/g, "\\$&")}"] > button`)?.focus();
+  }, 30);
 
 /** `store` overrides the signed-in member's Supabase store (dev preview, tests). */
 export function TripPlanner({ store: override }: { store?: TripStore | null }) {
@@ -137,7 +145,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const [tripModal, setTripModal] = useState<TripModal | null>(null);
   const [delTrip, setDelTrip] = useState<{ id: string; name: string } | null>(null);
-  const [undo, setUndo] = useState<{ id: number; label: string; cards: TripCard[] } | null>(null);
+  const [undo, setUndo] = useState<{ id: number; label: string; before: Partial<TripData> } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [liveMsg, setLiveMsg] = useState("");
   const [poolFilter, setPoolFilter] = useState("all");
@@ -155,6 +163,12 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
     if (!c) return;
     setConfirmDel(false);
     setModal({ ...c, tags: [...(c.tags || [])], tagInput: "", price: (c.price == null ? "" : String(c.price)) as never });
+  }, []);
+
+  const offerUndo = useCallback((label: string, before: Partial<TripData>) => {
+    clearTimeout(undoTimer.current);
+    setUndo({ id: Date.now(), label, before });
+    undoTimer.current = setTimeout(() => setUndo(null), 8000);
   }, []);
 
   const ctx = useMemo<TripCtx>(
@@ -197,9 +211,17 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
         setLiveMsg(r.message);
         refocusCard(id);
       },
+      moveCard: (id, day) => {
+        const c = data.cards.find((x) => x.id === id);
+        if (!c || (c.day ?? null) === day) return;
+        void persist({ cards: setCardDay(data.cards, id, day) });
+        setLiveMsg((c.title || "Card") + " moved to " + (day == null ? "the pool" : "day " + day));
+        refocusCard(id);
+      },
+      offerUndo,
       announce: setLiveMsg,
     }),
-    [data, isMobile, trip, cards, nav, persist, poolFilter, compare, setNav, openEdit],
+    [data, isMobile, trip, cards, nav, persist, poolFilter, compare, setNav, openEdit, offerUndo],
   );
 
   const saveCard = (m: CardModal) => {
@@ -215,9 +237,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
     void persist({ cards: before.filter((c) => c.id !== m.id) });
     setModal(null);
     setConfirmDel(false);
-    clearTimeout(undoTimer.current);
-    setUndo({ id: Date.now(), label: (m.title || "Card") + " deleted", cards: before });
-    undoTimer.current = setTimeout(() => setUndo(null), 8000);
+    offerUndo((m.title || "Card") + " deleted", { cards: before });
   };
 
   const saveTrip = (d: TripModal) => {
@@ -240,32 +260,45 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const viewed = nav.viewCard ? data.cards.find((c) => c.id === nav.viewCard) : undefined;
 
   let body: ReactNode;
-  if (data.status === "loading") body = <Centered>loading…</Centered>;
+  if (data.status === "loading") body = <LoadingHome />;
   else if (data.status === "error")
     body = (
       <Centered>
-        <span role="alert">
-          Could not load your trips: {data.loadError}.{" "}
-          <button type="button" onClick={retry} style={{ color: T.accent, background: "none", border: "none", cursor: "pointer", font: "inherit" }}>
+        <div role="alert" className="flex max-w-sm flex-col items-center gap-3">
+          <div className="text-base font-bold text-text">Could not load your trips</div>
+          <div className="text-13 text-muted">{data.loadError}</div>
+          <Button variant="primary" onClick={retry}>
             Retry
-          </button>
-        </span>
+          </Button>
+        </div>
+      </Centered>
+    );
+  else if (nav.view === "board" && !trip)
+    body = (
+      <Centered>
+        <div className="flex max-w-sm flex-col items-center gap-3">
+          <div className="text-base font-bold text-text">This trip isn’t here</div>
+          <div className="text-13 text-muted">It may have been deleted, or the link is from another account.</div>
+          <Button variant="primary" onClick={ctx.goHome}>
+            See all trips
+          </Button>
+        </div>
       </Centered>
     );
   else body = trip ? <TripBoard /> : <TripsHome />;
 
   return (
     <Ctx.Provider value={ctx}>
-      <div className="tp-root" style={{ minHeight: "100dvh", background: T.bg, color: T.text }}>
+      <div className="tp-root min-h-dvh bg-bg text-text">
         <a href="#tp-main" className="tp-skip">
           Skip to content
         </a>
         {data.syncError && (
-          <div role="alert" style={{ position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: "var(--z-toast)", display: "flex", gap: 12, alignItems: "center", background: "#2a1c1c", border: "1px solid #3a2828", color: "#f0c4c4", borderRadius: 10, padding: "9px 14px", fontSize: 13 }}>
+          <div role="alert" className="fixed top-3 left-1/2 z-[var(--z-toast)] flex w-max max-w-[calc(100vw-24px)] -translate-x-1/2 items-center gap-3 rounded-[10px] border border-[color-mix(in_srgb,var(--neg)_40%,transparent)] bg-[color-mix(in_srgb,var(--neg)_14%,var(--surface))] px-3.5 py-2 text-13 text-text shadow-[var(--shadow-float)]">
             <span>Some changes were not saved: {data.syncError}. Showing what is stored now.</span>
-            <button type="button" onClick={dismissSyncError} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", textDecoration: "underline", font: "inherit" }}>
+            <Button size="sm" variant="ghost" onClick={dismissSyncError}>
               Dismiss
-            </button>
+            </Button>
           </div>
         )}
         {body}
@@ -300,35 +333,37 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
         </div>
 
         {undo && (
-          <div key={undo.id} role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", overflow: "hidden", animation: "gtoast 260ms var(--ease-out) both", bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)", zIndex: "var(--z-toast)", display: "flex", alignItems: "center", gap: 14, background: "#171b1d", border: `1px solid ${T.border2}`, borderRadius: 12, padding: "11px 14px", boxShadow: "0 14px 40px rgba(0,0,0,.55)" }}>
-            <span aria-hidden style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 2, background: T.accent, opacity: 0.55, transformOrigin: "left", animation: "gdrain 8s linear both" }} />
-            <span style={{ fontSize: 13, color: T.text2 }}>{undo.label}</span>
-            <button
-              type="button"
+          <div
+            key={undo.id}
+            role="status"
+            className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] left-1/2 z-[var(--z-toast)] flex w-max max-w-[calc(100vw-24px)] items-center gap-3 overflow-hidden rounded-xl border border-wh bg-card py-2 pr-2 pl-4 shadow-[var(--shadow-pop)] [animation:gtoast_260ms_var(--ease-out)_both]"
+            style={{ transform: "translateX(-50%)" }}
+          >
+            <span aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-accent opacity-55 [animation:gdrain_8s_linear_both]" />
+            <span className="text-13 text-text2">{undo.label}</span>
+            <Button
+              size="sm"
+              variant="primary"
               onClick={() => {
                 clearTimeout(undoTimer.current);
-                void persist({ cards: undo.cards });
+                void persist(undo.before);
                 setUndo(null);
               }}
-              style={{ font: "inherit", fontSize: 12.5, fontWeight: 700, color: T.onAccent, background: T.accent, border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer" }}
             >
               Undo
-            </button>
-            <button
-              type="button"
+            </Button>
+            <IconButton
               aria-label="Dismiss"
               onClick={() => {
                 clearTimeout(undoTimer.current);
                 setUndo(null);
               }}
-              style={{ font: "inherit", background: "none", border: "none", color: T.dim, lineHeight: 1, cursor: "pointer", display: "flex", padding: 2 }}
             >
               <CloseIcon size={13} />
-            </button>
+            </IconButton>
           </div>
         )}
 
-        {trip && nav.boardTab === "cards" && !compare.on && <CompareButton onClick={() => setCompare((c) => ({ ...c, on: true, min: false }))} />}
         {compare.on && <CompareDrawer />}
         {!compare.on && <LibraryFab current="trips" />}
       </div>
@@ -337,10 +372,27 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
 }
 
 function Centered({ children }: { children: ReactNode }) {
+  return <div className="flex min-h-dvh items-center justify-center p-6 text-center">{children}</div>;
+}
+
+/** Placeholder trip tiles while the trips load. */
+function LoadingHome() {
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.mono, fontSize: 12, color: T.dim2, padding: 24, textAlign: "center" }}>
-      {children}
+    <div role="status" aria-label="Loading your trips" className="mx-auto max-w-[1080px] px-4 pt-20 tp:px-7">
+      <div className="tp-skeleton mb-3 h-9 w-56 rounded-lg" />
+      <div className="tp-skeleton mb-8 h-4 w-16 rounded" />
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-[18px]">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="overflow-hidden rounded-2xl border border-wf bg-card">
+            <div className="tp-skeleton h-24" />
+            <div className="space-y-2.5 p-4">
+              <div className="tp-skeleton h-5 w-3/5 rounded" />
+              <div className="tp-skeleton h-3.5 w-2/5 rounded" />
+              <div className="tp-skeleton mt-4 h-1.5 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
-

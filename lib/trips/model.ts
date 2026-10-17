@@ -115,7 +115,15 @@ export function dayHint(t: Trip, d: number): string {
   return dateFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(dt);
 }
 
-export const tripCards = (cards: TripCard[], tripId: string | null) => cards.filter((c) => c.trip === tripId);
+/** How many days the trip's dates cover (both ends included), or null without both dates. */
+export function tripSpan(t: Trip): number | null {
+  if (!t.start || !t.end) return null;
+  const a = new Date(t.start + "T00:00"), b = new Date(t.end + "T00:00");
+  if (isNaN(+a) || isNaN(+b) || b < a) return null;
+  return Math.round((+b - +a) / 86400000) + 1;
+}
+
+export const tripCards =(cards: TripCard[], tripId: string | null) => cards.filter((c) => c.trip === tripId);
 
 /** Spent vs budget for a trip's cards. */
 export function budget(t: Trip, cards: TripCard[]) {

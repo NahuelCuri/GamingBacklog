@@ -89,7 +89,13 @@
   --accent: #8ecfd6;
 }
 
-:root[data-collection="trips"] { --accent: #5fb8b0; }
+:root[data-collection="trips"] {
+  --bg: #0c0e0f; --surface: #0f1213; --card: #14181a; --topchip: #161a1b;
+  --inset: #0c0e0f; --chip: #1d2326; --chip2: #171c1d;
+  --text: #e9edee; --text2: #c6cfcc; --text3: #b4bfbc; --muted2: #9aa7a4;
+  --muted: #8a9693; --dim: #5f6b68; --dim2: #343d3f; --accent2: #9fd8d1;
+  --accent: #5fb8b0; --onAccent: #06201e;
+}
 
 /* Light swaps the neutral ramp only; collection accents stay. Must come after
    the collection blocks so it wins at equal specificity. */
@@ -112,6 +118,13 @@
   color-scheme: light;
 }
 :root[data-theme="light"]:not([data-collection]) { --accent: #7c847e; }
+/* The trips teal is too pale for text and for white labels on a light page. */
+:root[data-theme="light"][data-collection="trips"] { --accent: #2b7f78; --accent2: #1f6b65; --onAccent: #ffffff; }
+
+/* Trip Planner accents. --ink darkens a category colour used as text in light
+   mode (see .tp-ink), so the pastel type colours stay readable on white. */
+:root { --price: #c9a56e; --must: #e0a86b; --warn: #d98a6a; --ink: 100%; }
+:root[data-theme="light"] { --price: #8a6424; --must: #a35d17; --warn: #b0562f; --ink: 50%; }
 
 /* Expose tokens to Tailwind: bg-surface, text-muted, border-wf, … */
 @theme inline {
@@ -133,9 +146,20 @@
   --color-accent2: var(--accent2);
   --color-on-accent: var(--onAccent);
   --color-neg: var(--neg);
+  --color-price: var(--price);
+  --color-must: var(--must);
+  --color-warn: var(--warn);
   --color-wa: var(--wa); --color-wb: var(--wb); --color-wc: var(--wc); --color-wd: var(--wd);
   --color-we: var(--we); --color-wf: var(--wf); --color-wg: var(--wg); --color-wh: var(--wh);
   --color-wi: var(--wi); --color-wj: var(--wj); --color-wk: var(--wk); --color-wl: var(--wl);
+
+  /* Trip Planner type scale: 11 / 12 / 13 / 14 / 16 / 20 / 30 px. */
+  --text-2xs: 11px;
+  --text-2xs--line-height: normal;
+  --text-13: 13px;
+  --text-13--line-height: normal;
+  /* Where the Trip Planner leaves its phone layout (TRIPS_MOBILE_QUERY). */
+  --breakpoint-tp: 760px;
 
   --font-sans: var(--font-hanken), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
@@ -178,31 +202,22 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: var(--dateInvert);
 @keyframes gpop { from { opacity: 0; transform: translateY(8px) scale(.99) } to { opacity: 1; transform: none } }
 @keyframes gpulse { 0%, 100% { opacity: .4; transform: scale(1) } 50% { opacity: 1; transform: scale(1.12) } }
 @keyframes gslide { from { transform: translateX(14px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
-/* Trip Planner: its look is inline styles (always dark), so hover and press
-   feedback live here, using only properties those styles never set. Cards
-   (role=button) brighten less than buttons. */
-.tp-root :is(button, [role=button], a[href]) {
-  transition-property: filter, transform, color, background-color, border-color, box-shadow;
-  transition-duration: .18s;
-  transition-timing-function: var(--ease-out);
-}
-@media (hover: hover) {
-  .tp-root button:not(:disabled, [aria-disabled=true]):hover,
-  .tp-root a[href]:hover { filter: brightness(1.22); }
-  .tp-root [role=button]:not([aria-disabled=true]):hover { filter: brightness(1.08); }
-}
-.tp-root button:not(:disabled, [aria-disabled=true]):active { transform: translateY(1px); }
+/* Trip Planner: a category colour (--c) as text, darkened in light mode. */
+.tp-ink { color: color-mix(in srgb, var(--c, var(--accent)) var(--ink), #000); }
 /* Trip Planner */
 @keyframes slotIn { from { opacity: 0; transform: scaleY(.6) } to { opacity: 1; transform: scaleY(1) } }
-/* "Important" trip cards: warm edge glow, run a few times when the card appears. */
-@keyframes pulseGlow { 0%, 100% { box-shadow: inset 0 0 0 1px rgba(224,168,107,.18) } 50% { box-shadow: inset 0 0 0 1px rgba(224,168,107,.65) } }
+@keyframes tpshimmer { from { background-position: 100% 0 } to { background-position: -100% 0 } }
+.tp-skeleton {
+  background: linear-gradient(90deg, var(--chip2) 25%, var(--chip) 50%, var(--chip2) 75%) 0 0 / 200% 100%;
+  animation: tpshimmer 1.4s ease-in-out infinite;
+}
 @keyframes drawerRise { from { transform: translateY(101%); opacity: .35 } to { transform: translateY(0); opacity: 1 } }
 /* A light sweeping across a button while it waits on a search (map districts). */
 .tp-scan { position: relative; overflow: hidden; }
-.tp-scan::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 25%, rgba(95,184,176,.2) 50%, transparent 75%); transform: translateX(-100%); animation: gscan 1.2s ease-in-out infinite; }
+.tp-scan::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 25%, color-mix(in srgb, var(--accent) 20%, transparent) 50%, transparent 75%); transform: translateX(-100%); animation: gscan 1.2s ease-in-out infinite; }
 @keyframes gscan { to { transform: translateX(100%); } }
 @keyframes compBtnIn { from { transform: scale(.6) translateY(10px); opacity: 0 } to { transform: scale(1) translateY(0); opacity: 1 } }
-.tp-skip { position: absolute; left: -9999px; top: 8px; z-index: var(--z-skip); background: #5fb8b0; color: #06201e; font-weight: 700; font-size: 13px; padding: 9px 14px; border-radius: 8px; }
+.tp-skip { position: absolute; left: -9999px; top: 8px; z-index: var(--z-skip); background: var(--accent); color: var(--onAccent); font-weight: 700; font-size: 13px; padding: 9px 14px; border-radius: 8px; }
 .tp-skip:focus { left: 12px; }
 @keyframes dpop { from { opacity: 0; transform: translateY(-6px) scale(.98) } to { opacity: 1; transform: none } }
 @keyframes gpulsebtn {
