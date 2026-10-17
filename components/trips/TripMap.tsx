@@ -6,7 +6,7 @@
 // other up. The map (MapLibre) loads lazily, the first time this tab opens.
 import { Component, lazy, useCallback, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { loadDistricts, stopsIn, zoneAt, type District, type Districts } from "@/lib/trips/districts";
-import { framePoints, frameKey, mapScene } from "@/lib/trips/map-scene";
+import { boxOf, framePoints, frameKey, mapScene } from "@/lib/trips/map-scene";
 import { blankCard, cleanCard, mapStops, normTitle, TYPES, typeMeta, type MapDay, type TripCard } from "@/lib/trips/model";
 import { play } from "@/lib/motion";
 import { CardViewBody } from "./dialogs";
@@ -316,7 +316,13 @@ export function TripMap() {
     return byType.filter((c) => !c.loc || picked.includes(zoneAt(zd.zones, [c.loc.lng, c.loc.lat])?.id ?? -1));
   }, [byType, picked, zd]);
   const scene = useMemo(() => (visible === byType ? baseScene : mapScene(visible, day)), [visible, byType, baseScene, day]);
-  const frame = useMemo(() => framePoints(scene), [scene]);
+  // With districts picked the camera frames their whole outline, not just the stops inside.
+  const frame = useMemo(() => {
+    const zs = picked.length && zd ? zd.zones.filter((z) => picked.includes(z.id)) : [];
+    if (!zs.length) return framePoints(scene);
+    const b = boxOf(zs.flatMap((z) => z.rings.flat()));
+    return [[b.w, b.s], [b.e, b.n]] as [number, number][];
+  }, [scene, picked, zd]);
   const filtered = types.length + picked.length;
   const dzData = dzCard ? cards.find((x) => x.id === dzCard) : undefined;
   // A double-click on a district opens the card the user made for it, or starts one with its name.
