@@ -7,8 +7,9 @@ import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
-  PRIOS, STATUSES, TYPES, addTag, dayHint, locQuery, locStatus, locStr, lookalikes, money, parseLoc, regionFromAddress, regionSuggestions, reverseUrl, tagSuggestions, typeMeta, type TripCard,
+  PRIOS, STATUSES, TYPES, addTag, byNearness, dayHint, locQuery, locStatus, locStr, lookalikes, money, parseLoc, pickPlace, regionFromAddress, regionSuggestions, reverseUrl, tagSuggestions, tripArea, typeMeta, type Place, type TripCard,
 } from "@/lib/trips/model";
+import { searchPlaces, tripCountries } from "@/lib/trips/places";
 import { Fact, StatusPrio, sourceShort } from "./cardBits";
 import { LookalikeNote } from "./LookalikeNote";
 import { useTripCtx, type CardModal, type TripModal } from "./TripPlanner";
@@ -247,19 +248,25 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
 
   const commitTag = (raw: string) => set({ tags: addTag(m.tags, raw), tagInput: "" });
 
-  // Coordinates and no Region yet: name the area from them, once they stop
-  // changing (one lookup; a Region typed meanwhile wins).
+  // Coordinates with no Region or country yet: name the area (and note the
+  // country) from them, once they stop changing. One lookup; a Region typed
+  // meanwhile wins.
   const at = parseLoc(locText);
   const atKey = at ? at.lat.toFixed(5) + "," + at.lng.toFixed(5) : "";
   useEffect(() => {
-    if (!at || (m.region || "").trim()) return;
+    if (!at || ((m.region || "").trim() && m.country)) return;
     const ac = new AbortController();
     const t = setTimeout(() => {
       fetch(reverseUrl(at), { headers: { Accept: "application/json" }, signal: ac.signal })
         .then((r) => r.json())
         .then((j) => {
           const region = regionFromAddress(j?.address);
-          if (region) setModal((s) => (s && !(s.region || "").trim() ? { ...s, region } : s));
+          const country = String(j?.address?.country_code || "").toLowerCase();
+          setModal((s) => {
+            if (!s) return s;
+            const patch = { ...(region && !(s.region || "").trim() ? { region } : {}), ...(country && !s.country ? { country } : {}) };
+            return Object.keys(patch).length ? { ...s, ...patch } : s;
+          });
         })
         .catch(() => {});
     }, 600);
@@ -271,21 +278,58 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atKey]);
 
-  const lookup = () => {
+  // The query of the last search, so leaving the field again (or Find right after) doesn't repeat it.
+  const searched = useRef("");
+  // A place name is looked up on Enter, on Find, or when the field is left. It
+  // searches the trip's own area first (around its other located cards), and
+  // only then everywhere; a match far from the trip is never picked on its own.
+  const lookup = async () => {
     const raw = String(locText).trim();
-    if (!raw || parseLoc(raw)) return;
+    if (!raw || parseLoc(raw) || m.locBusy) return;
     const q = locQuery(raw, m.title, m.region);
     if (!q) return set({ locErr: "noquery" });
-    set({ locBusy: true, locErr: null });
-    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q), { headers: { Accept: "application/json" } })
-      .then((r) => r.json())
-      .then((j) => {
-        const hit = j && j[0];
-        if (!hit) throw new Error("none");
-        set({ locText: locStr({ lat: +hit.lat, lng: +hit.lon }), locBusy: false, locErr: null, locFound: hit.display_name });
-      })
-      .catch(() => set({ locBusy: false, locErr: "none" }));
+    if (searched.current === q) return;
+    searched.current = q;
+    set({ locBusy: true, locErr: null, locChoices: null, locPicking: false, locFar: false, locFound: null });
+    const area = tripArea(cards, m.id);
+    const others = cards.filter((c) => c.id !== m.id && c.loc && isFinite(c.loc.lat)).map((c) => c.loc!);
+    try {
+      // Locked to the trip's countries once they're known (from its other stops).
+      const countries = await tripCountries(cards, m.id);
+      if (countries.length) {
+        const found = byNearness(await searchPlaces(q, { countries }), others);
+        if (!found.length) return set({ locBusy: false, locErr: "outside", locCountries: countries });
+        return set({ locBusy: false, locCountries: countries, locChoices: found, locText: locStr(found[0]), locFound: found[0].name, country: found[0].country || undefined });
+      }
+      // No located stop yet (or no answer about countries): the area, then anywhere, never auto-picking a far match.
+      const near = area ? await searchPlaces(q, { area }) : [];
+      const anywhere = near.length ? [] : await searchPlaces(q);
+      const r = pickPlace(near, anywhere, others, area);
+      if (!r.choices.length) {
+        searched.current = "";
+        return set({ locBusy: false, locErr: "none" });
+      }
+      set({ locBusy: false, locChoices: r.choices, locPicking: !r.pick, locFar: r.far, ...(r.pick ? { locText: locStr(r.pick), locFound: r.pick.name, country: r.pick.country || undefined } : {}) });
+    } catch {
+      searched.current = "";
+      set({ locBusy: false, locErr: "none" });
+    }
   };
+  // Nothing in the trip's countries: the user can still look further, and choose.
+  const searchEverywhere = async () => {
+    const q = locQuery(String(locText).trim(), m.title, m.region);
+    if (!q) return;
+    set({ locBusy: true, locErr: null });
+    try {
+      const all = await searchPlaces(q);
+      set(all.length ? { locBusy: false, locChoices: all, locPicking: true, locFar: true } : { locBusy: false, locErr: "none" });
+    } catch {
+      set({ locBusy: false, locErr: "none" });
+    }
+  };
+  const choose = (p: Place) => set({ locText: locStr(p), locFound: p.name, locPicking: false, locErr: null, country: p.country || undefined });
+  const picked = parseLoc(locText);
+  const otherMatches = (m.locChoices?.length ?? 0) - (picked ? 1 : 0);
 
   const id = (k: string) => uid + k;
   const locTone = loc.hint === "✓ on the map" ? "text-accent" : loc.hint === "no coordinates yet" ? "text-warn" : "text-muted";
@@ -369,13 +413,15 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
               <input
                 id={id("loc")}
                 value={locText}
-                onChange={(e) => set({ locText: e.target.value, locErr: null })}
+                onChange={(e) => set({ locText: e.target.value, locErr: null, locChoices: null, locPicking: false, locFar: false, locFound: null, locCountries: null, country: undefined })}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    lookup();
+                    void lookup();
                   }
                 }}
+                // Leaving the field searches too, unless it's for the Find button (its click does).
+                onBlur={(e) => !(e.relatedTarget as HTMLElement | null)?.hasAttribute("data-loc-find") && void lookup()}
                 aria-label="Location — place name, Maps link or coordinates"
                 aria-describedby={id("locnote")}
                 autoComplete="off"
@@ -383,13 +429,52 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
                 placeholder="Place name, Maps link, or 35.6764, 139.6500"
                 className={cx(inputCls, "min-w-0 flex-1")}
               />
-              <Button variant="soft" onClick={lookup} aria-busy={!!m.locBusy}>
+              <Button variant="soft" data-loc-find="" onClick={() => void lookup()} aria-busy={!!m.locBusy}>
                 {loc.button}
               </Button>
             </div>
             <div id={id("locnote")} className="mt-1.5 text-xs leading-normal text-pretty text-muted">
               {loc.note}
+              {m.locErr === "outside" && (
+                <>
+                  {" "}
+                  <button type="button" onClick={() => void searchEverywhere()} className="cursor-pointer font-semibold text-accent hover:underline">
+                    Search everywhere
+                  </button>
+                </>
+              )}
+              {picked && !m.locPicking && otherMatches > 0 && (
+                <>
+                  {" "}
+                  <button type="button" onClick={() => set({ locPicking: true })} className="cursor-pointer font-semibold text-accent hover:underline">
+                    {`Not this one? ${otherMatches} other ${otherMatches === 1 ? "match" : "matches"}`}
+                  </button>
+                </>
+              )}
             </div>
+            {m.locPicking && !!m.locChoices?.length && (
+              <div role="group" aria-label="Places that match" className="mt-2 flex flex-col gap-1 rounded-[10px] border border-wh bg-inset p-1">
+                {m.locChoices.map((p, i) => {
+                  const [head, ...rest] = p.name.split(", ");
+                  const on = !!picked && Math.abs(picked.lat - p.lat) < 1e-5 && Math.abs(picked.lng - p.lng) < 1e-5;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => choose(p)}
+                      aria-current={on || undefined}
+                      className={cx("flex cursor-pointer items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors", on ? "bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]" : "hover:bg-wc")}
+                    >
+                      <span className="mt-px w-6 shrink-0 font-mono text-2xs font-semibold text-muted uppercase">{p.country || "—"}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-13 font-semibold text-text">{head}</span>
+                        {rest.length > 0 && <span className="block truncate text-2xs text-muted">{rest.join(", ")}</span>}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </Field>
         </Section>
 

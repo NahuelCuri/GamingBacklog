@@ -116,6 +116,75 @@ describe("TripPlanner", () => {
     await waitFor(() => expect(store.data.cards[0]).toMatchObject({ title: "teamLab", loc: { lat: 35.649, lng: 139.789 } }));
   });
 
+  it("without known countries, searches near the trip first and lets you pick a far match", async () => {
+    const urls: string[] = [];
+    const place = (lat: string, lon: string, name: string, cc: string) => ({ lat, lon, display_name: name, address: { country_code: cc } });
+    let near: unknown[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      urls.push(url);
+      const body = url.includes("/reverse") ? {} : url.includes("bounded=1") ? near : [place("40.73", "-73.99", "Kinkaku, Manhattan, New York, United States", "us")];
+      return { ok: true, json: async () => body };
+    });
+    await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("button", { name: "New card" }));
+    const locField = () => within(dialog()).getByRole("textbox", { name: /^Location/ }) as HTMLInputElement;
+
+    // Nothing near the trip: the New York match is offered, not taken.
+    fireEvent.change(locField(), { target: { value: "Kinkaku" } });
+    fireEvent.blur(locField());
+    await within(dialog()).findByText(/Nothing by that name near the trip's other stops/);
+    expect(urls.find((u) => u.includes("/search"))).toContain("bounded=1");
+    expect(locField().value).toBe("Kinkaku");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /Manhattan/ }));
+    expect(locField().value).toBe("40.73000, -73.99000");
+
+    // A match near the trip is taken right away, and Enter searches too.
+    near = [place("35.039", "135.729", "Kinkaku-ji, Kyoto, Japan", "jp")];
+    fireEvent.change(locField(), { target: { value: "Kinkaku-ji" } });
+    fireEvent.keyDown(locField(), { key: "Enter" });
+    await waitFor(() => expect(locField().value).toBe("35.03900, 135.72900"));
+    expect(within(dialog()).getByText(/Found: Kinkaku-ji, Kyoto, Japan/)).toBeTruthy();
+    // leaving the field after that doesn't search again
+    const n = urls.filter((u) => u.includes("/search")).length;
+    fireEvent.blur(locField());
+    expect(urls.filter((u) => u.includes("/search")).length).toBe(n);
+    expect(errors).toEqual([]);
+  });
+
+  it("locks place searches to the trip's countries, with a way out", async () => {
+    const urls: string[] = [];
+    const nyc = { lat: "40.74", lon: "-74.0", display_name: "Chelsea Market, Manhattan, New York, United States", address: { country_code: "us" } };
+    const kyoto = { lat: "35.039", lon: "135.729", display_name: "Kinkaku-ji, Kyoto, Japan", address: { country_code: "jp" } };
+    vi.stubGlobal("fetch", async (url: string) => {
+      urls.push(url);
+      const body = url.includes("zoom=3") ? { address: { country_code: "jp" } } : url.includes("/reverse") ? {} : url.includes("countrycodes=jp") ? (url.includes("Kinkaku") ? [kyoto] : []) : [nyc];
+      return { ok: true, json: async () => body };
+    });
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("button", { name: "New card" }));
+    const locField = () => within(dialog()).getByRole("textbox", { name: /^Location/ }) as HTMLInputElement;
+
+    fireEvent.change(locField(), { target: { value: "Chelsea Market" } });
+    fireEvent.keyDown(locField(), { key: "Enter" });
+    await within(dialog()).findByText(/Nothing by that name in Japan/);
+    expect(urls.some((u) => u.includes("/search") && !u.includes("countrycodes"))).toBe(false);
+    expect(locField().value).toBe("Chelsea Market");
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Search everywhere" }));
+    fireEvent.click(await within(dialog()).findByRole("button", { name: /Manhattan/ }));
+    expect(locField().value).toBe("40.74000, -74.00000");
+
+    fireEvent.change(locField(), { target: { value: "Kinkaku-ji" } });
+    fireEvent.keyDown(locField(), { key: "Enter" });
+    await waitFor(() => expect(locField().value).toBe("35.03900, 135.72900"));
+    fireEvent.change(within(dialog()).getByRole("textbox", { name: "Card title" }), { target: { value: "Golden Pavilion" } });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
+    // the saved card keeps its country, so the next search needn't look it up
+    await waitFor(() => expect(store.data.cards.find((c) => c.title === "Golden Pavilion")).toMatchObject({ country: "jp", loc: { lat: 35.039, lng: 135.729 } }));
+    expect(errors).toEqual([]);
+  });
+
   it("schedules with the keyboard and quick-adds to the pool", async () => {
     const store = await setup();
     openJapan();

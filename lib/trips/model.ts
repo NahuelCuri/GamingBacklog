@@ -44,6 +44,8 @@ export interface TripCard {
   day?: number | null;
   addedBy?: string;
   loc?: LatLng | null;
+  /** ISO country code of `loc` ("jp"), once known: it locks place searches to the trip's countries. */
+  country?: string;
   /** Position in the stored list (see withOrder). */
   order?: number;
   [k: string]: unknown;
@@ -219,7 +221,7 @@ export type CardDraft = TripCard & LocDraft & { tagInput?: string };
  * erased a card's coordinates on every edit; now it only changes when edited.
  */
 export function cleanCard(d: CardDraft): TripCard {
-  const { locText, locBusy: _b, locErr: _e, locFound: _f, tagInput: _t, ...core } = d;
+  const { locText, locBusy: _b, locErr: _e, locFound: _f, locChoices: _c, locPicking: _p, locFar: _r, locCountries: _k, tagInput: _t, ...core } = d;
   return {
     ...core,
     ...(locText != null ? { loc: parseLoc(locText) } : {}),
@@ -447,8 +449,108 @@ export interface LocDraft {
   loc?: LatLng | null;
   locText?: string | null;
   locBusy?: boolean;
-  locErr?: "none" | "noquery" | null;
+  /** "outside": nothing by that name in the trip's countries (`locCountries`). */
+  locErr?: "none" | "noquery" | "outside" | null;
+  /** The countries the last search was locked to. */
+  locCountries?: string[] | null;
   locFound?: string | null;
+  /** Other places the last search matched, to pick from. */
+  locChoices?: Place[] | null;
+  /** The choices are on show (none was picked, or the user asked to see them). */
+  locPicking?: boolean;
+  /** The last search found nothing near the trip's other stops. */
+  locFar?: boolean;
+}
+
+/** A place search result. */
+export interface Place extends LatLng {
+  name: string;
+  /** ISO 3166-1 alpha-2, lower case ("jp"); "" when unknown. */
+  country: string;
+}
+
+/**
+ * Search results (Nominatim JSON with addressdetails) as places. Anything
+ * malformed is dropped, and so are repeats: one place often comes back as its
+ * building, its shop and its address, all under the same name.
+ */
+export function placesFrom(json: unknown): Place[] {
+  if (!Array.isArray(json)) return [];
+  const seen = new Set<string>();
+  return json.flatMap((h) => {
+    const lat = Number(h?.lat), lng = Number(h?.lon);
+    const name = String(h?.display_name || "");
+    if (!isFinite(lat) || !isFinite(lng) || seen.has(name)) return [];
+    seen.add(name);
+    return [{ lat, lng, name, country: String(h.address?.country_code || "").toLowerCase() }];
+  });
+}
+
+/**
+ * Where the trip happens: the box around its other located cards, widened
+ * (by half its size, and at least ~150 km each way) so a new stop a town over
+ * still counts. Null until the trip has a located card.
+ */
+export function tripArea(cards: TripCard[], exceptId?: string): BBox | null {
+  const pts = cards.filter((c) => c.id !== exceptId && c.loc && isFinite(c.loc.lat) && isFinite(c.loc.lng)).map((c) => c.loc!);
+  if (!pts.length) return null;
+  let s = 90, n = -90, w = 180, e = -180;
+  pts.forEach((p) => {
+    s = Math.min(s, p.lat); n = Math.max(n, p.lat);
+    w = Math.min(w, p.lng); e = Math.max(e, p.lng);
+  });
+  const py = Math.max((n - s) / 2, 1.5), px = Math.max((e - w) / 2, 1.5);
+  return { s: Math.max(-90, s - py), n: Math.min(90, n + py), w: Math.max(-180, w - px), e: Math.min(180, e + px) };
+}
+
+/** Nominatim search for a place name: only in `countries` (ISO codes) or only inside `area`, when given. */
+export function placeSearchUrl(q: string, scope: { area?: BBox | null; countries?: string[] } = {}, limit = 5): string {
+  const { area, countries } = scope;
+  const where = countries?.length ? `&countrycodes=${countries.join(",")}` : area ? `&viewbox=${area.w},${area.n},${area.e},${area.s}&bounded=1` : "";
+  return `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=en&limit=${limit}${where}&q=${encodeURIComponent(q)}`;
+}
+
+/** Nominatim reverse lookup at country level: which country a point is in. */
+export const countryUrl = (at: LatLng) => `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=3&addressdetails=1&accept-language=en&lat=${at.lat}&lon=${at.lng}`;
+
+/** "Japan", "Japan and South Korea", "France, Spain and Italy" from ISO codes. */
+export function countryNames(codes: string[]): string {
+  const dn = typeof Intl.DisplayNames === "function" ? new Intl.DisplayNames(["en"], { type: "region" }) : null;
+  const names = codes.map((c) => {
+    try {
+      return dn?.of(c.toUpperCase()) || c.toUpperCase();
+    } catch {
+      return c.toUpperCase();
+    }
+  });
+  return names.length < 2 ? names.join("") : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+}
+
+/** Places sorted nearest the trip's other stops first (as they came when there are none). */
+export function byNearness(places: Place[], others: LatLng[]): Place[] {
+  if (!others.length) return places;
+  const d = (p: LatLng) => Math.min(...others.map((o) => Math.hypot(o.lat - p.lat, (o.lng - p.lng) * Math.cos((o.lat * Math.PI) / 180))));
+  return [...places].sort((a, b) => d(a) - d(b));
+}
+
+const inBox = (p: LatLng, b: BBox) => p.lat >= b.s && p.lat <= b.n && p.lng >= b.w && p.lng <= b.e;
+
+/**
+ * What a place search lands on. `near` are the results inside the trip's area
+ * (searched first), `anywhere` the unrestricted ones (searched only when
+ * nothing was near). A result inside the trip's area is picked on its own,
+ * closest to the other stops first. Without an area, a single answer (or
+ * answers all in one country) is picked too. Otherwise nothing is picked: the
+ * user chooses, rather than landing in New York for a Kyoto temple.
+ */
+export function pickPlace(near: Place[], anywhere: Place[], others: LatLng[], area: BBox | null) {
+  const close = byNearness(area ? near.filter((p) => inBox(p, area)) : [], others);
+  if (close.length) return { pick: close[0], choices: close, far: false };
+  const all = anywhere.length ? anywhere : near;
+  if (!all.length) return { pick: null, choices: [], far: false };
+  const oneCountry = all.every((p) => p.country === all[0].country);
+  if (!area && (all.length === 1 || oneCountry)) return { pick: all[0], choices: all, far: false };
+  return { pick: null, choices: all, far: !!area };
 }
 
 /** Nominatim reverse lookup for a point: its address, named in English, at about neighbourhood detail. */
@@ -478,8 +580,12 @@ export function locStatus(md: LocDraft) {
   if (md.locBusy) { hint = "searching…"; color = "#8a9693"; }
   else if (parsed) { hint = "✓ on the map"; color = TRIP_ACCENT; }
   else if (raw) { hint = "no coordinates yet"; color = "#d98a6a"; }
-  let note = "Right-click the spot in Google Maps — the first menu item is the lat/lng. Click it to copy, then paste here.";
-  if (md.locErr === "none") note = "Nothing found for that. Try a more specific name, or paste coordinates.";
+  let note = "Type a place name and it's looked up when you leave the field. A Google Maps link or coordinates work too.";
+  const where = md.locCountries?.length ? "in " + countryNames(md.locCountries) : "near the trip's other stops";
+  if (md.locPicking && md.locChoices?.length && !parsed)
+    note = md.locFar ? `Nothing by that name ${where}. These are elsewhere: pick one only if it's right.` : "Several places match. Pick the right one below.";
+  else if (md.locErr === "outside") note = `Nothing by that name ${where}. Try another spelling or add the city, or search everywhere.`;
+  else if (md.locErr === "none") note = "Nothing found for that. Try a more specific name, or paste coordinates.";
   else if (md.locErr === "noquery") note = "That short link has no coordinates in it. Type the place name instead, then press Find.";
   else if (md.locFound && parsed) note = "Found: " + md.locFound;
   else if (isShort) note = "Short Maps links hide the coordinates. Open the link, then copy the full URL — or type the place name and press Find.";
