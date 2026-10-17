@@ -155,11 +155,14 @@ function inRing([x, y]: LngLat, ring: LngLat[]) {
   return inside;
 }
 
+/** The zone holding the point, if any. */
+export const zoneAt = (zones: District[], p: LngLat) => zones.find((z) => z.rings.some((r) => inRing(p, r)));
+
 /** How many of the stops fall in each zone, by zone id (zones with none are left out). */
 export function stopsIn(zones: District[], pts: LngLat[]): Map<number, number> {
   const counts = new Map<number, number>();
   for (const p of pts) {
-    const z = zones.find((z) => z.rings.some((r) => inRing(p, r)));
+    const z = zoneAt(zones, p);
     if (z) counts.set(z.id, (counts.get(z.id) ?? 0) + 1);
   }
   return counts;
