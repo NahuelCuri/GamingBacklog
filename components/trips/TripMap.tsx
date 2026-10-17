@@ -5,9 +5,9 @@
 // rings. Picking a day frames its stops; the side list and the pins light each
 // other up. The map (MapLibre) loads lazily, the first time this tab opens.
 import { Component, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
-import { loadDistricts, type Districts } from "@/lib/trips/districts";
+import { loadDistricts, stopsIn, zoneAt, type District, type Districts } from "@/lib/trips/districts";
 import { framePoints, frameKey, mapScene } from "@/lib/trips/map-scene";
-import { mapStops, typeMeta, type MapDay, type TripCard } from "@/lib/trips/model";
+import { mapStops, TYPES, typeMeta, type MapDay, type TripCard } from "@/lib/trips/model";
 import { play } from "@/lib/motion";
 import { CardViewBody } from "./dialogs";
 import { T, btnPrimary, typeTag } from "./styles";
@@ -177,25 +177,68 @@ export function TripMap() {
   useEffect(forgetOldStreetCache, []);
 
   const stops = useMemo(() => mapStops(cards), [cards]);
-  const scene = useMemo(() => mapScene(cards, day), [cards, day]);
-  const frame = useMemo(() => framePoints(scene), [scene]);
+  // Pin filters. Types come from the located cards; districts from the zones
+  // behind the districts toggle, judged by where a stop lies, not by its text.
+  // Picks that no longer exist are ignored.
+  const [distOpen, setDistOpen] = useState(false);
+  const [pickTypes, setPickTypes] = useState<string[]>([]);
+  const [glow, setGlow] = useState<{ zone: District; tick: number } | null>(null);
+  const [pickZones, setPickZones] = useState<number[]>([]);
+  const typeOpts = useMemo(() => TYPES.filter((t) => stops.loc.some((c) => c.type === t.value)), [stops.loc]);
+  const types = useMemo(() => pickTypes.filter((v) => typeOpts.some((t) => t.value === v)), [pickTypes, typeOpts]);
+  const byType = useMemo(() => (types.length ? cards.filter((c) => types.includes(c.type)) : cards), [cards, types]);
+  const baseScene = useMemo(() => mapScene(byType, day), [byType, day]);
+  const baseFrame = useMemo(() => framePoints(baseScene), [baseScene]);
   const overview = useMemo(() => stops.loc.map((c) => [c.loc!.lng, c.loc!.lat] as [number, number]), [stops.loc]);
-  // Districts of the stops on show (the day picked), fetched when the toggle
-  // goes on and again only when those stops change; a click after a failure retries.
-  const zKey = frame.map((p) => p.map((v) => v.toFixed(3)).join(",")).join(";");
+  // Districts around the stops on show (before the district filter, so picking one doesn't refetch):
+  // fetched when the toggle or the filter needs them and again only when those stops change;
+  // a click after a failure retries.
+  // The districts list closes on a click anywhere else, or Escape.
+  const distBox = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!showZones || !frame.length || (zones.key === zKey && zones.status === "ready")) return;
+    if (!distOpen) return;
+    const away = (e: PointerEvent) => !distBox.current?.contains(e.target as Node) && setDistOpen(false);
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setDistOpen(false);
+    document.addEventListener("pointerdown", away, true);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", away, true);
+      document.removeEventListener("keydown", key);
+    };
+  }, [distOpen]);
+  const needZones = showZones || distOpen || pickZones.length > 0;
+  const zKey = baseFrame.map((p) => p.map((v) => v.toFixed(3)).join(",")).join(";");
+  useEffect(() => {
+    if (!needZones || !baseFrame.length || (zones.key === zKey && zones.status === "ready")) return;
     const ac = new AbortController();
     setZones({ key: zKey, d: null, status: "loading" });
-    loadDistricts(frame, ac.signal)
+    loadDistricts(baseFrame, ac.signal)
       .then((d) => setZones({ key: zKey, d, status: "ready" }))
       .catch(() => !ac.signal.aborted && setZones({ key: zKey, d: null, status: "error" }));
     return () => ac.abort();
-    // frame is read through zKey; zones only gates the fetch.
+    // baseFrame is read through zKey; zones only gates the fetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showZones, zKey, retries]);
-  const zoneState = !showZones ? null : zones.key !== zKey || zones.status === "loading" ? "loading" : zones.status === "error" ? "error" : zones.d ? "on" : "none";
+  }, [needZones, zKey, retries]);
+  const loadState = !needZones ? null : zones.key !== zKey || zones.status === "loading" ? "loading" : zones.status === "error" ? "error" : zones.d ? "on" : "none";
+  const zoneState = showZones ? loadState : null;
   const zoneLabel = { loading: "finding districts", error: "districts unavailable · retry", none: "no districts here", on: "districts" }[zoneState ?? "on"];
+  // The last districts found stay for the filter while the next ones load.
+  const lastZones = useRef<Districts | null>(null);
+  if (zones.d) lastZones.current = zones.d;
+  const zd = lastZones.current;
+  const zoneOpts = useMemo(() => {
+    if (!zd) return [];
+    const n = stopsIn(zd.zones, baseScene.pins.map((p) => p.at));
+    return zd.zones.filter((z) => n.has(z.id)).map((z) => ({ id: z.id, name: z.name, n: n.get(z.id)! })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [zd, baseScene]);
+  const picked = useMemo(() => pickZones.filter((id) => zoneOpts.some((z) => z.id === id)), [pickZones, zoneOpts]);
+  const visible = useMemo(() => {
+    if (!picked.length || !zd) return byType;
+    return byType.filter((c) => !c.loc || picked.includes(zoneAt(zd.zones, [c.loc.lng, c.loc.lat])?.id ?? -1));
+  }, [byType, picked, zd]);
+  const scene = useMemo(() => (visible === byType ? baseScene : mapScene(visible, day)), [visible, byType, baseScene, day]);
+  const frame = useMemo(() => framePoints(scene), [scene]);
+  const filtered = types.length + picked.length;
 
   // The pin opened into a bubble, while it's on the map. Another day closes it.
   const openPin = opened ? scene.pins.find((p) => p.id === opened) : undefined;
@@ -310,7 +353,9 @@ export function TripMap() {
   const days: number[] = [];
   stops.sched.forEach((c) => !days.includes(c.day!) && days.push(c.day!));
   const chips: { v: MapDay; label: string }[] = [{ v: "all", label: "All stops" }, ...days.map((d) => ({ v: d, label: "Day " + d })), ...(stops.un.length ? [{ v: "none" as const, label: "Unscheduled" }] : [])];
-  const shown = day === "all" ? stops.sched.length : day === "none" ? 0 : stops.sched.filter((c) => c.day === day).length;
+  const shown = scene.pins.filter((p) => p.n).length;
+  const toggle = <V,>(set: (f: (l: V[]) => V[]) => void, v: V) => set((l) => (l.includes(v) ? l.filter((x) => x !== v) : [...l, v]));
+  const chip = (on: boolean): CSSProperties => ({ pointerEvents: "auto", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: T.mono, fontSize: 10.5, padding: "4px 9px", borderRadius: 7, background: on ? "rgba(95,184,176,.14)" : "transparent", color: on ? "#9fd8d1" : T.muted2, border: `1px solid ${on ? "rgba(95,184,176,.4)" : "#232a2b"}` });
 
   // Side list: stops grouped by day, then unscheduled ones.
   const rows: ({ header: string } | { pin: (typeof scene.pins)[number] })[] = [];
@@ -352,7 +397,7 @@ export function TripMap() {
             <>
               <MapBoundary>
                 <Suspense fallback={<Centered text="loading map…" />}>
-                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} transit={transit}
+                  <TripMapCanvas scene={scene} frame={frame} overview={overview} frameKey={fKey} hot={hot} compact={isMobile} onHot={setHot} districts={zoneState === "on" ? zones.d : null} glow={glow} transit={transit}
                     stations={stations}
                     open={open}
                     onOpen={openStop}
@@ -391,6 +436,60 @@ export function TripMap() {
                 </div>
                 <TransitKey lines={transit} stations={stations} />
               </div>
+              {/* Pin filters, top left: one chip per type, side by side, and a districts list that drops down. */}
+              {(typeOpts.length > 1 || zoneOpts.length > 0 || distOpen) && (
+                <div style={{ position: "absolute", top: 12, left: 14, maxWidth: "46%", zIndex: 6, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, pointerEvents: "none" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {typeOpts.length > 1 &&
+                      typeOpts.map((t) => {
+                        const on = types.includes(t.value);
+                        return (
+                          <button key={t.value} type="button" aria-pressed={on} onClick={() => toggle(setPickTypes, t.value)} style={{ ...mapBtn, ...chip(on), background: on ? "rgba(14,17,18,.95)" : mapBtn.background, padding: "6px 10px", fontSize: 11 }}>
+                            <span aria-hidden style={{ width: 7, height: 7, borderRadius: "50%", background: t.color }} />
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                    <div ref={distBox} style={{ position: "relative", display: "flex" }}>
+                      <button type="button" aria-pressed={distOpen} aria-expanded={distOpen} onClick={() => (loadState === "error" ? setRetries((n) => n + 1) : setDistOpen((v) => !v))} style={{ ...mapBtn, ...((distOpen || picked.length > 0) && { color: "#9fd8d1", borderColor: "rgba(95,184,176,.4)" }), borderRadius: 8 }}>
+                        {picked.length ? `districts · ${picked.length}` : "districts"}{" "}
+                        <span aria-hidden style={{ display: "inline-block", transition: "transform 220ms var(--ease-out)", transform: distOpen ? "rotate(180deg)" : "none" }}>▾</span>
+                      </button>
+                    {(
+                      <div aria-hidden={!distOpen} style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, zIndex: 1, pointerEvents: distOpen ? "auto" : "none", visibility: distOpen ? "visible" : "hidden", opacity: distOpen ? 1 : 0, transform: distOpen ? "none" : "translateY(-5px) scale(.96)", transformOrigin: "top left", transition: distOpen ? "opacity 180ms ease-out, transform 240ms var(--ease-out)" : "opacity 140ms ease-out, transform 160ms ease-in, visibility 0s linear 160ms", display: "flex", flexDirection: "column", minWidth: 190, maxHeight: 260, overflowY: "auto", padding: 4, fontFamily: T.mono, fontSize: 11, background: "rgba(14,17,18,.94)", border: "1px solid #232a2b", borderRadius: 8, boxShadow: "0 10px 28px rgba(0,0,0,.45)" }}>
+                        {zoneOpts.length === 0 && <div style={{ padding: "6px 8px", color: T.dim2 }}>{loadState === "loading" ? "finding districts…" : loadState === "error" ? "districts unavailable" : "no districts here"}</div>}
+                        {zoneOpts.map((z) => {
+                          const on = picked.includes(z.id);
+                          return (
+                            <button key={z.id} type="button" aria-pressed={on} onClick={() => {
+                              toggle(setPickZones, z.id);
+                              const zone = !on && zd?.zones.find((d) => d.id === z.id);
+                              if (zone) setGlow((g) => ({ zone, tick: (g?.tick ?? 0) + 1 }));
+                            }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8, textAlign: "left", padding: "5px 8px", borderRadius: 6, border: "none", background: on ? "rgba(95,184,176,.14)" : "transparent", color: on ? "#9fd8d1" : T.muted2, fontFamily: "inherit", fontSize: "inherit" }}>
+                              <span aria-hidden style={{ width: 11, height: 11, borderRadius: 3, boxShadow: `inset 0 0 0 1.5px ${on ? "#5fb8b0" : "#3a4446"}`, background: on ? "#5fb8b0" : "transparent" }} />
+                              <span style={{ flex: 1 }}>{z.name}</span>
+                              <span style={{ color: T.dim2 }}>{z.n}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    </div>
+                    {filtered > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPickTypes([]);
+                          setPickZones([]);
+                        }}
+                        style={{ ...mapBtn, background: "transparent", borderColor: "transparent", textDecoration: "underline", padding: "6px 4px" }}
+                      >
+                        clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "0 30px", textAlign: "center" }}>

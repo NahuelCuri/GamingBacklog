@@ -6,7 +6,7 @@
 import maplibregl, { LngLatBounds, type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { stopsIn, type Districts } from "@/lib/trips/districts";
+import { stopsIn, type District, type Districts } from "@/lib/trips/districts";
 import { boxOf, minZoomFor, type LngLat, type MapPin, type MapScene } from "@/lib/trips/map-scene";
 import { play, reducedMotion } from "@/lib/motion";
 import { T } from "./styles";
@@ -296,6 +296,10 @@ function addDistrictLayers(m: MLMap) {
   m.addSource("district-names", { type: "geojson", data: districtNames(null, new Map()) });
   m.addLayer({ id: "district-fill", type: "fill", source: "districts", paint: { "fill-color": "#5fb8b0", "fill-opacity": ["case", lit, 0.2, visited, 0.11, 0.05] } });
   m.addLayer({ id: "district-line", type: "line", source: "districts", layout: { "line-join": "round" }, paint: { "line-color": "#5fb8b0", "line-opacity": 0.5, "line-width": 1.3 } });
+  // Just the outline of a district picked in the filter; it flares twice (see the glow effect).
+  m.addSource("district-glow", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  m.addLayer({ id: "district-glow-halo", type: "line", source: "district-glow", layout: { "line-join": "round" }, paint: { "line-color": "#7fe0d6", "line-width": 7, "line-blur": 5, "line-opacity": 0 } });
+  m.addLayer({ id: "district-glow-line", type: "line", source: "district-glow", layout: { "line-join": "round" }, paint: { "line-color": "#bff3ec", "line-width": 2.2, "line-opacity": 0 } });
   m.addLayer({
     id: "district-name",
     type: "symbol",
@@ -381,6 +385,8 @@ interface Props {
   onHot(id: string | null): void;
   /** Outlined under the stops when the districts toggle is on. */
   districts: Districts | null;
+  /** A district just picked in the filter: its outline flares twice. A new tick replays it. */
+  glow: { zone: District; tick: number } | null;
   /** Rail and metro lines from the basemap. */
   transit: boolean;
   /** Stations and their names from the basemap. */
@@ -403,7 +409,7 @@ const BLOOM_AT = 500;
 /** Bubble's gap above the pin's centre: past the dot, where its title sits. */
 const lift = (p: MapPin) => (p.n ? 19 : 11);
 
-export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts, transit, stations, open, onOpen, nudge, bubble }: Props) {
+export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, compact, onHot, districts, glow, transit, stations, open, onOpen, nudge, bubble }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   // The hover card slots: the hot pin's card, and one still fading out.
@@ -613,6 +619,36 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     // The basemap's own neighbourhood names would repeat ours.
     if (m.getLayer("place_suburb")) m.setLayoutProperty("place_suburb", "visibility", districts ? "none" : "visible");
   }, [districts, scene, ready]);
+
+  // The picked district's outline flares twice, just as the camera arrives.
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready || !glow) return;
+    const z = glow.zone;
+    (m.getSource("district-glow") as GeoJSONSource | undefined)?.setData({ type: "Feature", properties: {}, geometry: { type: "MultiPolygon", coordinates: z.rings.map((r) => [r]) } });
+    const set = (v: number) => {
+      m.setPaintProperty("district-glow-halo", "line-opacity", v * 0.75);
+      m.setPaintProperty("district-glow-line", "line-opacity", v);
+    };
+    if (reducedMotion()) {
+      set(1);
+      const t = setTimeout(() => set(0), 1500);
+      return () => (clearTimeout(t), set(0));
+    }
+    const DELAY = 500, PULSE = 1400, FLARES = 2;
+    let raf = 0;
+    const t0 = performance.now() + DELAY;
+    const tick = (now: number) => {
+      const k = (now - t0) / PULSE;
+      if (k >= FLARES) return set(0);
+      set(k < 0 ? 0 : Math.sin(Math.PI * (k % 1)) ** 2);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => (cancelAnimationFrame(raf), set(0));
+    // glow is read through its tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [glow?.tick, ready]);
 
   useEffect(() => {
     const m = map.current;
