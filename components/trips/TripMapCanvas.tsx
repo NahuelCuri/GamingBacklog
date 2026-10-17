@@ -659,6 +659,8 @@ export default function TripMapCanvas({ scene, frame, overview, frameKey, hot, c
     const z = glow.zone;
     (m.getSource("district-glow") as GeoJSONSource | undefined)?.setData({ type: "Feature", properties: {}, geometry: { type: "MultiPolygon", coordinates: z.rings.map((r) => [r]) } });
     const set = (v: number) => {
+      // Leaving the tab removes the map before this effect's cleanup runs: nothing left to paint.
+      if (map.current !== m) return;
       m.setPaintProperty("district-glow-halo", "line-opacity", v * 0.75);
       m.setPaintProperty("district-glow-line", "line-opacity", v);
     };
