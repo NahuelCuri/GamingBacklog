@@ -382,7 +382,19 @@ export function removeDay(data: TripData, tripId: string, d: number) {
   };
 }
 
-export const setCardDay = (cards: TripCard[], id: string, day: number | null) => cards.map((c) => (c.id === id ? { ...c, day } : c));
+/**
+ * Moves day `from`'s plan to position `to`: the days between shift over by one
+ * (moving 3 to 4 swaps them, moving 5 to 1 pushes 1–4 later). The dates stay
+ * where they are, so the cards take the date of their new position.
+ * Null when nothing would change.
+ */
+export function reorderDay(cards: TripCard[], tripId: string, from: number, to: number, dayCount: number) {
+  if (from === to || from < 1 || to < 1 || from > dayCount || to > dayCount) return null;
+  const at = (d: number) => (d === from ? to : from < to ? (d > from && d <= to ? d - 1 : d) : d >= to && d < from ? d + 1 : d);
+  return cards.map((c) => (c.trip !== tripId || c.day == null ? c : at(c.day) === c.day ? c : { ...c, day: at(c.day) }));
+}
+
+export const setCardDay =(cards: TripCard[], id: string, day: number | null) => cards.map((c) => (c.id === id ? { ...c, day } : c));
 
 /** Keyboard help read out for a card on the itinerary board. */
 export const cardAriaLabel = (c: TripCard) =>

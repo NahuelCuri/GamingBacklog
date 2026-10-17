@@ -7,14 +7,18 @@
 // away with a mouse, after a short hold on touch screens (so a swipe still
 // scrolls). With the keyboard, ←/→ change day and ↑/↓ reorder.
 //
+// Days move the same way: each day's "⋯" menu moves it earlier, later or to
+// any place, and its header drags. The dates stay put; the plan takes the date
+// of its new place, and the days whose number changed flash once.
+//
 // Desktop: the pool sits on the left and the days scroll sideways like any
 // board. Phones: one vertical scroll, the pool first and then the days.
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent, type ReactNode } from "react";
-import { CaretUpIcon, CloseIcon, DotsIcon, PlusIcon, StarIcon, WarningCircleIcon } from "@/components/icons";
+import { CaretUpIcon, DotsIcon, PlusIcon, StarIcon, WarningCircleIcon } from "@/components/icons";
 import { Tick } from "@/components/ui/Tick";
 import { useEnterStagger } from "@/lib/hooks/useEnterStagger";
-import { play } from "@/lib/motion";
-import { cardAriaLabel, dayHint, lookalikes, money, quickAddCard, removeDay, setCardDay, statusMeta, tripSpan, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
+import { play, reducedMotion } from "@/lib/motion";
+import { cardAriaLabel, dayHint, lookalikes, money, quickAddCard, removeDay, reorderDay, setCardDay, statusMeta, tripSpan, typeFilterOptions, typeMeta, type TripCard } from "@/lib/trips/model";
 import { LookalikeNote } from "./LookalikeNote";
 import { useTripCtx } from "./TripPlanner";
 import { Button, Chip, IconButton, Kicker, Sheet, SheetItem, TypeLabel, cx, inputCls, tint } from "./ui";
@@ -38,13 +42,19 @@ function dropTarget(x: number, y: number): { day: number | null; index: number }
   return { day: Number(d), index };
 }
 
-/** Slides cards from their old position when the list re-orders (FLIP). */
-function useFlip(deps: unknown) {
+/**
+ * Slides cards from their old position when the list re-orders (FLIP). `skip`
+ * says the cards moved with their lane: only their new places are taken.
+ */
+function useFlip(deps: unknown, skip: () => boolean) {
   const last = useRef(new Map<string, DOMRect>());
+  const skipped = useRef(skip);
+  skipped.current = skip;
   // Takes the cards' current places as where they were: a move already made (a lane that closed up) isn't slid again.
   const settle = () => document.querySelectorAll<HTMLElement>("[data-flip]").forEach((el) => last.current.set(el.getAttribute("data-flip")!, el.getBoundingClientRect()));
   useLayoutEffect(() => {
     const els = [...document.querySelectorAll<HTMLElement>("[data-flip]")];
+    if (skipped.current()) return void settle();
     els.forEach((el) => {
       const id = el.getAttribute("data-flip")!;
       const first = last.current.get(id);
@@ -66,6 +76,34 @@ function useFlip(deps: unknown) {
 
 /** How far from a scroller's edge a dragged card starts scrolling it, px. */
 const EDGE = 72;
+/** How long lanes take to slide to their places, ms: from the menu, making room during a drag, going back. */
+const LANE_MS = { menu: 480, drag: 340, back: 400 };
+/** Even in and out, so a lane sets off and settles gently rather than jumping. */
+const SLIDE = "cubic-bezier(.45, 0, .2, 1)";
+/** The space between lanes (gap-3), px. */
+const GAP = 12;
+
+/** Scrolls the element while a drag is held near its edge. */
+function edgeScroll(get: () => HTMLElement | null) {
+  let raf: number | null = null;
+  let dir = { x: 0, y: 0 };
+  const step = () => {
+    const el = get();
+    if (!el || (!dir.x && !dir.y)) return void (raf = null);
+    el.scrollLeft += dir.x * 12;
+    el.scrollTop += dir.y * 12;
+    raf = requestAnimationFrame(step);
+  };
+  return {
+    toward(x: number, y: number, sideways: boolean) {
+      const r = get()?.getBoundingClientRect();
+      if (!r) return;
+      dir = { x: sideways ? (x < r.left + EDGE ? -1 : x > r.right - EDGE ? 1 : 0) : 0, y: y < r.top + EDGE ? -1 : y > r.bottom - EDGE ? 1 : 0 };
+      if ((dir.x || dir.y) && raf == null) raf = requestAnimationFrame(step);
+    },
+    stop: () => void (dir = { x: 0, y: 0 }),
+  };
+}
 
 export function ItineraryTab() {
   const { trip, cards, data, isMobile: mob, persist, poolFilter, setPoolFilter, openCard, openEdit, moveDay, moveOrder, moveCard, offerUndo } = useTripCtx();
@@ -100,7 +138,54 @@ export function ItineraryTab() {
     f.as.forEach((a) => a.cancel());
     Object.assign(f.el.style, { pointerEvents: "", minWidth: "", minHeight: "", overflow: "" });
   };
-  const settle = useFlip(cards);
+  // A day being dragged by its header: where it came from and the place it would take.
+  const [laneDrag, setLaneDrag] = useState<{ from: number; to: number; x: number; y: number } | null>(null);
+  // The day whose "⋯" menu is open, and the button it hangs from.
+  const [dayMenu, setDayMenu] = useState<number | null>(null);
+  const dayMenuBtn = useRef<HTMLElement | null>(null);
+  // Where the lanes were just before a day moved (they slide from there), and their running slides.
+  const laneWas = useRef<Map<number, DOMRect> | null>(null);
+  const laneMs = useRef(0);
+  const laneAnims = useRef(new Map<number, Animation>());
+  // The days whose number and date just changed, flashed once they render; `to` is scrolled into view.
+  const relabel = useRef<{ lo: number; hi: number; to: number } | null>(null);
+  const markLanes = (ms: number) => {
+    laneMs.current = ms;
+    const m = new Map<number, DOMRect>();
+    board.current?.querySelectorAll<HTMLElement>("[data-lane]").forEach((el) => m.set(Number(el.dataset.lane), el.getBoundingClientRect()));
+    laneWas.current = m;
+  };
+  const settle = useFlip(cards, () => laneWas.current != null || relabel.current != null);
+
+  // After a day moves: the lanes slide to their new places, then the renumbered ones flash.
+  useLayoutEffect(() => {
+    const was = laneWas.current;
+    laneWas.current = null;
+    let slid = false;
+    if (was)
+      board.current?.querySelectorAll<HTMLElement>("[data-lane]").forEach((el) => {
+        const id = Number(el.dataset.lane);
+        laneAnims.current.get(id)?.cancel();
+        const first = was.get(id), now = el.getBoundingClientRect();
+        if (!first || (first.left === now.left && first.top === now.top)) return;
+        const a = play(el, [{ transform: `translate(${first.left - now.left}px,${first.top - now.top}px)` }, { transform: "none" }], { duration: laneMs.current, easing: SLIDE });
+        if (a) laneAnims.current.set(id, a);
+        slid ||= !!a;
+      });
+    const r = relabel.current;
+    relabel.current = null;
+    if (!r) return;
+    for (let d = r.lo; d <= r.hi; d++) {
+      const h = board.current?.querySelector<HTMLElement>(`[data-day="${d}"] [data-lane-head]`);
+      if (!h) continue;
+      // After the slide, so the new numbers show once the lanes are in place.
+      h.style.setProperty("--relabel-delay", slid ? laneMs.current * 0.6 + "ms" : "0ms");
+      h.classList.remove("tp-relabel");
+      void h.offsetWidth; // restart it when the same day flashes twice in a row
+      h.classList.add("tp-relabel");
+    }
+    board.current?.querySelector(`[data-day="${r.to}"]`)?.scrollIntoView?.({ block: "nearest", inline: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+  });
 
   // A card dropped on a day settles with a small pop once the move lands in `cards`.
   const landed = useRef<{ id: string; at: number } | null>(null);
@@ -130,19 +215,7 @@ export function ItineraryTab() {
     if (e.button !== undefined && e.button !== 0) return;
     pending.current = { id, sx: e.clientX, sy: e.clientY, moved: false, armed: !mob };
     let hold: ReturnType<typeof setTimeout> | undefined;
-    let auto: number | null = null;
-    let dir = { x: 0, y: 0 };
-    const autoStep = () => {
-      const el = scroller.current;
-      if (!el || (!dir.x && !dir.y)) return (auto = null);
-      el.scrollLeft += dir.x * 12;
-      el.scrollTop += dir.y * 12;
-      auto = requestAnimationFrame(autoStep);
-    };
-    const setAuto = (x: number, y: number) => {
-      dir = { x, y };
-      if ((x || y) && auto == null) auto = requestAnimationFrame(autoStep);
-    };
+    const auto = edgeScroll(() => scroller.current);
     const touchMove = (ev: TouchEvent) => {
       if (pending.current?.armed) ev.preventDefault();
     };
@@ -153,7 +226,7 @@ export function ItineraryTab() {
       window.removeEventListener("pointercancel", up);
       window.removeEventListener("touchmove", touchMove);
       document.body.style.userSelect = "";
-      setAuto(0, 0);
+      auto.stop();
     };
     const cancel = () => {
       teardown();
@@ -174,8 +247,7 @@ export function ItineraryTab() {
         p.moved = true;
         document.body.style.userSelect = "none";
       }
-      const r = scroller.current?.getBoundingClientRect();
-      if (r) setAuto(mob ? 0 : ev.clientX < r.left + EDGE ? -1 : ev.clientX > r.right - EDGE ? 1 : 0, ev.clientY < r.top + EDGE ? -1 : ev.clientY > r.bottom - EDGE ? 1 : 0);
+      auto.toward(ev.clientX, ev.clientY, !mob);
       setDrag({ id: p.id, x: ev.clientX, y: ev.clientY });
       setOver(dropTarget(ev.clientX, ev.clientY) ?? "none");
     };
@@ -269,6 +341,122 @@ export function ItineraryTab() {
     };
   };
 
+  // Moving a day: its plan takes place `to`, the days between shift over. `slide` animates the
+  // lanes there (from the menu); a drag already shows them in place, so they only relabel.
+  const shiftDay = (from: number, to: number, slide: boolean) => {
+    const next = reorderDay(data.cards, trip.id, from, to, dayCount);
+    if (!next || leaving.current) return;
+    const lo = Math.min(from, to), hi = Math.max(from, to);
+    // Booked things on the days that change date are worth a second look.
+    const booked = trip.start ? cards.filter((c) => c.day != null && c.day >= lo && c.day <= hi && c.status === "booked") : [];
+    const label =
+      `Day ${from} is now day ${to}` +
+      (trip.start ? ` · ${dayHint(trip, to)}` : "") +
+      (booked.length === 1 ? ` · check the booking for ${booked[0].title || "a card"}` : booked.length > 1 ? ` · check ${booked.length} bookings` : "");
+    const before = { cards: data.cards };
+    if (slide) markLanes(LANE_MS.menu);
+    // The lanes keep their identity, so each one (and its cards) moves rather than being redrawn.
+    const ids = laneIds.current;
+    ids.splice(to - 1, 0, ids.splice(from - 1, 1)[0]);
+    relabel.current = { lo, hi, to };
+    void persist({ cards: next }).then(() => offerUndo(label, before));
+  };
+
+  // Dragging a day by its header: right away with a mouse, after a hold on touch. The other
+  // days slide aside as it passes their middle.
+  const onLaneDown = (from: number) => (e: RPointerEvent<HTMLElement>) => {
+    if ((e.button !== undefined && e.button !== 0) || leaving.current) return;
+    const el = board.current;
+    const lane = e.currentTarget.closest<HTMLElement>("[data-lane]");
+    if (!el || !lane) return;
+    const sx = e.clientX, sy = e.clientY;
+    let armed = !mob, moved = false, to = from;
+    let hold: ReturnType<typeof setTimeout> | undefined;
+    const auto = edgeScroll(() => scroller.current);
+    // Places along the board, taken once: where the day would start at each place, with the
+    // others in order around it. They don't shift as lanes slide, so the target can't flicker.
+    const at0 = el.getBoundingClientRect();
+    const span = (x: HTMLElement) => {
+      const r = x.getBoundingClientRect();
+      return mob ? { a: r.top - at0.top, s: r.height } : { a: r.left - at0.left, s: r.width };
+    };
+    const all = [...el.querySelectorAll<HTMLElement>("[data-lane]")];
+    const me = span(lane);
+    const others = all.filter((x) => x !== lane).map((x) => span(x).s);
+    const base = span(all[0]).a;
+    const slots = all.map((_, t) => base + others.slice(0, t).reduce((n, s) => n + s + GAP, 0));
+    const grab = (mob ? sy : sx) - at0[mob ? "top" : "left"] - me.a;
+    const touchMove = (ev: TouchEvent) => {
+      if (armed) ev.preventDefault();
+    };
+    const teardown = () => {
+      clearTimeout(hold);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("touchmove", touchMove);
+      document.body.style.userSelect = "";
+      auto.stop();
+    };
+    const cancel = () => {
+      teardown();
+      if (to !== from) markLanes(LANE_MS.back);
+      setLaneDrag(null);
+    };
+    const move = (ev: PointerEvent) => {
+      const dist = Math.hypot(ev.clientX - sx, ev.clientY - sy);
+      if (!armed) {
+        if (dist > 10) cancel(); // moved before the hold: the user is scrolling
+        return;
+      }
+      if (!moved) {
+        if (dist < (mob ? 3 : 5)) return;
+        moved = true;
+        document.body.style.userSelect = "none";
+      }
+      auto.toward(ev.clientX, ev.clientY, !mob);
+      const r = el.getBoundingClientRect();
+      const start = (mob ? ev.clientY - r.top : ev.clientX - r.left) - grab;
+      const t = slots.reduce((best, s, i) => (Math.abs(start - s) < Math.abs(start - slots[best]) ? i : best), 0) + 1;
+      if (t !== to) {
+        to = t;
+        markLanes(LANE_MS.drag);
+      }
+      setLaneDrag({ from, to, x: ev.clientX, y: ev.clientY });
+    };
+    const up = (ev: PointerEvent) => {
+      if (ev.type === "pointercancel" || !moved) return cancel();
+      teardown();
+      setLaneDrag(null);
+      if (to !== from) shiftDay(from, to, false);
+    };
+    cleanup.current = cancel;
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    if (mob) {
+      window.addEventListener("touchmove", touchMove, { passive: false });
+      hold = setTimeout(() => {
+        armed = true;
+        document.body.style.userSelect = "none";
+        try {
+          navigator.vibrate?.(12);
+        } catch {
+          /* unsupported */
+        }
+        setLaneDrag({ from, to, x: sx, y: sy });
+      }, 260);
+    }
+  };
+  const openDayMenu = (d: number) => (e: RMouseEvent<HTMLButtonElement>) => {
+    dayMenuBtn.current = e.currentTarget;
+    setDayMenu(d);
+  };
+  const pickPlace = (d: number, to: number) => {
+    setDayMenu(null);
+    shiftDay(d, to, true);
+  };
+
   const setDays = (n: number) => void persist({ trips: data.trips.map((x) => (x.id === trip.id ? { ...x, dayCount: n } : x)) });
 
   const quickCard = quickAddCard(quick, trip.id);
@@ -358,27 +546,42 @@ export function ItineraryTab() {
       </Button>
     </div>
   );
+  // The days in board order; while one is dragged, it already sits at the place it would take.
+  const order = Array.from({ length: dayCount }, (_, i) => i + 1);
+  if (laneDrag) order.splice(laneDrag.to - 1, 0, order.splice(laneDrag.from - 1, 1)[0]);
   const lanes = (
     <div ref={board} className={mob ? "flex flex-col gap-3 px-4 pb-28" : "flex w-max items-start gap-3 p-5 pb-28"}>
-      {Array.from({ length: dayCount }, (_, i) => i + 1).map((d) => {
+      {order.map((d) => {
         const dayCards = cards.filter((c) => c.day === d);
         const shown = dayCards.filter((c) => c.id !== drag?.id);
         const isOver = over !== "none" && over?.day === d;
         const at = isOver ? Math.max(0, Math.min(over.index, shown.length)) : -1;
+        const lifted = laneDrag?.from === d;
         return (
           <section
             key={ids[d - 1]}
             data-dropzone=""
             data-day={d}
+            data-lane={ids[d - 1]}
             aria-labelledby={`tp-day-${ids[d - 1]}`}
             className={cx(
               "flex flex-col rounded-[14px] border p-3 transition-[border-color,background-color] duration-150",
               mob ? "w-full" : "w-[280px] shrink-0 snap-start scroll-ml-5",
-              isOver ? "border-accent bg-[color-mix(in_srgb,var(--accent)_7%,var(--surface))]" : "border-wf bg-surface",
+              lifted
+                ? "border-dashed border-accent bg-[color-mix(in_srgb,var(--accent)_5%,var(--surface))] [&>*]:opacity-35"
+                : isOver
+                  ? "border-accent bg-[color-mix(in_srgb,var(--accent)_7%,var(--surface))]"
+                  : "border-wf bg-surface",
             )}
           >
-            <div className="mb-2.5 flex items-start justify-between gap-2">
-              <div className="min-w-0">
+            <div
+              onPointerDown={dayCount > 1 ? onLaneDown(d) : undefined}
+              onContextMenu={mob ? (e) => e.preventDefault() : undefined}
+              title={dayCount > 1 && !mob ? "Drag to move this day" : undefined}
+              style={{ touchAction: mob ? "auto" : "none" }}
+              className={cx("mb-2.5 flex items-start justify-between gap-2 select-none [-webkit-touch-callout:none]", dayCount > 1 && "cursor-grab")}
+            >
+              <div data-lane-head="" className="-mx-1.5 -my-0.5 min-w-0 rounded-md px-1.5 py-0.5">
                 <h3 id={`tp-day-${ids[d - 1]}`} className="m-0 text-sm font-bold text-text">{"Day " + d}</h3>
                 <div className="mt-0.5 font-mono text-2xs text-muted">{dayHint(trip, d)}</div>
               </div>
@@ -387,8 +590,8 @@ export function ItineraryTab() {
                   <Tick value={dayCards.length} />
                 </span>
                 {dayCount > 1 && (
-                  <IconButton aria-label={"Remove day " + d} title={dayCards.length ? "Remove this day (its cards go back to the pool)" : "Remove this day"} onPointerDown={(e) => e.stopPropagation()} onClick={() => dropDay(d)} className="-mr-1">
-                    <CloseIcon size={14} />
+                  <IconButton aria-label={`Day ${d} options`} aria-haspopup="dialog" title="Move or remove this day" onPointerDown={(e) => e.stopPropagation()} onClick={openDayMenu(d)} className="-mr-1">
+                    <DotsIcon size={16} />
                   </IconButton>
                 )}
               </div>
@@ -460,6 +663,39 @@ export function ItineraryTab() {
         </Sheet>
       )}
 
+      {dayMenu != null && dayMenu <= dayCount && (
+        <Sheet label={`Day ${dayMenu} options`} anchor={dayMenuBtn} mobile={mob} onClose={() => setDayMenu(null)}>
+          <div className="px-3 pt-1 pb-2">
+            <div className="text-sm font-bold text-text">{"Day " + dayMenu}</div>
+            <div className="mt-0.5 font-mono text-2xs text-muted">{dayHint(trip, dayMenu)}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <SheetItem disabled={dayMenu === 1} onClick={() => pickPlace(dayMenu, dayMenu - 1)}>{(mob ? "↑" : "←") + " Earlier"}</SheetItem>
+            <SheetItem disabled={dayMenu === dayCount} onClick={() => pickPlace(dayMenu, dayMenu + 1)}>{"Later " + (mob ? "↓" : "→")}</SheetItem>
+          </div>
+          <Kicker className="px-3 pt-2 pb-1">Move to</Kicker>
+          {Array.from({ length: dayCount }, (_, i) => i + 1).map((d) => (
+            <SheetItem key={d} on={d === dayMenu} hint={dayHint(trip, d)} onClick={() => (d === dayMenu ? setDayMenu(null) : pickPlace(dayMenu, d))}>
+              {"Day " + d}
+            </SheetItem>
+          ))}
+          <div className="my-1.5 h-px bg-wf" />
+          <SheetItem danger onClick={() => (setDayMenu(null), dropDay(dayMenu))}>
+            {"Remove day " + dayMenu}
+          </SheetItem>
+        </Sheet>
+      )}
+
+      {laneDrag && (
+        <LaneDragPreview
+          x={laneDrag.x}
+          y={laneDrag.y}
+          title={"Day " + laneDrag.from + (laneDrag.to !== laneDrag.from ? " → day " + laneDrag.to : "")}
+          hint={dayHint(trip, laneDrag.to)}
+          cards={cards.filter((c) => c.day === laneDrag.from)}
+        />
+      )}
+
       {drag && dragCard && (
         <div
           aria-hidden
@@ -469,6 +705,53 @@ export function ItineraryTab() {
           <div className="truncate text-13 font-semibold text-text">{dragCard.title}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+/** How many of a dragged day's cards show in its preview; the rest are a count and a thicker stack. */
+const PEEK = 3;
+
+/** What follows the pointer while a day is dragged: its header, with its cards stacked under it. */
+function LaneDragPreview({ x, y, title, hint, cards }: { x: number; y: number; title: string; hint: string; cards: TripCard[] }) {
+  const more = cards.length - PEEK;
+  // Sheets peeking out below: one per card past the first, up to two, so a full day looks heavier.
+  const layers = Math.min(2, Math.max(0, cards.length - 1));
+  return (
+    <div aria-hidden style={{ left: x - 24, top: y - 22, zIndex: "calc(var(--z-float) + 2)" }} className="pointer-events-none fixed w-[240px] -rotate-1 [animation:gliftin_160ms_var(--ease-out)]">
+      {Array.from({ length: layers }, (_, i) => (
+        <div
+          key={i}
+          style={{ transformOrigin: "bottom", transform: `translateY(${(i + 1) * 7}px) scale(${1 - (i + 1) * 0.05})`, opacity: 1 - (i + 1) * 0.3 }}
+          className="absolute inset-0 -z-10 rounded-[14px] border border-wl bg-card shadow-[var(--shadow-pop)] [animation:gfade_200ms_ease-out_both]"
+        />
+      ))}
+      <div className="relative rounded-[14px] border border-accent bg-surface p-2.5 shadow-[var(--shadow-pop)]">
+        <div className="px-0.5">
+          <div className="text-sm font-bold text-text">{title}</div>
+          <div className="mt-0.5 font-mono text-2xs text-muted">
+            {hint} · {plural(cards.length, "card")}
+          </div>
+        </div>
+        {cards.length > 0 ? (
+          <div className="mt-2 flex flex-col gap-1">
+            {cards.slice(0, PEEK).map((c, i) => (
+              <div
+                key={c.id}
+                style={tint(typeMeta(c.type).color, { animationDelay: i * 40 + "ms" })}
+                className="truncate rounded-md border border-l-[3px] border-wf border-l-[var(--c)] bg-card px-2 py-1 text-xs font-semibold text-text [animation:gpop_220ms_var(--ease-out)_both]"
+              >
+                {c.title || "Untitled"}
+              </div>
+            ))}
+            {more > 0 && <div className="px-0.5 pt-0.5 text-2xs text-muted">{`+${more} more`}</div>}
+          </div>
+        ) : (
+          <div className="mt-2 rounded-md border border-dashed border-wh px-2 py-1 text-2xs text-muted">Nothing planned yet</div>
+        )}
+      </div>
     </div>
   );
 }

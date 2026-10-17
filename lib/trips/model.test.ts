@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   budget, cleanCard, lookalikes, normTitle, regionFromAddress, cleanTrip, dayHint, fmtRange, locQuery, locStatus, mapBBox, mapPlan, money, moveCardDay, moveCardOrder,
-  countryNames, parseLoc, pickPlace, placeSearchUrl, placesFrom, quickAddCard, regionSuggestions, removeDay, seedTrips, tripArea, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
+  countryNames, parseLoc, pickPlace, placeSearchUrl, placesFrom, quickAddCard, regionSuggestions, removeDay, reorderDay, seedTrips, tripArea, tagSuggestions, tripCards, typeFilterOptions, matchesSearch, type TripCard, type TripData,
 } from "./model";
 
 const seeded = () => {
@@ -210,6 +210,34 @@ describe("trip model", () => {
     }
     expect(data.trips[0].dayCount).toBe(2);
     expect(data.cards.map((c) => [c.id, c.day])).toEqual([["a", null], ["b", 1], ["c", null], ["d", 2]]);
+  });
+
+  it("moving a day shifts the days between it and its new place, and leaves the rest alone", () => {
+    for (let count = 1; count <= 6; count++) {
+      for (let from = 1; from <= count; from++) {
+        for (let to = 1; to <= count; to++) {
+          // day n holds card "dn"; the pool and another trip use the same numbers
+          const cards = [
+            ...Array.from({ length: count }, (_, i) => ({ id: "d" + (i + 1), trip: "x", day: i + 1 })),
+            { id: "pool", trip: "x", day: null },
+            ...Array.from({ length: count }, (_, i) => ({ id: "o" + (i + 1), trip: "y", day: i + 1 })),
+          ] as TripCard[];
+          const r = reorderDay(cards, "x", from, to, count);
+          if (from === to) {
+            expect(r).toBeNull();
+            continue;
+          }
+          // read the days back in order: the moved day's plan sits at `to`, the others keep their order
+          const order = Array.from({ length: count }, (_, i) => r!.find((c) => c.trip === "x" && c.day === i + 1)!.id);
+          const expected = Array.from({ length: count }, (_, i) => "d" + (i + 1)).filter((id) => id !== "d" + from);
+          expected.splice(to - 1, 0, "d" + from);
+          expect(order).toEqual(expected);
+          expect(r!.filter((c) => c.trip === "y" || c.day == null)).toEqual(cards.filter((c) => c.trip === "y" || c.day == null));
+        }
+      }
+    }
+    expect(reorderDay([], "x", 0, 2, 3)).toBeNull();
+    expect(reorderDay([], "x", 1, 4, 3)).toBeNull();
   });
 
   it("refuses days that aren't there", () => {

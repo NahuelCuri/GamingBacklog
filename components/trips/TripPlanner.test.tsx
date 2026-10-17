@@ -42,6 +42,11 @@ async function setup(data = seedTrips()) {
 
 const openJapan = () => fireEvent.click(screen.getByRole("button", { name: "Open Japan · Cherry Season" }));
 const dialog = () => screen.getByRole("dialog");
+/** Removes a day from its "⋯" menu. */
+const removeDayVia = (d: number) => {
+  fireEvent.click(screen.getByRole("button", { name: `Day ${d} options` }));
+  fireEvent.click(within(dialog()).getByRole("button", { name: "Remove day " + d }));
+};
 
 describe("TripPlanner", () => {
   it("lists trips and opens one; the URL follows", async () => {
@@ -220,12 +225,47 @@ describe("TripPlanner", () => {
     expect(errors).toEqual([]);
   });
 
+  it("moves a day from its menu: the plan takes the new date, the lane keeps its cards, and it can be undone", async () => {
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
+    const lane = (d: number) => document.querySelector<HTMLElement>(`[data-day="${d}"]`)!;
+    const three = lane(3), four = lane(4);
+    const before = store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }));
+    fireEvent.click(screen.getByRole("button", { name: "Day 3 options" }));
+    expect(within(dialog()).getByRole("button", { name: /^Day 3/ }).getAttribute("aria-current")).toBe("true");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^Later/ }));
+    await waitFor(() => expect(store.data.cards.find((c) => c.id === "c5")?.day).toBe(4));
+    expect(store.data.cards.find((c) => c.id === "c6")?.day).toBe(4);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    // day 3's lane (and its cards) moved to the fourth place; day 4's took the third
+    expect([lane(3), lane(4)]).toEqual([four, three]);
+    expect(within(lane(4)).getByText("Shinkansen to Kyoto")).toBeTruthy();
+    await screen.findByText(/^Day 3 is now day 4 · .+ · check the booking for Shinkansen to Kyoto$/);
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }))).toEqual(before));
+    expect(errors).toEqual([]);
+  });
+
+  it("moves a day to any place: the days between shift over", async () => {
+    const store = await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Day 1 options" }));
+    expect(within(dialog()).getByRole("button", { name: /Earlier/ }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^Day 3/ }));
+    // day 1 held c1, c2; day 2 held c3, c4; day 3 held c5, c6
+    await waitFor(() => expect(store.data.cards.find((c) => c.id === "c1")?.day).toBe(3));
+    expect(["c2", "c3", "c4", "c5", "c6"].map((id) => store.data.cards.find((c) => c.id === id)?.day)).toEqual([3, 1, 1, 2, 2]);
+    expect(laneTitles()).toEqual(["Day 1", "Day 2", "Day 3", "Day 4"]);
+  });
+
   it("removing a day can be undone", async () => {
     const store = await setup();
     openJapan();
     fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     const before = store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }));
-    fireEvent.click(screen.getByRole("button", { name: "Remove day 1" }));
+    removeDayVia(1);
     await screen.findByText("Day 1 removed · 2 cards back in the pool");
     expect(store.data.trips[0].dayCount).toBe(3);
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
@@ -271,12 +311,12 @@ describe("TripPlanner", () => {
     fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     expect(laneTitles()).toEqual(["Day 1", "Day 2", "Day 3", "Day 4"]);
     const before = store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }));
-    fireEvent.click(screen.getByRole("button", { name: "Remove day 3" }));
+    removeDayVia(3);
     await waitFor(() => expect(store.data.trips[0].dayCount).toBe(3));
     expect(laneTitles()).toEqual(["Day 1", "Day 2", "Day 3"]);
     expect(store.data.cards.map((c) => ({ id: c.id, day: c.day ?? null }))).toEqual(before.map(({ id, day }) => ({ id, day: day === 3 ? null : day != null && day > 3 ? day - 1 : day })));
     // every lane is still there to use: no leftover remove-day state hides one
-    expect(screen.getAllByRole("button", { name: /^Remove day \d$/ })).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: /^Day \d options$/ })).toHaveLength(3);
     expect(errors).toEqual([]);
   });
 
@@ -287,7 +327,7 @@ describe("TripPlanner", () => {
     const lane = (d: number) => document.querySelector<HTMLElement>(`[data-day="${d}"]`)!;
     const [one, two, four] = [lane(1), lane(2), lane(4)];
     const fourCards = [...four.querySelectorAll("[data-flip]")];
-    fireEvent.click(screen.getByRole("button", { name: "Remove day 3" }));
+    removeDayVia(3);
     await waitFor(() => expect(store.data.trips[0].dayCount).toBe(3));
     expect([lane(1), lane(2), lane(3)]).toEqual([one, two, four]);
     expect(lane(3).textContent).toContain("Day 3");
@@ -300,12 +340,12 @@ describe("TripPlanner", () => {
     openJapan();
     fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
     for (const [d, left] of [[1, 3], [3, 2], [2, 1]] as const) {
-      fireEvent.click(screen.getByRole("button", { name: "Remove day " + d }));
+      removeDayVia(d);
       await waitFor(() => expect(store.data.trips[0].dayCount).toBe(left));
       expect(laneTitles()).toEqual(Array.from({ length: left }, (_, i) => "Day " + (i + 1)));
     }
     // the last day can't be removed
-    expect(screen.queryByRole("button", { name: /^Remove day/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Day \d options$/ })).toBeNull();
     expect(errors).toEqual([]);
   });
 
@@ -322,7 +362,7 @@ describe("TripPlanner", () => {
       openJapan();
       fireEvent.click(screen.getByRole("tab", { name: /^Itinerary/ }));
       const lane = () => document.querySelector<HTMLElement>('[data-day="3"]')!;
-      fireEvent.click(screen.getByRole("button", { name: "Remove day 3" }));
+      removeDayVia(3);
       const fade = finishers.length;
       expect(fade).toBeGreaterThan(0);
       // while it dissolves nothing has changed yet, and the lane ignores the pointer
