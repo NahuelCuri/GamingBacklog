@@ -276,16 +276,18 @@ describe("games backlog redesign helpers", () => {
     expect(d(kept)).toBe(kept);
   });
 
-  it("shows hours played and to beat in one cell, blank when there's neither", () => {
+  it("shows hours played and HLTB in one cell, named in its tooltip, blank when there's neither", () => {
     const col = cfg.table.columns.find((c) => c.kind === "pair")!;
     const text = (g: Partial<Item>) => {
       const c = cellValue(cfg, col, { id: "x", ...g } as Item);
       return c.kind === "value" ? c.text : null;
     };
-    expect(text({ hours: 30, hltb: 15 })).toBe("30 / 15h");
-    expect(text({ hours: 30 })).toBe("30h");
-    expect(text({ hltb: 15 })).toBe("~15h");
+    expect(text({ hours: 30, hltb: 15 })).toBe("30h / 15h");
+    expect(text({ hours: 30 })).toBe("30h / —");
+    expect(text({ hltb: 15 })).toBe("— / 15h");
     expect(text({})).toBe("");
+    const c = cellValue(cfg, col, { id: "x", hours: 30, hltb: 15 } as Item);
+    expect(c.kind === "value" && c.hint).toBe("30h played · HLTB 15h");
   });
 
   it("finds duplicate titles, in the library and against an import", () => {

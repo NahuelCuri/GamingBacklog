@@ -222,6 +222,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, onDelete, 
                       {cell.kind === "value" && (
                         <div
                           className="font-mono whitespace-nowrap"
+                          title={cell.hint}
                           style={{
                             textAlign: c.right ? "right" : "left",
                             fontSize: cell.strong ? 13 : 12.5,
@@ -230,7 +231,15 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, onDelete, 
                             paddingRight: c.kind === "money" ? 0 : c.kind === "score" ? (c.right ? 14 : 0) : c.right ? 20 : 0,
                           }}
                         >
-                          {cell.text}
+                          {/* Screen readers get the named version ("30h played · HLTB 15h"), not "30h slash 15h". */}
+                          {cell.hint ? (
+                            <>
+                              <span aria-hidden>{cell.text}</span>
+                              <span className="sr-only">{cell.hint}</span>
+                            </>
+                          ) : (
+                            cell.text
+                          )}
                         </div>
                       )}
                     </div>

@@ -50,8 +50,10 @@ export interface TableColumn {
   key: string;
   label: string;
   kind: "text" | "tags" | "status" | "num" | "score" | "money" | "pair";
-  /** `pair`: the second number, shown after the first ("30 / 15h": played / to beat). */
+  /** `pair`: the second number, shown after the first ("30h / 15h": played / to beat). */
   of?: string;
+  /** `pair`: what each number is, for the cell's tooltip ("played", "HLTB"). */
+  names?: [string, string];
   width: string;
   mobileWidth?: string;
   sortable?: boolean;

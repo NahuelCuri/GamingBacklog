@@ -89,13 +89,14 @@ export const games: CollectionConfig = {
       },
       { key: "tags", label: "Tags", kind: "tags", width: "1.35fr", hideMobile: true },
       { key: "status", label: "Status", kind: "status", width: "108px", mobileWidth: "78px", sortable: true },
-      // Played / to beat in one column: "30 / 15h", "~15h" before starting.
+      // Played / to beat in one column, named in the header: "30h / 15h", "— / 15h" before starting.
       {
         key: "hours",
         of: "hltb",
-        label: "Hours",
+        names: ["played", "HLTB"],
+        label: "Played / HLTB",
         kind: "pair",
-        width: "112px",
+        width: "128px",
         hideMobile: true,
         right: true,
         mono: true,
