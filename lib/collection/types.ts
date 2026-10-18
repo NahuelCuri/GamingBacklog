@@ -49,7 +49,11 @@ export interface FilterChip {
 export interface TableColumn {
   key: string;
   label: string;
-  kind: "text" | "tags" | "status" | "num" | "score" | "money";
+  kind: "text" | "tags" | "status" | "num" | "score" | "money" | "pair";
+  /** `pair`: the second number, shown after the first ("30h / 15h": played / to beat). */
+  of?: string;
+  /** `pair`: what each number is, for the cell's tooltip ("played", "HLTB"). */
+  names?: [string, string];
   width: string;
   mobileWidth?: string;
   sortable?: boolean;
@@ -95,10 +99,14 @@ export interface ModalField {
   suggest?: string[];
   onColor?: string;
   lookup?: LookupConfig;
+  /** Warns when this number and `vs` are `times` apart or more, either way (a likely typo). */
+  warnRatio?: { vs: string; times: number; vsLabel: string };
 }
 
 export interface ModalGroup {
   cols: 1 | 2 | 3;
+  /** Folded under "More details": what's not needed to add one. */
+  more?: boolean;
   showWhen?: Cond;
   fields: ModalField[];
 }
@@ -130,6 +138,8 @@ export type MetricSpec = {
   label: string;
   accent?: boolean;
   color?: string;
+  /** Left out of the strip when it comes to nothing (no prices yet: "$0 spent"). */
+  hideWhenZero?: boolean;
 } & (
   | { kind: "count" }
   | { kind: "statusCount"; status: string }
@@ -331,6 +341,13 @@ export interface StatsConfig {
   right: WidgetSpec[];
   shareModules: ShareModule[];
   shareYearField: string;
+  /**
+   * Numbers that look like typos (1080h played on a 15h game): `field` at least
+   * `times` × `vs`, or either one above its `max`. Both are left out of the stats,
+   * and the Stats tab lists the item so it can be fixed. Playing far *less* than
+   * `vs` is normal (a game tried and dropped), so that doesn't count.
+   */
+  suspect?: { field: string; vs: string; times: number; max: number; vsMax: number; label: string };
 }
 
 export interface CurrencyConfig {
@@ -394,11 +411,18 @@ export interface CollectionConfig {
   ledgerMonth?: boolean;
   defaultSort?: { key: string; dir: "asc" | "desc" };
   categoryField?: string;
+  /** Names the category filter row ("Category" when unset). */
+  categoryLabel?: string;
   dynamicCategories?: boolean;
   categoryFilters?: FilterChip[];
   /** Transfers name a destination account; cleared for other types on save. */
   accountField?: string;
   months?: { label: string };
+  /**
+   * Fills in what older rows don't store yet (games: "how I got it" from the old
+   * Pirated / GamePass platforms). Applied when the data is read; saved with the next edit.
+   */
+  derive?: (item: Item) => Item;
   geo?: { field?: string; label?: string; subtitle?: string };
   currency?: CurrencyConfig;
 }

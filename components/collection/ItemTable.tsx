@@ -15,7 +15,6 @@ interface Props {
   onSort(key: string): void;
   expandedId: string | null;
   onToggle(id: string): void;
-  pendingDelete: string | null;
   onDelete(item: Item): void;
   onTag(tag: string): void;
   onMore(): void;
@@ -40,7 +39,7 @@ const ENTER_STEPS = 12;
 /** More simultaneous changes than this is a reload or sync, not an edit: no flash. */
 const MAX_FLASH = 3;
 
-export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDelete, onDelete, onTag, onMore }: Props) {
+export function ItemTable({ view, sort, onSort, expandedId, onToggle, onDelete, onTag, onMore }: Props) {
   const { cfg, isMobile, money, openEdit, openShare } = useCollectionCtx();
   const { visible, gridCols } = tableGrid(cfg, isMobile);
   const body = useRef<HTMLDivElement>(null);
@@ -99,16 +98,15 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
     lastOpen.current = expandedId;
   }, [expandedId]);
 
-  // Confirmed delete: collapse the row first, then remove it.
+  // Delete (Undo brings it back): collapse the row first, then remove it.
   const deleteRow = (g: Item) => {
     const el = rowEls.current.get(g.id);
-    const anim =
-      pendingDelete === g.id && el
-        ? play(el, [{ height: el.offsetHeight + "px", marginBottom: "2px", opacity: 1 }, { height: "0px", marginBottom: "0px", opacity: 0 }], {
-            duration: 240,
-            fill: "forwards",
-          })
-        : null;
+    const anim = el
+      ? play(el, [{ height: el.offsetHeight + "px", marginBottom: "2px", opacity: 1 }, { height: "0px", marginBottom: "0px", opacity: 0 }], {
+          duration: 240,
+          fill: "forwards",
+        })
+      : null;
     if (!anim) return onDelete(g);
     setLeaving(g.id);
     anim.finished
@@ -124,7 +122,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
   return (
     <div>
       <div
-        className="grid px-3 pb-[9px] text-[10px] font-semibold tracking-[.09em] text-dim uppercase"
+        className="grid px-3 pb-[9px] text-[11px] font-semibold tracking-[.08em] text-dim uppercase"
         style={{ gridTemplateColumns: gridCols }}
       >
         {visible.map((c) => {
@@ -157,7 +155,6 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
         {view.rows.map((g) => {
           const open = expandedId === g.id;
           const built = open || opened.current.has(g.id);
-          const confirming = pendingDelete === g.id;
           const review = reviewOf(cfg, g);
           const corner = cornerLink(cfg, g);
           const title = String(g[cfg.modal.titleField] || g.title || "Row");
@@ -171,17 +168,11 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
               className={"relative isolate mb-[2px] overflow-hidden rounded-[9px] transition-colors duration-200 " + (open ? "bg-wa" : "")}
             >
               <span data-flash aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-accent/10 opacity-0" />
+              {/* The whole row opens on a click; for the keyboard and screen readers the title is
+                  the button, so the tag buttons beside it aren't nested inside another control. */}
               <div
-                role="button"
-                tabIndex={0}
-                aria-expanded={open}
-                aria-label={`${title} — ${open ? "collapse" : "expand"} details`}
-                onClick={() => onToggle(g.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onToggle(g.id);
-                  }
+                onClick={(e) => {
+                  if (!(e.target as HTMLElement).closest("button, a")) onToggle(g.id);
                 }}
                 className="group grid cursor-pointer items-center border-b border-wc px-3 transition-colors duration-150 hover:bg-wa"
                 style={{ gridTemplateColumns: gridCols, paddingTop: "var(--rowpad)", paddingBottom: "var(--rowpad)" }}
@@ -190,7 +181,18 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                   const cell = cellValue(cfg, c, g, money);
                   return (
                     <div key={c.key} className="min-w-0 overflow-hidden">
-                      {cell.kind === "title" && <div className="truncate pr-2.5 font-medium tracking-[-.01em]">{cell.text}</div>}
+                      {cell.kind === "title" && (
+                        <button
+                          type="button"
+                          aria-expanded={open}
+                          aria-controls={"detail-" + g.id}
+                          title={title}
+                          onClick={() => onToggle(g.id)}
+                          className="block w-full cursor-pointer truncate rounded-[5px] border-none bg-transparent p-0 pr-2.5 text-left font-medium tracking-[-.01em] text-inherit"
+                        >
+                          {cell.text}
+                        </button>
+                      )}
                       {cell.kind === "tags" && (
                         <div className="flex max-h-6 flex-wrap gap-[5px] overflow-hidden pr-2.5">
                           {cell.tags.map((t, i) => (
@@ -219,7 +221,8 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                       )}
                       {cell.kind === "value" && (
                         <div
-                          className="font-mono"
+                          className="font-mono whitespace-nowrap"
+                          title={cell.hint}
                           style={{
                             textAlign: c.right ? "right" : "left",
                             fontSize: cell.strong ? 13 : 12.5,
@@ -228,7 +231,15 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                             paddingRight: c.kind === "money" ? 0 : c.kind === "score" ? (c.right ? 14 : 0) : c.right ? 20 : 0,
                           }}
                         >
-                          {cell.text}
+                          {/* Screen readers get the named version ("30h played · HLTB 15h"), not "30h slash 15h". */}
+                          {cell.hint ? (
+                            <>
+                              <span aria-hidden>{cell.text}</span>
+                              <span className="sr-only">{cell.hint}</span>
+                            </>
+                          ) : (
+                            cell.text
+                          )}
                         </div>
                       )}
                     </div>
@@ -244,11 +255,11 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
               </div>
 
               <div className="grid transition-[grid-template-rows] duration-[280ms] ease-out" style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
-                <div className="overflow-hidden" inert={!open}>
+                <div id={"detail-" + g.id} className="overflow-hidden" inert={!open}>
                   {built && (
                     <div data-detail className="relative grid gap-[26px] px-[14px] pt-4 pb-5" style={{ gridTemplateColumns: isMobile ? "1fr" : "1.7fr 1fr" }}>
                       <div>
-                        <div className="mb-2 text-[10px] font-semibold tracking-[.09em] text-dim uppercase">{cfg.reviewLabel}</div>
+                        <div className="mb-2 text-[11px] font-semibold tracking-[.08em] text-dim uppercase">{cfg.reviewLabel}</div>
                         <div className="max-w-[68ch] text-[13px] leading-[1.65] text-pretty" style={{ color: review ? "var(--text3)" : "var(--dim)", fontStyle: review ? "italic" : "normal" }}>
                           {review ?? cfg.reviewEmpty}
                         </div>
@@ -263,15 +274,9 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                             type="button"
                             onClick={() => deleteRow(g)}
                             disabled={leaving === g.id}
-                            className={
-                              smallButton +
-                              " border " +
-                              (confirming
-                                ? "border-neg bg-neg text-on-accent hover:brightness-110"
-                                : "border-neg/40 bg-transparent text-neg hover:border-neg hover:bg-neg/10")
-                            }
+                            className={smallButton + " border border-neg/40 bg-transparent text-neg hover:border-neg hover:bg-neg/10"}
                           >
-                            {confirming ? "Confirm?" : "Delete"}
+                            Delete
                           </button>
                         </div>
                       </div>
@@ -279,7 +284,7 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                         {detailRows(cfg, g, money).map((f) => (
                           <div key={f.label}>
                             <div className="mb-1 flex items-center gap-[5px]">
-                              <span className="text-[9.5px] tracking-[.08em] text-dim uppercase">{f.label}</span>
+                              <span className="text-[11px] tracking-[.06em] text-dim uppercase">{f.label}</span>
                               {f.link && (
                                 <a
                                   href={f.link.url}
@@ -289,7 +294,8 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                                   aria-label={f.link.title}
                                   onClick={(e) => e.stopPropagation()}
                                   className="-m-2 inline-flex items-center p-2 leading-none"
-                                  style={{ color: f.link.pulse ? "var(--accent)" : "var(--dim)", animation: f.link.pulse ? "gpulse 1.6s ease-in-out infinite" : "none" }}
+                                  // Accent while there's nothing yet to look up; no pulsing, it's a hint, not an alert.
+                                  style={{ color: f.link.pulse ? "var(--accent)" : "var(--dim)" }}
                                 >
                                   <GlobeIcon size={11} />
                                 </a>
@@ -306,14 +312,13 @@ export function ItemTable({ view, sort, onSort, expandedId, onToggle, pendingDel
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
                           className={
-                            "rounded-md border px-[9px] py-1 text-[10px] font-medium whitespace-nowrap transition-colors duration-200 hover:text-text " +
+                            "rounded-md border px-[9px] py-1 text-[11px] font-medium whitespace-nowrap transition-colors duration-200 hover:text-text " +
                             // In the single-column mobile layout it sits in the flow instead of over the metadata.
                             (isMobile ? "justify-self-start" : "absolute right-[14px] bottom-[14px]")
                           }
                           style={{
                             color: corner.pulse ? "var(--accent)" : "var(--muted)",
                             borderColor: corner.pulse ? "color-mix(in srgb, var(--accent) 40%, transparent)" : "var(--wh)",
-                            animation: corner.pulse ? "gpulsebtn 1.6s ease-in-out infinite" : "none",
                           }}
                         >
                           {corner.label}

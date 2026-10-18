@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CloseIcon, PlusIcon } from "@/components/icons";
 import { CountUp } from "@/components/ui/CountUp";
-import { Pill, PillGroup, accentButton, neutralButton } from "@/components/ui/Pills";
+import { Pill, PillGroup, accentButton, neutralButton, tagChip } from "@/components/ui/Pills";
 import {
   REEL, defaultRouletteState, pickRandom, pickSuggestions, pool as buildPool, primaryKey, pushRecent, reelCard, reelStrip, reelTarget,
   tagCloud, winnerActive, type RouletteState,
@@ -30,10 +30,6 @@ function reelX(target: number, t: number) {
 }
 const eyebrow = "text-[10px] font-semibold tracking-[.09em] text-dim uppercase";
 
-/** Tag filter chip: a neutral fill when on, so the accent stays on Spin. */
-const tagChip = (on: boolean) =>
-  "cursor-pointer border transition-[color,background-color,border-color,transform] duration-200 active:scale-[.97] " +
-  (on ? "border-muted bg-chip text-text" : "border-we bg-chip2 text-muted2 hover:border-wi hover:text-text");
 /** Stagger step for the winner panel's parts (see .g-rise). */
 const rise = (i: number) => ({ "--i": i }) as CSSProperties;
 

@@ -2,8 +2,8 @@
 
 // Add / edit form, generated from cfg.modal.groups. Conditional groups slide
 // open and closed; hiding a group blanks its fields.
-import { useRef, type Dispatch, type SetStateAction } from "react";
-import { CloseIcon } from "@/components/icons";
+import { useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { CaretRightIcon, CloseIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { accentButton, closeButton, dangerButton, neutralButton, toggleChip } from "@/components/ui/Pills";
 import {
@@ -20,7 +20,6 @@ export interface ModalState {
   draft: Draft;
   lookup?: "loading" | "done" | "error";
   lookupMsg?: string;
-  confirmDel?: boolean;
 }
 
 const label = "mb-[7px] text-[11px] font-semibold tracking-[.06em] text-muted uppercase";
@@ -37,7 +36,7 @@ export function ItemModal({
   setModal: Dispatch<SetStateAction<ModalState | null>>;
   onClose(): void;
 }) {
-  const { cfg, items, actions, isMobile, openShare } = useCollectionCtx();
+  const { cfg, items, actions, isMobile, openShare, removeItem } = useCollectionCtx();
   const dialog = useRef<HTMLDivElement>(null);
   useDialog(dialog, onClose);
 
@@ -45,6 +44,9 @@ export function ItemModal({
   const titleKey = cfg.modal.titleField;
   const valid = isDraftValid(cfg, draft);
   const isEdit = modal.mode === "edit";
+  // "More details" starts open when editing something that already has some of them.
+  const moreFields = cfg.modal.groups.filter((g) => g.more).flatMap((g) => g.fields);
+  const [more, setMore] = useState(() => isEdit && moreFields.some((f) => f.kind !== "toggle" && draft[f.key] != null && draft[f.key] !== ""));
 
   const patch = (fields: Record<string, unknown>) => setModal((m) => (m ? { ...m, draft: { ...m.draft, ...fields } } : m));
   const set = (key: string, v: unknown) => patch({ [key]: v });
@@ -61,9 +63,10 @@ export function ItemModal({
     actions.save(itemFromDraft(cfg, draft));
     onClose();
   };
+  // One click: the page offers Undo.
   const del = () => {
-    if (!modal.confirmDel) return setModal((m) => (m ? { ...m, confirmDel: true } : m));
-    if (draft.id) actions?.remove(draft.id);
+    const g = items.find((x) => x.id === draft.id);
+    if (g) removeItem(g);
     onClose();
   };
 
@@ -160,6 +163,7 @@ export function ItemModal({
                 placeholder={f.placeholder}
               />
             )}
+            {f.warnRatio && <RatioWarning value={v} other={draft[f.warnRatio.vs]} times={f.warnRatio.times} otherLabel={f.warnRatio.vsLabel} />}
             {dup && (
               <div className="mt-[7px] flex items-center gap-1.5 text-xs leading-[1.5] text-[#e0b86a]">
                 <span aria-hidden>⚠</span>“{String(dup[titleKey])}” is already in your backlog.
@@ -345,6 +349,7 @@ export function ItemModal({
         </div>
         <div className="flex flex-col gap-[17px] px-6 py-[22px]">
           {cfg.modal.groups.map((gr, i) => {
+            if (gr.more) return null;
             const shown = groupVisible(gr, draft);
             return (
               <div
@@ -367,6 +372,38 @@ export function ItemModal({
               </div>
             );
           })}
+          {moreFields.length > 0 && (
+            <div className="rounded-xl border border-wd">
+              <button
+                type="button"
+                aria-expanded={more}
+                aria-controls="item-more"
+                onClick={() => setMore((o) => !o)}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-xl border-none bg-transparent px-3.5 py-3 text-left text-[13px] font-semibold text-text2 hover:bg-wc"
+              >
+                <span aria-hidden className="text-dim transition-transform duration-200" style={{ transform: more ? "rotate(90deg)" : "none" }}>
+                  <CaretRightIcon size={12} />
+                </span>
+                More details
+                {!more && <span className="truncate font-normal text-muted">{moreFields.filter((f) => f.kind !== "toggle").map((f) => f.label).join(" · ")}</span>}
+              </button>
+              <div className="grid transition-[grid-template-rows] duration-300 ease-out" style={{ gridTemplateRows: more ? "1fr" : "0fr" }}>
+                <div id="item-more" className="min-h-0 overflow-hidden" inert={!more}>
+                  <div className="flex flex-col gap-[17px] px-3.5 pt-1 pb-4">
+                    {cfg.modal.groups
+                      .filter((gr) => gr.more && groupVisible(gr, draft))
+                      .map((gr, i) => (
+                        <div key={i} className="grid gap-[14px]" style={{ gridTemplateColumns: cols(gr.cols, gr.fields) }}>
+                          {gr.fields.map((f) => (
+                            <div key={f.key}>{renderField(f)}</div>
+                          ))}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {/* Sticks to the bottom of the screen so saving never needs a scroll to the end. */}
         <div className="sticky bottom-0 flex items-center justify-between gap-2 rounded-b-2xl border-t border-wd bg-card px-6 py-4 max-[720px]:px-4">
@@ -374,9 +411,9 @@ export function ItemModal({
             <button
               type="button"
               onClick={del}
-              className={dangerButton(!!modal.confirmDel) + " rounded-[9px] px-4 py-[9px] text-[13px] max-[720px]:px-3"}
+              className={dangerButton(false) + " rounded-[9px] px-4 py-[9px] text-[13px] max-[720px]:px-3"}
             >
-              {modal.confirmDel ? "Confirm delete" : "Delete"}
+              Delete
             </button>
           ) : (
             <span />
@@ -405,6 +442,18 @@ export function ItemModal({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Under a number that's far from the one it should be near (hours vs HLTB): probably a typo. */
+function RatioWarning({ value, other, times, otherLabel }: { value: unknown; other: unknown; times: number; otherLabel: string }) {
+  const a = Number(value), b = Number(other);
+  if (!(a > 0 && b > 0) || a / b < times) return null;
+  return (
+    <div role="status" className="mt-[7px] flex gap-1.5 text-xs leading-[1.5] text-[#e0b86a]">
+      <span aria-hidden>⚠</span>
+      {`That's ${Math.round(a / b)}× the ${otherLabel} (${b}). A typo?`}
     </div>
   );
 }

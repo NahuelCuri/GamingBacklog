@@ -22,6 +22,8 @@ export interface CollectionCtx {
   setUrl(patch: Partial<UrlState> | ((s: UrlState) => Partial<UrlState>)): void;
   openAdd(): void;
   openEdit(item: Item): void;
+  /** Deletes at once and offers Undo for a few seconds. */
+  removeItem(item: Item): void;
   openShare(item: Item): void;
   openStatsImage(): void;
 }

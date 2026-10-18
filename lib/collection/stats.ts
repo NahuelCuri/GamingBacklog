@@ -164,6 +164,7 @@ export interface SummaryCard {
 }
 
 export function summaryCards(cfg: CollectionConfig, items: Item[], specs: MetricSpec[], m: MoneyFormat = usd): SummaryCard[] {
+  items = statItems(cfg, items);
   return specs.map((spec) => {
     const { value } = metric(cfg, items, spec, m);
     return { label: spec.label, value, accent: !!spec.accent, color: spec.color, size: fitFont(value, SUMMARY_STEPS) };
@@ -244,6 +245,8 @@ function barList(cfg: CollectionConfig, items: Item[], spec: BarListSpec): Widge
       const p = list.slice(0, 3).map((g, i) => ({ rank: i + 1, title: String(g[primary] ?? ""), score: g[f] as number }));
       // 2nd · 1st · 3rd, the winner in the middle
       podium = p.length === 3 ? [p[1], p[0], p[2]] : p;
+      // The podium already shows these; the list goes on from 4th.
+      rows = rows.slice(p.length);
     }
   }
   if (spec.hideWhenEmpty && rows.length === 0) return null;
@@ -541,6 +544,7 @@ function heatmap(cfg: CollectionConfig, items: Item[], spec: HeatmapSpec, m: Mon
 }
 
 export function buildWidget(cfg: CollectionConfig, items: Item[], spec: WidgetSpec, ctx: StatsContext, now = new Date()): Widget | null {
+  items = statItems(cfg, items);
   const m = ctx.money ?? usd;
   switch (spec.kind) {
     case "barList": return barList(cfg, items, spec);
@@ -566,7 +570,30 @@ export interface StatsData {
   right: Widget[];
 }
 
+/** Items whose two `suspect` numbers are `times` apart or more: likely a typo, worth a look. */
+export function suspects(cfg: CollectionConfig, items: Item[]): Item[] {
+  const sp = cfg.stats.suspect;
+  if (!sp) return [];
+  return items.filter((x) => {
+    const a = Number(x[sp.field]) || 0, b = Number(x[sp.vs]) || 0;
+    return a > sp.max || b > sp.vsMax || (a > 0 && b > 0 && a / b >= sp.times);
+  });
+}
+
+/**
+ * The items stats are built from: with the fields older rows lack filled in
+ * (`derive`), and suspect numbers left out (the rest of the item counts).
+ */
+export function statItems(cfg: CollectionConfig, items: Item[]): Item[] {
+  if (cfg.derive) items = items.map(cfg.derive);
+  const sp = cfg.stats.suspect;
+  const bad = new Set(suspects(cfg, items));
+  if (!sp || !bad.size) return items;
+  return items.map((x) => (bad.has(x) ? { ...x, [sp.field]: null, [sp.vs]: null } : x));
+}
+
 export function buildStats(cfg: CollectionConfig, items: Item[], ctx: StatsContext, now = new Date()): StatsData {
+  items = statItems(cfg, items);
   const build = (list: WidgetSpec[]) => list.map((s) => buildWidget(cfg, items, s, ctx, now)).filter((w): w is Widget => w !== null);
   return {
     summary: summaryCards(cfg, items, cfg.stats.summary, ctx.money),
@@ -577,9 +604,10 @@ export function buildStats(cfg: CollectionConfig, items: Item[], ctx: StatsConte
 
 /** Compact one-liners under the library toolbar. */
 export function buildStrip(cfg: CollectionConfig, items: Item[], m: MoneyFormat = usd) {
-  return cfg.stats.strip.map((spec) => ({
-    label: spec.label,
-    value: metric(cfg, items, spec, m).value,
-    color: spec.accent ? ACC : spec.color || "inherit",
-  }));
+  items = statItems(cfg, items);
+  return cfg.stats.strip.flatMap((spec) => {
+    const r = metric(cfg, items, spec, m);
+    if (spec.hideWhenZero && !r.num) return [];
+    return [{ label: spec.label, value: r.value, color: spec.accent ? ACC : spec.color || "inherit" }];
+  });
 }

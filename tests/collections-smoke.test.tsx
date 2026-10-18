@@ -38,7 +38,7 @@ function ctxFor(key: CollectionKey, items: Item[]): CollectionCtx {
     collection: key, cfg: COLLECTIONS[key], data: { ...initialCollectionState, status: "ready", items, full: true }, items,
     actions: { save: noop, remove: noop, loadStarter: noop, refresh: noop, loadAll: noop, loadMonth: noop } as never,
     money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: noop,
-    openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop,
+    openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop, removeItem: noop,
   };
 }
 
