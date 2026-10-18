@@ -12,6 +12,7 @@ import { Pill, PillGroup, accentButton, chipButton, secondaryButton } from "@/co
 import { useAuth } from "@/lib/auth";
 import type { CollectionConfig, CollectionKey, Item } from "@/lib/collection/types";
 import { hasView, type CollectionView } from "@/lib/collection/url-state";
+import { duplicateTitles } from "@/lib/collection/draft";
 import { canTransfer } from "@/lib/data/collection-state";
 import { isShared, supabaseStore } from "@/lib/data/store";
 import { buildExports, diffImport, downloadAll, parseImport } from "@/lib/data/transfer";
@@ -228,6 +229,8 @@ function ImportDialog({
   const [mode, setMode] = useState<ImportMode>("merge");
   const diff = useMemo(() => diffImport(current, incoming), [current, incoming]);
   const { added, changed, unchanged, removed } = diff;
+  // New rows whose title is already in the library: often the same thing exported twice.
+  const dupes = useMemo(() => duplicateTitles(cfg, added, current), [cfg, added, current]);
   const noun = cfg.nounPlural;
 
   const options: { mode: ImportMode; label: string; detail: string }[] = [
@@ -311,6 +314,11 @@ function ImportDialog({
         )}
       </div>
 
+      {dupes.length > 0 && (
+        <p className="mt-3 mb-0 text-xs leading-[1.6] text-pretty text-[#e0b86a]">
+          {`${dupes.length} new ${dupes.length === 1 ? cfg.noun : noun} share a title with one you have: ${dupes.slice(0, 4).join(", ")}${dupes.length > 4 ? "…" : ""}.`}
+        </p>
+      )}
       <p className="mt-3 mb-0 text-xs leading-[1.6] text-pretty text-muted2">A backup of the current data downloads first.</p>
       {shared && mode === "replace" && (
         <p className="mt-2 mb-0 text-xs leading-[1.6] text-pretty text-neg">This library is shared: everyone&apos;s copy is replaced.</p>

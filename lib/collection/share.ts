@@ -4,7 +4,7 @@
 import { donutFromParts, spend, usd, type MoneyFormat } from "@/lib/spending";
 import { ACC, bucketColor, condMatch, fmt, isEmpty, pct, primaryKey } from "./format";
 import { scoreColor, statusMeta } from "./library";
-import { metric, tagAverages } from "./stats";
+import { metric, statItems, tagAverages } from "./stats";
 import type { CollectionConfig, Item, ModalField, MoneyDonutSpec, StatusDonutSpec } from "./types";
 
 // ================================================================ stats image
@@ -93,6 +93,7 @@ export function shareModules(
   accent: string,
   m: MoneyFormat = usd,
 ): ShareBlock[] {
+  g = statItems(cfg, g);
   const primary = primaryKey(cfg);
   const F = cfg.fields;
   const sf = cfg.statusField, yf = cfg.stats.shareYearField;

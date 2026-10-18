@@ -20,19 +20,20 @@ export const games: CollectionConfig = {
     text3: "#b7bfb9",
     muted2: "#9aa39c",
     muted: "#8b938d",
-    dim: "#59605b",
+    // 4.8:1 on the background: labels and column heads stay readable.
+    dim: "#7a827c",
     dim2: "#3a413c",
     accent2: "#c2e6cd",
     accent: "#9ce6b0",
   },
   fields: { score: "score", hours: "hours", price: "price", platform: "platform" },
   addLabel: "+ Add game",
-  reviewLabel: "Mi opinión",
-  reviewPlaceholder: "Tus pensamientos sobre el juego…",
-  reviewEmpty: "Sin notas todavía.",
+  reviewLabel: "My thoughts",
+  reviewPlaceholder: "What you liked, what you didn't…",
+  reviewEmpty: "No notes yet.",
   emptyTitle: "Your backlog is empty",
   emptySub: "Add your first game to get started.",
-  searchFields: ["title", "tags", "platform", "status", "review"],
+  searchFields: ["title", "tags", "platform", "source", "status", "review"],
   tagField: "tags",
   statusField: "status",
   statuses: [
@@ -45,7 +46,8 @@ export const games: CollectionConfig = {
       reelDot: "var(--accent,#9ce6b0)",
       reelGlow: true,
     },
-    { value: "played", label: "Played", dot: "#5b9e73", glow: "none", text: "#8b938d", reelDot: "#6f9a7d" },
+    // Its own colour, so Played and Backlog differ by more than a 7px dot.
+    { value: "played", label: "Played", dot: "#5b9e73", glow: "none", text: "#7fb894", reelDot: "#6f9a7d" },
     {
       value: "backlog",
       label: "Backlog",
@@ -61,8 +63,19 @@ export const games: CollectionConfig = {
     { value: "playing", label: "Playing" },
     { value: "played", label: "Played" },
     { value: "backlog", label: "Backlog" },
-    { value: "owned", label: "Owned", bool: "owned" },
   ],
+  // How each game was got: its own filter row (Owned is a flag, not a status).
+  categoryField: "source",
+  categoryLabel: "How I got it",
+  dynamicCategories: true,
+  derive: (g) => {
+    if (g.source) return g;
+    // Before "how I got it" had its own field, Pirated and GamePass were platforms.
+    if (g.platform === "Pirated") return { ...g, source: "Pirated", platform: "" };
+    if (g.platform === "GamePass") return { ...g, source: "Game Pass", platform: "" };
+    if (g.owned || Number(g.price) > 0) return { ...g, source: "Bought" };
+    return g;
+  },
   table: {
     columns: [
       {
@@ -76,28 +89,18 @@ export const games: CollectionConfig = {
       },
       { key: "tags", label: "Tags", kind: "tags", width: "1.35fr", hideMobile: true },
       { key: "status", label: "Status", kind: "status", width: "108px", mobileWidth: "78px", sortable: true },
+      // Played / to beat in one column: "30 / 15h", "~15h" before starting.
       {
         key: "hours",
-        label: "Hrs",
-        kind: "num",
-        width: "64px",
+        of: "hltb",
+        label: "Hours",
+        kind: "pair",
+        width: "112px",
         hideMobile: true,
         right: true,
         mono: true,
         unit: "h",
         color: "var(--text2,#c8d6cb)",
-        sortable: true,
-      },
-      {
-        key: "hltb",
-        label: "HLTB",
-        kind: "num",
-        width: "64px",
-        hideMobile: true,
-        right: true,
-        mono: true,
-        unit: "h",
-        color: "var(--muted,#8b938d)",
         sortable: true,
       },
       {
@@ -130,6 +133,7 @@ export const games: CollectionConfig = {
       { key: "yearCompleted", label: "Completed", kind: "text", empty: "—" },
       { key: "owned", label: "Owned", kind: "yesno" },
       { key: "platform", label: "Platform", kind: "text", empty: "—" },
+      { key: "source", label: "How I got it", kind: "text", empty: "—" },
       {
         key: "price",
         label: "Price",
@@ -147,80 +151,60 @@ export const games: CollectionConfig = {
   },
   modal: {
     titleField: "title",
+    // What a new game needs (and the point of the tracker: your score and your thoughts),
+    // then the rest under "More details".
     groups: [
       {
         cols: 1,
-        fields: [
-          { key: "title", label: "Title", kind: "text", placeholder: "Game title", dupCheck: true },
-        ],
+        fields: [{ key: "title", label: "Title", kind: "text", placeholder: "Game title", dupCheck: true }],
       },
+      { cols: 1, fields: [{ key: "status", label: "Status", kind: "status" }] },
+      { cols: 1, fields: [{ key: "tags", label: "Tags", kind: "tags" }] },
+      { cols: 3, fields: [{ key: "score", label: "Score /10", kind: "number", min: 0, max: 10, step: 0.5 }] },
       {
         cols: 1,
-        fields: [
-          { key: "tags", label: "Tags", kind: "tags" },
-        ],
+        fields: [{ key: "review", label: "My thoughts", kind: "longtext", placeholder: "What you liked, what you didn't…" }],
       },
       {
-        cols: 1,
+        cols: 2,
+        more: true,
         fields: [
-          { key: "status", label: "Status", kind: "status" },
-        ],
-      },
-      {
-        cols: 3,
-        fields: [
-          { key: "score", label: "Score /10", kind: "number", min: 0, max: 10, step: 0.5 },
-          { key: "hours", label: "Hours", kind: "number", min: 0, step: 0.5 },
+          { key: "hours", label: "Hours played", kind: "number", min: 0, step: 0.5, warnRatio: { vs: "hltb", times: 10, vsLabel: "HLTB" } },
           { key: "hltb", label: "HLTB", kind: "number", min: 0, step: 0.5 },
         ],
       },
       {
         cols: 2,
+        more: true,
         fields: [
           { key: "releaseDate", label: "Release date", kind: "date" },
           { key: "yearCompleted", label: "Year completed", kind: "number", min: 1980, max: 2030 },
         ],
       },
       {
+        cols: 1,
+        more: true,
+        fields: [{ key: "source", label: "How I got it", kind: "enum", options: ["Bought", "Game Pass", "Pirated", "Gift", "Free"] }],
+      },
+      {
+        cols: 1,
+        more: true,
+        fields: [{ key: "platform", label: "Platform", kind: "enum", options: ["Steam", "Epic", "EA", "GOG", "Xbox", "PlayStation", "Switch"] }],
+      },
+      {
         cols: 2,
+        more: true,
         fields: [
           { key: "price", label: "Price", kind: "number", min: 0, step: 0.01 },
           { key: "purchaseDate", label: "Purchase date", kind: "date" },
         ],
       },
-      {
-        cols: 1,
-        fields: [
-          {
-            key: "platform",
-            label: "Platform",
-            kind: "enum",
-            options: ["Steam", "GamePass", "EA", "Epic", "Pirated"],
-          },
-        ],
-      },
-      {
-        cols: 1,
-        fields: [
-          { key: "owned", label: "Owned", kind: "toggle", onColor: "var(--accent,#9ce6b0)" },
-        ],
-      },
-      {
-        cols: 1,
-        fields: [
-          {
-            key: "review",
-            label: "Mi opinión",
-            kind: "longtext",
-            placeholder: "Tus pensamientos sobre el juego…",
-          },
-        ],
-      },
+      { cols: 1, more: true, fields: [{ key: "owned", label: "Owned", kind: "toggle", onColor: "var(--accent,#9ce6b0)" }] },
     ],
     numberFields: ["score", "hours", "hltb", "price"],
     yearFields: ["yearCompleted"],
     boolFields: ["owned"],
-    textFields: ["platform", "releaseDate", "purchaseDate", "review"],
+    textFields: ["platform", "source", "releaseDate", "purchaseDate", "review"],
   },
   roulette: {
     defaultStatus: "backlog",
@@ -263,47 +247,24 @@ export const games: CollectionConfig = {
       // Hours played against HLTB across games with both: "+12%" is slower than average.
       { kind: "ratio", field: "hours", over: "hltb", label: "Pace vs HLTB" },
       // What each hour cost, over games actually paid for.
-      { kind: "perUnit", field: "price", per: "hours", money: true, match: { field: "platform", notIn: ["GamePass", "Pirated"] }, label: "Cost / hour" },
+      { kind: "perUnit", field: "price", per: "hours", money: true, match: { field: "source", notIn: ["Game Pass", "Pirated"] }, label: "Cost / hour" },
     ],
+    // A quick look; the rest is on the Stats tab.
     strip: [
       { kind: "count", label: "games" },
       { kind: "statusCount", status: "playing", label: "playing", accent: true },
-      { kind: "statusCount", status: "played", label: "played" },
       { kind: "statusCount", status: "backlog", label: "backlog" },
-      { kind: "sum", field: "hours", label: "hrs" },
-      { kind: "avg", field: "score", label: "avg score" },
       { kind: "completion", status: "played", label: "done" },
+      { kind: "avg", field: "score", label: "avg score" },
       { kind: "sum", field: "hltb", match: { field: "status", eq: "backlog" }, label: "backlog hrs" },
-      // What was actually paid, what it would have been without piracy, and
-      // what piracy and Game Pass saved.
+      // Only once prices are filled in.
       {
         kind: "moneySum",
         field: "price",
-        match: { field: "platform", notIn: ["GamePass", "Pirated"] },
+        match: { field: "source", notIn: ["Game Pass", "Pirated"] },
         label: "spent",
         color: "var(--accent,#9ce6b0)",
-        accent: true,
-      },
-      {
-        kind: "moneySum",
-        field: "price",
-        match: { field: "platform", notIn: ["GamePass"] },
-        label: "without piracy",
-        color: "oklch(0.74 0.1 85)",
-      },
-      {
-        kind: "moneySum",
-        field: "price",
-        match: { field: "platform", eq: "Pirated" },
-        label: "saved pirating",
-        color: "oklch(0.66 0.13 25)",
-      },
-      {
-        kind: "moneySum",
-        field: "price",
-        match: { field: "platform", eq: "GamePass" },
-        label: "saved with Game Pass",
-        color: "oklch(0.68 0.14 155)",
+        hideWhenZero: true,
       },
     ],
     left: [
@@ -312,7 +273,7 @@ export const games: CollectionConfig = {
         title: "Highest rated",
         field: "score",
         dir: "desc",
-        top: 10,
+        top: 3,
         podium: true,
         barColor: "var(--accent,#9ce6b0)",
         valColor: "var(--accent,#9ce6b0)",
@@ -358,7 +319,7 @@ export const games: CollectionConfig = {
         field: "price",
         per: "hours",
         money: true,
-        match: { field: "platform", notIn: ["GamePass", "Pirated"] },
+        match: { field: "source", notIn: ["Game Pass", "Pirated"] },
         dir: "asc",
         top: 8,
         suffix: "/h",
@@ -414,22 +375,22 @@ export const games: CollectionConfig = {
         groups: [
           {
             label: "Bought",
-            match: { field: "platform", notIn: ["GamePass", "Pirated"] },
+            match: { field: "source", notIn: ["Game Pass", "Pirated"] },
             color: "oklch(0.74 0.1 85)",
           },
           {
             label: "Pirated",
-            match: { field: "platform", eq: "Pirated" },
+            match: { field: "source", eq: "Pirated" },
             color: "oklch(0.66 0.13 25)",
           },
           {
             label: "Game Pass",
-            match: { field: "platform", eq: "GamePass" },
+            match: { field: "source", eq: "Game Pass" },
             color: "oklch(0.68 0.14 155)",
           },
         ],
         // The ring shows every game's price; the center only what was paid.
-        centerMatch: { field: "platform", notIn: ["GamePass", "Pirated"] },
+        centerMatch: { field: "source", notIn: ["Game Pass", "Pirated"] },
         // Spending by the year it happened; games without a purchase date use the year completed.
         yearFilter: "purchaseDate",
         yearFallback: "yearCompleted",
@@ -439,7 +400,7 @@ export const games: CollectionConfig = {
         title: "Spending by year",
         dateField: "purchaseDate",
         fallbackField: "yearCompleted",
-        match: { field: "platform", notIn: ["GamePass", "Pirated"] },
+        match: { field: "source", notIn: ["Game Pass", "Pirated"] },
         period: "year",
         months: 10,
         barColor: "oklch(0.74 0.1 85)",
@@ -488,5 +449,7 @@ export const games: CollectionConfig = {
       { key: "byYear", label: "Completed by year", default: false },
     ],
     shareYearField: "yearCompleted",
+    // 10× the HLTB time, over 1000h played, or an HLTB time over 300h.
+    suspect: { field: "hours", vs: "hltb", times: 10, max: 1000, vsMax: 300, label: "Their hours look off (10× HLTB or more, or an unusually large number)" },
   },
 };

@@ -22,7 +22,7 @@ function makeCtx(key: CollectionKey, items: Item[], over: Partial<CollectionCtx>
   const ctx: CollectionCtx = {
     collection: key, cfg: COLLECTIONS[key], data: { ...initialCollectionState, status: "ready", items, full: true }, items,
     actions: actions as never, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
-    openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), ...over,
+    openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), removeItem: vi.fn(), ...over,
   };
   return { ctx, actions };
 }
@@ -43,8 +43,9 @@ function renderLibrary(key: CollectionKey, items: Item[]) {
   return { ctx, actions };
 }
 
-const rowButtons = () => screen.queryAllByRole("button", { name: / — (expand|collapse) details$/ });
-const rowTitles = () => rowButtons().map((r) => r.getAttribute("aria-label")!.replace(/ — .*$/, ""));
+// Each row's title is the button that opens its details.
+const rowButtons = () => screen.queryAllByRole("button").filter((b) => b.getAttribute("aria-controls")?.startsWith("detail-"));
+const rowTitles = () => rowButtons().map((r) => r.textContent);
 
 describe("library view (games seed)", () => {
   const games = seed("games");
@@ -77,16 +78,14 @@ describe("library view (games seed)", () => {
     expect(titles).toEqual([...titles].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())));
   });
 
-  it("expands a row with details and needs two clicks to delete", () => {
-    const { actions } = renderLibrary("games", games);
+  it("expands a row with details and deletes in one click (the page offers Undo)", () => {
+    const { ctx } = renderLibrary("games", games);
     const first = rowButtons()[0];
     fireEvent.click(first);
     expect(first.getAttribute("aria-expanded")).toBe("true");
-    const panel = first.nextElementSibling as HTMLElement;
+    const panel = document.getElementById(first.getAttribute("aria-controls")!)!;
     fireEvent.click(within(panel).getByRole("button", { name: "Delete" }));
-    expect(actions.remove).not.toHaveBeenCalled();
-    fireEvent.click(within(panel).getByRole("button", { name: "Confirm?" }));
-    expect(actions.remove).toHaveBeenCalledTimes(1);
+    expect(ctx.removeItem).toHaveBeenCalledTimes(1);
   });
 
   it("clicking a tag chip filters by that tag", () => {
@@ -179,13 +178,11 @@ describe("item modal", () => {
     expect(actions.save.mock.calls[0][0]).toMatchObject({ id: transfer.id, type: "expense", account: "" });
   });
 
-  it("edit: delete needs confirmation", () => {
+  it("edit: delete is one click and goes through the page's Undo", () => {
     const g = seed("games")[0];
-    const { actions } = renderModal("games", { mode: "edit", draft: draftFromItem(COLLECTIONS.games, g) });
+    const { ctx } = renderModal("games", { mode: "edit", draft: draftFromItem(COLLECTIONS.games, g) }, [g]);
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    expect(actions.remove).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
-    expect(actions.remove).toHaveBeenCalledWith(g.id);
+    expect(ctx.removeItem).toHaveBeenCalledWith(g);
   });
 
   it("closes on Escape", async () => {
@@ -202,7 +199,7 @@ describe("item modal", () => {
 
 describe("url state", () => {
   it("round-trips view and filters and keeps unrelated params", () => {
-    const s: UrlState = { view: "stats", q: "zelda", status: "played", catFilter: "Food", tagFilters: ["RPG", "Open World"] };
+    const s: UrlState = { view: "stats", q: "zelda", status: "played", catFilter: "Food", tagFilters: ["RPG", "Open World"], sortKey: "score", sortDir: "desc" };
     const qs = writeUrlState("?x=1", s);
     expect(qs).toContain("x=1");
     expect(readUrlState(qs)).toEqual(s);

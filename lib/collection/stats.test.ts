@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { COLLECTIONS } from "@/config/collections";
-import { buildWidget, daysBetween, metric } from "./stats";
+import { buildWidget, daysBetween, metric, statItems, suspects } from "./stats";
+import { duplicateTitles } from "./draft";
+import { cellValue } from "./library";
 import type { Item, MoneyDonutSpec } from "./types";
 
 describe("category split (dynamic money donut)", () => {
@@ -94,7 +96,8 @@ describe("games time and value stats", () => {
     if (w.kind !== "barList" && w.kind !== "diverging") throw new Error("expected bar rows");
     return w.rows.map((r) => [r.label, r.val]);
   };
-  const summary = (label: string) => metric(cfg, items, cfg.stats.summary.find((s) => s.label === label)!).value;
+  // As the Stats tab reads them: old Pirated / GamePass platforms become "how I got it".
+  const summary = (label: string) => metric(cfg, statItems(cfg, items), cfg.stats.summary.find((s) => s.label === label)!).value;
 
   it("summarises backlog hours, pace and cost per hour", () => {
     expect(summary("Backlog hours")).toBe("37");
@@ -121,7 +124,8 @@ describe("games time and value stats", () => {
   });
 
   it("rates platforms, a plain field, like tags", () => {
-    expect(rows("Platforms by rating")).toEqual([["Steam · 3", "★9.0"], ["GamePass · 1", "★7.0"]]);
+    // Game Pass is how a game was got, not a platform (see the games config's derive).
+    expect(rows("Platforms by rating")).toEqual([["Steam · 3", "★9.0"]]);
   });
 
   it("spends by purchase year, falling back to the year completed, paid games only", () => {
@@ -216,7 +220,8 @@ describe("movies stats", () => {
     if (w?.kind !== "barList" && w?.kind !== "diverging") throw new Error("expected bar rows");
     return w.rows.map((r) => [r.label, r.val]);
   };
-  const summary = (label: string) => metric(cfg, items, cfg.stats.summary.find((s) => s.label === label)!).value;
+  // As the Stats tab reads them: old Pirated / GamePass platforms become "how I got it".
+  const summary = (label: string) => metric(cfg, statItems(cfg, items), cfg.stats.summary.find((s) => s.label === label)!).value;
 
   it("sums film hours watched and the mean gap to IMDb", () => {
     // 210 minutes of completed films
@@ -242,5 +247,50 @@ describe("movies stats", () => {
 
   it("ages the backlog", () => {
     expect(rows("Longest in backlog")).toEqual([["D", "1y 6m"]]);
+  });
+});
+
+describe("games backlog redesign helpers", () => {
+  const cfg = COLLECTIONS.games;
+  it("flags hours that look like typos, but not a game tried and dropped", () => {
+    const items = [
+      { id: "a", title: "A", hours: 1080, hltb: 15 },
+      { id: "b", title: "B", hours: 1080 },
+      { id: "c", title: "C", hours: 40, hltb: 1080 },
+      { id: "d", title: "D", hours: 1, hltb: 85 },
+      { id: "e", title: "E", hours: 218, hltb: 23 },
+    ] as Item[];
+    expect(suspects(cfg, items).map((g) => g.id)).toEqual(["a", "b", "c"]);
+    // left out of the stats, the rest of the row kept
+    const s = statItems(cfg, items);
+    expect(s[0]).toMatchObject({ id: "a", title: "A", hours: null, hltb: null });
+    expect(s[4]).toBe(items[4]);
+  });
+
+  it("reads old Pirated / GamePass platforms as how the game was got", () => {
+    const d = cfg.derive!;
+    expect(d({ id: "1", platform: "Pirated" })).toMatchObject({ source: "Pirated", platform: "" });
+    expect(d({ id: "2", platform: "GamePass" })).toMatchObject({ source: "Game Pass", platform: "" });
+    expect(d({ id: "3", platform: "Steam", price: 20 })).toMatchObject({ source: "Bought", platform: "Steam" });
+    const kept = { id: "4", platform: "Steam", source: "Gift" };
+    expect(d(kept)).toBe(kept);
+  });
+
+  it("shows hours played and to beat in one cell, blank when there's neither", () => {
+    const col = cfg.table.columns.find((c) => c.kind === "pair")!;
+    const text = (g: Partial<Item>) => {
+      const c = cellValue(cfg, col, { id: "x", ...g } as Item);
+      return c.kind === "value" ? c.text : null;
+    };
+    expect(text({ hours: 30, hltb: 15 })).toBe("30 / 15h");
+    expect(text({ hours: 30 })).toBe("30h");
+    expect(text({ hltb: 15 })).toBe("~15h");
+    expect(text({})).toBe("");
+  });
+
+  it("finds duplicate titles, in the library and against an import", () => {
+    const lib = [{ id: "1", title: "As Dusk Falls" }, { id: "2", title: "as dusk  falls " }, { id: "3", title: "Kenshi" }] as Item[];
+    expect(duplicateTitles(cfg, lib)).toEqual(["As Dusk Falls"]);
+    expect(duplicateTitles(cfg, [{ id: "9", title: "KENSHI" }, { id: "3", title: "Kenshi" }] as Item[], lib)).toEqual(["KENSHI"]);
   });
 });

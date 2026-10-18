@@ -32,7 +32,7 @@ describe("summaries", () => {
     expect(s.metrics.map((m) => [m.value, m.label])).toEqual([
       ["3", "games"],
       ["2", "playing"],
-      ["0", "played"],
+      ["1", "backlog"],
     ]);
     expect(s.metrics[1].accent).toBe(true);
   });

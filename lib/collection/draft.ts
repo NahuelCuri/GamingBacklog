@@ -64,6 +64,35 @@ export function findDuplicate(cfg: CollectionConfig, items: Item[], d: Draft): I
   return items.find((g) => g.id !== d.id && String(g[key] || "").trim().toLowerCase() === dt) ?? null;
 }
 
+const titleKey = (cfg: CollectionConfig, g: Item) => String(g[cfg.modal.titleField] || "").trim().replace(/\s+/g, " ").toLowerCase();
+
+/**
+ * Titles held by more than one item, as first written (libraries whose title
+ * field checks for duplicates). `against` instead lists items of `items` whose
+ * title is already among `against` under another id (an import).
+ */
+export function duplicateTitles(cfg: CollectionConfig, items: Item[], against?: Item[]): string[] {
+  if (!cfg.modal.groups.some((g) => g.fields.some((f) => f.dupCheck))) return [];
+  const seen = new Map<string, { title: string; ids: Set<string> }>();
+  const add = (g: Item) => {
+    const k = titleKey(cfg, g);
+    if (!k) return;
+    const e = seen.get(k) ?? { title: String(g[cfg.modal.titleField]).trim(), ids: new Set<string>() };
+    e.ids.add(g.id);
+    seen.set(k, e);
+  };
+  (against ?? items).forEach(add);
+  if (against) {
+    const out = new Set<string>();
+    items.forEach((g) => {
+      const e = seen.get(titleKey(cfg, g));
+      if (e && !e.ids.has(g.id)) out.add(String(g[cfg.modal.titleField]).trim());
+    });
+    return [...out];
+  }
+  return [...seen.values()].filter((e) => e.ids.size > 1).map((e) => e.title);
+}
+
 export function groupVisible(group: ModalGroup, d: Draft): boolean {
   return !group.showWhen || condMatch(group.showWhen, d);
 }

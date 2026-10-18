@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon, CloseIcon, ResetIcon, SearchIcon } from "@/components/icons";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { Pill, PillGroup, accentButton, secondaryButton } from "@/components/ui/Pills";
-import { buildStrip, categoryValues, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
+import { buildStrip, categoryValues, duplicateTitles, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
 import { monthKey, monthLabel } from "@/lib/collection/format";
 import { hasMonth } from "@/lib/data/collection-state";
 import type { Item } from "@/lib/collection/types";
@@ -14,10 +14,8 @@ import { useCollectionCtx } from "./CollectionContext";
 import { ItemTable, ItemTableSkeleton } from "./ItemTable";
 
 export function LibraryView() {
-  const { cfg, data, items, actions, money, isMobile, url, setUrl, openAdd } = useCollectionCtx();
-  const [sort, setSort] = useState<Pick<LibraryFilters, "sortKey" | "sortDir">>({ sortKey: "default", sortDir: "asc" });
+  const { cfg, data, items, actions, money, isMobile, url, setUrl, openAdd, removeItem } = useCollectionCtx();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   // Ledger collections (expenses) show one month at a time, the current one first.
   const [month, setMonth] = useState(currentMonthKey);
   // Expenses read one month from the server at a time; this asks for the one picked.
@@ -28,6 +26,9 @@ export function LibraryView() {
   const scoped = useMemo(() => (cfg.ledgerMonth ? items.filter((g) => monthKey(g.date) === month) : items), [cfg.ledgerMonth, items, month]);
   const [rowLimit, setRowLimit] = useState<number | undefined>(undefined);
 
+  // The order is in the URL with the filters, so a sorted view can be linked and survives a reload.
+  const sort = useMemo(() => ({ sortKey: url.sortKey, sortDir: url.sortDir }), [url.sortKey, url.sortDir]);
+  const setSort = (s: Pick<LibraryFilters, "sortKey" | "sortDir">) => setUrl(s);
   const filters: LibraryFilters = { q: url.q, status: url.status, catFilter: url.catFilter, tagFilters: url.tagFilters, ...sort };
   const view = useMemo(
     () => visibleRows(cfg, items, filters, { month, rowLimit }),
@@ -41,6 +42,8 @@ export function LibraryView() {
     setExpandedId(null);
   };
   const strip = useMemo(() => buildStrip(cfg, scoped, money), [cfg, scoped, money]);
+  // The same title twice is usually an accidental re-add.
+  const dupes = useMemo(() => (cfg.ledgerMonth ? [] : duplicateTitles(cfg, items)), [cfg, items]);
   const categories = useMemo(() => {
     if (cfg.dynamicCategories) return [{ value: "all", label: "All" }, ...categoryValues(cfg, scoped).map((v) => ({ value: v, label: v }))];
     return cfg.categoryFilters || [];
@@ -48,11 +51,8 @@ export function LibraryView() {
 
   const addTag = (t: string) => setUrl((s) => (s.tagFilters.includes(t) ? {} : { tagFilters: [...s.tagFilters, t] }));
   const onDelete = (g: Item) => {
-    if (pendingDelete === g.id) {
-      actions?.remove(g.id);
-      setPendingDelete(null);
-      setExpandedId(null);
-    } else setPendingDelete(g.id);
+    removeItem(g);
+    setExpandedId(null);
   };
   const isDefaultSort = sort.sortKey === "default";
   const loaded = cfg.ledgerMonth ? hasMonth(data, month) : data.status === "ready";
@@ -169,7 +169,7 @@ export function LibraryView() {
       </div>
 
       {categories.length > 1 && (
-        <PillGroup label="Category" bare className={"mb-[14px] " + (isMobile ? "g-noscroll w-full overflow-x-auto" : "flex-wrap")}>
+        <PillGroup label={cfg.categoryLabel || "Category"} bare className={"mb-[14px] " + (isMobile ? "g-noscroll w-full overflow-x-auto" : "flex-wrap")}>
           {categories.map((c) => (
             <Pill key={c.value} quiet active={url.catFilter === c.value} onClick={() => setUrl({ catFilter: c.value })} className={pillSize}>
               {c.label}
@@ -199,19 +199,31 @@ export function LibraryView() {
         </div>
       )}
 
+      {loaded && dupes.length > 0 && (
+        <div role="note" className="mb-[14px] flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-muted">
+          <span className="text-[#e0b86a]">Possible duplicates</span>
+          {dupes.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setUrl({ q: t, status: "all", catFilter: "all", tagFilters: [] })}
+              className="cursor-pointer rounded-md border border-wf bg-chip px-2 py-0.5 text-xs text-text2 hover:border-wi hover:text-text"
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+
       {!loaded && data.status !== "error" && <ItemTableSkeleton />}
 
       {loaded && rows.length > 0 && (
         <ItemTable
           view={view}
           sort={sort}
-          onSort={(k) => setSort((s) => nextSort(s, k))}
+          onSort={(k) => setSort(nextSort(sort, k))}
           expandedId={expandedId}
-          onToggle={(id) => {
-            setExpandedId((cur) => (cur === id ? null : id));
-            setPendingDelete(null);
-          }}
-          pendingDelete={pendingDelete}
+          onToggle={(id) => setExpandedId((cur) => (cur === id ? null : id))}
           onDelete={onDelete}
           onTag={addTag}
           onMore={() => setRowLimit((n) => (n || 150) + 150)}

@@ -190,8 +190,18 @@ export function cellValue(cfg: CollectionConfig, col: TableColumn, g: Item, m: M
     const color = t === "income" ? ACC : t === "expense" ? "#d98f8f" : "var(--muted)";
     return { kind: "value", text: sign + m.money(v), color, strong: true };
   }
-  if (col.kind === "score") return { kind: "value", text: v == null ? "—" : String(v), color: scoreColor(v), strong: true };
-  return { kind: "value", text: v == null ? "—" : v + (col.unit || ""), color: col.color || "var(--text2)", strong: false };
+  // Empty numbers stay blank: a column of dashes is noise.
+  if (col.kind === "score") return { kind: "value", text: isEmpty(v) ? "" : String(v), color: scoreColor(v), strong: true };
+  if (col.kind === "pair") {
+    const w = col.of ? g[col.of] : null;
+    const u = col.unit || "";
+    // Played / to beat; only the target, faint, before any time is logged.
+    if (!isEmpty(v) && !isEmpty(w)) return { kind: "value", text: `${v} / ${w}${u}`, color: col.color || "var(--text2)", strong: false };
+    if (!isEmpty(v)) return { kind: "value", text: v + u, color: col.color || "var(--text2)", strong: false };
+    if (!isEmpty(w)) return { kind: "value", text: `~${w}${u}`, color: "var(--muted)", strong: false };
+    return { kind: "value", text: "", color: "var(--muted)", strong: false };
+  }
+  return { kind: "value", text: isEmpty(v) ? "" : v + (col.unit || ""), color: col.color || "var(--text2)", strong: false };
 }
 
 export interface DetailRow {

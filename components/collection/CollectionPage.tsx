@@ -3,7 +3,9 @@
 // Collection route: loads the data, owns the URL-synced view and filters, and
 // hosts the header, the active tab, the add/edit form and the library switcher.
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { CloseIcon } from "@/components/icons";
+import { accentButton, closeButton } from "@/components/ui/Pills";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { useCollectionTheme } from "@/components/shell/useCollectionTheme";
 import { COLLECTIONS } from "@/config/collections";
@@ -58,6 +60,38 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
   const [shareItem, setShareItem] = useState<Item | null>(null);
   const [statsImage, setStatsImage] = useState(false);
   const { user } = useAuth();
+  // Fields older rows don't store yet, filled in as they're read (cached per row, so an
+  // unchanged row stays the same object and the table can tell what was edited).
+  const derived = useRef(new WeakMap<Item, Item>());
+  const items = useMemo(() => {
+    const d = cfg.derive;
+    if (!d) return data.items;
+    return data.items.map((g) => {
+      let x = derived.current.get(g);
+      if (!x) derived.current.set(g, (x = d(g)));
+      return x;
+    });
+  }, [cfg, data.items]);
+
+  // Deleting is one click; Undo puts the row back for a few seconds.
+  const [undo, setUndo] = useState<{ item: Item; at: number } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(undoTimer.current), []);
+  const removeItem = useCallback(
+    (g: Item) => {
+      if (!actions) return;
+      void actions.remove(g.id);
+      clearTimeout(undoTimer.current);
+      setUndo({ item: g, at: Date.now() });
+      undoTimer.current = setTimeout(() => setUndo(null), 8000);
+    },
+    [actions],
+  );
+  const restore = () => {
+    clearTimeout(undoTimer.current);
+    if (undo) void actions?.save(undo.item);
+    setUndo(null);
+  };
 
   // Numbers for this library's tile on the home page, kept on this device.
   const own = store === undefined;
@@ -78,11 +112,11 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
 
   const ctx = useMemo<CollectionCtx>(
     () => ({
-      collection, cfg, data, items: data.items, actions, money, currency, isMobile, url, setUrl, openAdd, openEdit,
+      collection, cfg, data, items, actions, money, currency, isMobile, url, setUrl, openAdd, openEdit, removeItem,
       openShare: setShareItem,
       openStatsImage: () => setStatsImage(true),
     }),
-    [collection, cfg, data, actions, money, currency, isMobile, url, setUrl, openAdd, openEdit],
+    [collection, cfg, data, items, actions, money, currency, isMobile, url, setUrl, openAdd, openEdit, removeItem],
   );
 
   return (
@@ -120,6 +154,31 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
         {modal && <ItemModal modal={modal} setModal={setModal} onClose={closeModal} />}
         {statsImage && <ShareImageDialog onClose={() => setStatsImage(false)} />}
         {shareItem && <ShareCardDialog item={shareItem} onClose={() => setShareItem(null)} />}
+        {undo && (
+          <div
+            key={undo.at}
+            role="status"
+            className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] left-1/2 z-(--z-toast) flex w-max max-w-[calc(100vw-24px)] items-center gap-3 overflow-hidden rounded-xl border border-wh bg-card py-2 pr-2 pl-4 shadow-[var(--shadow-pop)] [animation:gtoast_260ms_var(--ease-out)_both]"
+            style={{ transform: "translateX(-50%)" }}
+          >
+            <span aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-accent opacity-55 [animation:gdrain_8s_linear_both]" />
+            <span className="truncate text-13 text-text2">{`“${String(undo.item[cfg.modal.titleField] || cfg.noun)}” deleted`}</span>
+            <button type="button" onClick={restore} className={accentButton + " px-3.5 py-1.5 text-[13px]"}>
+              Undo
+            </button>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => {
+                clearTimeout(undoTimer.current);
+                setUndo(null);
+              }}
+              className={closeButton}
+            >
+              <CloseIcon size={13} />
+            </button>
+          </div>
+        )}
         <LibraryFab current={collection} />
       </div>
     </CollectionContext.Provider>
