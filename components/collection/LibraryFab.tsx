@@ -2,7 +2,9 @@
 
 // Floating library switcher (bottom-right): the main button shows the current
 // library; opening it fans out "All libraries" plus every visible library.
-import { useState } from "react";
+// It slides away while the page scrolls down (it sat over the last column of
+// the rows) and comes back on any scroll up or at the end of the page.
+import { useEffect, useState } from "react";
 import { FabIcon, LIBRARY_ICON_COLOR } from "@/components/icons";
 import { useShell } from "@/components/shell/ShellProvider";
 import type { LibraryKey } from "@/config/libraries";
@@ -21,12 +23,32 @@ const EASE = "cubic-bezier(.22,1,.36,1)";
 export function LibraryFab({ current }: { current: LibraryKey }) {
   const { libs, navigate } = useShell();
   const [open, setOpen] = useState(false);
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const atEnd = y + window.innerHeight >= document.documentElement.scrollHeight - 8;
+      if (Math.abs(y - last) < 6 && !atEnd) return;
+      setAway(y > last && y > 120 && !atEnd);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const hidden = away && !open;
   const items = ITEMS.filter((d) => d.key === "_home" || libs.includes(d.key) || d.key === current);
 
   return (
     <div
       className="fixed z-(--z-fab) flex flex-col-reverse items-center gap-3"
-      style={{ right: "max(env(safe-area-inset-right, 0px), 22px)", bottom: "calc(env(safe-area-inset-bottom, 0px) + 22px)" }}
+      style={{
+        right: "max(env(safe-area-inset-right, 0px), 22px)",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 22px)",
+        transform: hidden ? "translateY(calc(100% + 40px))" : "none",
+        opacity: hidden ? 0 : 1,
+        transition: `transform .32s ${EASE}, opacity .2s ease`,
+      }}
     >
       <button
         type="button"

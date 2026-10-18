@@ -31,7 +31,7 @@ function renderMap(items: Item[]) {
   const ctx: CollectionCtx = {
     collection: "wines", cfg: COLLECTIONS.wines, data: { ...initialCollectionState, status: "ready", items, full: true }, items,
     actions: null, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: noop,
-    openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop,
+    openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop, removeItem: noop,
   };
   return render(
     <CollectionContext.Provider value={ctx}>
@@ -83,7 +83,7 @@ describe("GeoMapView", () => {
     const { CollectionContext: FreshCtx } = await import("./CollectionContext");
     const noop = vi.fn();
     render(
-      <FreshCtx.Provider value={{ collection: "wines", cfg: COLLECTIONS.wines, data: initialCollectionState, items: [], actions: null, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: noop, openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop }}>
+      <FreshCtx.Provider value={{ collection: "wines", cfg: COLLECTIONS.wines, data: initialCollectionState, items: [], actions: null, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: noop, openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop, removeItem: noop }}>
         <FreshMap />
       </FreshCtx.Provider>,
     );
