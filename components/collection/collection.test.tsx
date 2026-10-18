@@ -88,6 +88,18 @@ describe("library view (games seed)", () => {
     expect(ctx.removeItem).toHaveBeenCalledTimes(1);
   });
 
+  it("the Tags button lists every tag; picking two shows games with both", () => {
+    renderLibrary("games", games);
+    fireEvent.click(screen.getByRole("button", { name: "Tags" }));
+    const panel = document.getElementById("library-tags")!;
+    fireEvent.click(within(panel).getByRole("button", { name: /^Adventure \d+$/ }));
+    fireEvent.click(within(panel).getByRole("button", { name: /^Action \d+$/ }));
+    const both = games.filter((g) => ["Adventure", "Action"].every((t) => (g.tags as string[] | undefined)?.includes(t)));
+    expect(rowTitles().length).toBe(both.length);
+    fireEvent.click(within(panel).getByRole("button", { name: "Clear" }));
+    expect(rowTitles().length).toBe(games.length);
+  });
+
   it("clicking a tag chip filters by that tag", () => {
     renderLibrary("games", games);
     const tag = String((games.find((g) => (g.tags as string[])?.length)!.tags as string[])[0]);

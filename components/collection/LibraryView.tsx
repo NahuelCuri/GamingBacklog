@@ -5,8 +5,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon, CloseIcon, ResetIcon, SearchIcon } from "@/components/icons";
 import { MonthPicker } from "@/components/ui/MonthPicker";
-import { Pill, PillGroup, accentButton, secondaryButton } from "@/components/ui/Pills";
-import { buildStrip, categoryValues, duplicateTitles, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
+import { Pill, PillGroup, accentButton, secondaryButton, tagChip } from "@/components/ui/Pills";
+import { buildStrip, categoryValues, duplicateTitles, tagCounts, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
 import { monthKey, monthLabel } from "@/lib/collection/format";
 import { hasMonth } from "@/lib/data/collection-state";
 import type { Item } from "@/lib/collection/types";
@@ -16,6 +16,8 @@ import { ItemTable, ItemTableSkeleton } from "./ItemTable";
 export function LibraryView() {
   const { cfg, data, items, actions, money, isMobile, url, setUrl, openAdd, removeItem } = useCollectionCtx();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // The tag picker under the toolbar (tags in a row also filter when clicked).
+  const [tagsOpen, setTagsOpen] = useState(false);
   // Ledger collections (expenses) show one month at a time, the current one first.
   const [month, setMonth] = useState(currentMonthKey);
   // Expenses read one month from the server at a time; this asks for the one picked.
@@ -49,6 +51,14 @@ export function LibraryView() {
     return cfg.categoryFilters || [];
   }, [cfg, scoped]);
 
+  // Every tag with how many it's on, most used first; picked ones stay listed even at 0.
+  const cloud = useMemo(() => {
+    const c = tagCounts(cfg, scoped);
+    url.tagFilters.forEach((t) => (c[t] ??= 0));
+    return Object.keys(c).sort((a, b) => c[b] - c[a] || a.localeCompare(b)).map((tag) => ({ tag, count: c[tag] }));
+  }, [cfg, scoped, url.tagFilters]);
+  const toggleTag = (t: string) =>
+    setUrl((s) => ({ tagFilters: s.tagFilters.includes(t) ? s.tagFilters.filter((x) => x !== t) : [...s.tagFilters, t] }));
   const addTag = (t: string) => setUrl((s) => (s.tagFilters.includes(t) ? {} : { tagFilters: [...s.tagFilters, t] }));
   const onDelete = (g: Item) => {
     removeItem(g);
@@ -150,6 +160,22 @@ export function LibraryView() {
             </Pill>
           ))}
         </PillGroup>
+        {cloud.length > 0 && (
+          <button
+            type="button"
+            aria-expanded={tagsOpen}
+            aria-controls="library-tags"
+            onClick={() => setTagsOpen((o) => !o)}
+            className={
+              "flex cursor-pointer items-center gap-1.5 self-stretch rounded-[9px] border bg-topchip px-3 text-[12.5px] font-medium transition-[color,border-color] duration-200 hover:border-wi hover:text-text " +
+              (tagsOpen || url.tagFilters.length ? "border-wi text-text" : "border-wd text-text2") +
+              (isMobile ? " py-2.5" : "")
+            }
+          >
+            Tags
+            {url.tagFilters.length > 0 && <span className="rounded-full bg-accent px-1.5 font-mono text-[11px] leading-[17px] text-on-accent">{url.tagFilters.length}</span>}
+          </button>
+        )}
         {/* Only there once the table has been re-sorted. */}
         {!isDefaultSort && (
           <button
@@ -178,7 +204,40 @@ export function LibraryView() {
         </PillGroup>
       )}
 
-      {url.tagFilters.length > 0 && (
+      {tagsOpen && cloud.length > 0 && (
+        <div id="library-tags" className="mb-[14px] rounded-xl border border-wd bg-topchip p-3" style={{ animation: "gfade .16s ease" }}>
+          <div className="mb-2 flex items-center justify-between text-[11px] font-semibold tracking-[.06em] text-dim uppercase">
+            <span>Tags · all of</span>
+            {url.tagFilters.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setUrl({ tagFilters: [] })}
+                className="cursor-pointer border-none bg-transparent p-0 text-xs font-normal tracking-normal text-accent normal-case underline-offset-2 hover:underline"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className={"flex flex-wrap gap-1.5 " + (isMobile ? "" : "g-scroll max-h-[168px] overflow-auto")}>
+            {cloud.map(({ tag, count }) => {
+              const on = url.tagFilters.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggleTag(tag)}
+                  className={tagChip(on) + " rounded-[20px] px-2.5 text-[12px] " + (isMobile ? "py-2" : "py-[5px]")}
+                >
+                  {tag} <span className="font-mono text-[11px] tabular-nums opacity-70">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!tagsOpen && url.tagFilters.length > 0 && (
         <div className="mb-[14px] flex flex-wrap gap-[7px]">
           {url.tagFilters.map((t, i) => (
             <button

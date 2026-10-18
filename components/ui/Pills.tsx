@@ -135,3 +135,8 @@ export const toggleChip = (on: boolean, off = "border-wf bg-chip text-text2") =>
 /** Icon-only close button in dialog headers. */
 export const closeButton =
   "flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-muted transition-colors duration-150 hover:bg-wc hover:text-text";
+
+/** Tag filter chip (library and roulette): a neutral fill when on, so the accent stays on the main action. */
+export const tagChip = (on: boolean) =>
+  "cursor-pointer border transition-[color,background-color,border-color,transform] duration-200 active:scale-[.97] " +
+  (on ? "border-muted bg-chip text-text" : "border-we bg-chip2 text-muted2 hover:border-wi hover:text-text");
