@@ -16,6 +16,9 @@ export interface FilterOption {
   disabled?: boolean;
 }
 
+/** Desktop panel width, px. */
+const PANEL_W = 260;
+
 /** Show a search box inside the panel once there are more options than this. */
 const SEARCH_FROM = 10;
 
@@ -38,8 +41,14 @@ export function FilterMenu({
   /** Under the options' heading, e.g. "Games with all of them". */
   hint?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  // Where the panel opened: it stays there while the button grows with what's picked.
+  const [open, setOpen] = useState<{ top: number; left: number } | null>(null);
   const btn = useRef<HTMLButtonElement>(null);
+  const toggleOpen = () => {
+    if (open) return setOpen(null);
+    const r = btn.current!.getBoundingClientRect();
+    setOpen({ top: r.bottom + 6, left: Math.max(12, Math.min(r.left, window.innerWidth - PANEL_W - 12)) });
+  };
   const names = picked.map((v) => options.find((o) => o.value === v)?.label ?? v);
   const summary = names.length ? names[0] + (names.length > 1 ? ` +${names.length - 1}` : "") : "";
   const toggle = (v: string) => onChange(multi ? (picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v]) : picked[0] === v ? [] : [v]);
@@ -50,10 +59,10 @@ export function FilterMenu({
         ref={btn}
         type="button"
         aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        aria-expanded={!!open}
+        onClick={toggleOpen}
         className={
-          "flex min-w-0 cursor-pointer items-center gap-1.5 rounded-[9px] border bg-topchip text-[12.5px] font-medium whitespace-nowrap transition-[color,border-color] duration-200 hover:border-wi hover:text-text " +
+          "flex max-w-[240px] min-w-0 cursor-pointer items-center gap-1.5 rounded-[9px] border bg-topchip text-[12.5px] font-medium whitespace-nowrap transition-[color,border-color] duration-200 hover:border-wi hover:text-text " +
           (summary ? "border-wi pr-8 pl-3 text-text" : "border-wd px-3 text-text2") +
           (mobile ? " w-full justify-between py-2.5" : " py-[9px]")
         }
@@ -78,12 +87,13 @@ export function FilterMenu({
           <CloseIcon size={11} />
         </button>
       )}
-      {open && <Panel label={label} hint={hint} options={options} picked={picked} multi={!!multi} mobile={mobile} onToggle={toggle} onClear={() => onChange([])} onClose={() => setOpen(false)} />}
+      {open && <Panel at={open} label={label} hint={hint} options={options} picked={picked} multi={!!multi} mobile={mobile} onToggle={toggle} onClear={() => onChange([])} onClose={() => setOpen(null)} />}
     </div>
   );
 }
 
 function Panel({
+  at,
   label,
   hint,
   options,
@@ -94,6 +104,7 @@ function Panel({
   onClear,
   onClose,
 }: {
+  at: { top: number; left: number };
   label: string;
   hint?: string;
   options: FilterOption[];
@@ -124,9 +135,13 @@ function Panel({
         "flex flex-col border border-wg bg-card outline-none " +
         (mobile
           ? "max-h-[75dvh] w-full rounded-t-2xl pb-[calc(env(safe-area-inset-bottom,0px)+12px)]"
-          : "absolute top-[calc(100%+6px)] left-0 z-(--z-popover) max-h-[360px] w-[260px] rounded-xl")
+          : "fixed z-(--z-popover) max-h-[360px] rounded-xl")
       }
-      style={{ boxShadow: "var(--shadow-pop)", animation: mobile ? "drawerRise .24s var(--ease-out)" : "dpop .14s ease" }}
+      style={{
+        boxShadow: "var(--shadow-pop)",
+        animation: mobile ? "drawerRise .24s var(--ease-out)" : "dpop .14s ease",
+        ...(mobile ? {} : { top: at.top, left: at.left, width: PANEL_W }),
+      }}
     >
       <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
         <div className="min-w-0">
