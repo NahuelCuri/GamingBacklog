@@ -88,15 +88,17 @@ describe("library view (games seed)", () => {
     expect(ctx.removeItem).toHaveBeenCalledTimes(1);
   });
 
-  it("the Tags button lists every tag; picking two shows games with both", () => {
+  it("filters by tags and by how it was got from their toolbar menus", () => {
     renderLibrary("games", games);
     fireEvent.click(screen.getByRole("button", { name: "Tags" }));
-    const panel = document.getElementById("library-tags")!;
-    fireEvent.click(within(panel).getByRole("button", { name: /^Adventure \d+$/ }));
-    fireEvent.click(within(panel).getByRole("button", { name: /^Action \d+$/ }));
+    const menu = screen.getByRole("dialog", { name: "Tags" });
+    fireEvent.click(within(menu).getByRole("checkbox", { name: /^Adventure/ }));
+    fireEvent.click(within(menu).getByRole("checkbox", { name: /^Action/ }));
     const both = games.filter((g) => ["Adventure", "Action"].every((t) => (g.tags as string[] | undefined)?.includes(t)));
     expect(rowTitles().length).toBe(both.length);
-    fireEvent.click(within(panel).getByRole("button", { name: "Clear" }));
+    // the button names what's picked, and its ✕ clears it
+    expect(screen.getByRole("button", { name: "Tags: Adventure +1" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear Tags" }));
     expect(rowTitles().length).toBe(games.length);
   });
 
@@ -104,7 +106,7 @@ describe("library view (games seed)", () => {
     renderLibrary("games", games);
     const tag = String((games.find((g) => (g.tags as string[])?.length)!.tags as string[])[0]);
     fireEvent.click(screen.getAllByRole("button", { name: "Filter by tag " + tag })[0]);
-    expect(screen.getByRole("button", { name: "Remove tag " + tag })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Tags: " + tag })).toBeTruthy();
     expect(rowTitles().length).toBe(games.filter((g) => (g.tags as string[] | undefined)?.includes(tag)).length);
   });
 

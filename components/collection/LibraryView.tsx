@@ -5,8 +5,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon, CloseIcon, ResetIcon, SearchIcon } from "@/components/icons";
 import { MonthPicker } from "@/components/ui/MonthPicker";
-import { Pill, PillGroup, accentButton, secondaryButton, tagChip } from "@/components/ui/Pills";
-import { buildStrip, categoryValues, duplicateTitles, tagCounts, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
+import { FilterMenu } from "@/components/ui/FilterMenu";
+import { Pill, PillGroup, accentButton, secondaryButton } from "@/components/ui/Pills";
+import { buildStrip, categoryValues, duplicateTitles, matches, tagCounts, currentMonthKey, ledgerMonths, nextSort, shiftMonth, visibleRows, type LibraryFilters } from "@/lib/collection";
 import { monthKey, monthLabel } from "@/lib/collection/format";
 import { hasMonth } from "@/lib/data/collection-state";
 import type { Item } from "@/lib/collection/types";
@@ -16,8 +17,6 @@ import { ItemTable, ItemTableSkeleton } from "./ItemTable";
 export function LibraryView() {
   const { cfg, data, items, actions, money, isMobile, url, setUrl, openAdd, removeItem } = useCollectionCtx();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  // The tag picker under the toolbar (tags in a row also filter when clicked).
-  const [tagsOpen, setTagsOpen] = useState(false);
   // Ledger collections (expenses) show one month at a time, the current one first.
   const [month, setMonth] = useState(currentMonthKey);
   // Expenses read one month from the server at a time; this asks for the one picked.
@@ -52,13 +51,17 @@ export function LibraryView() {
   }, [cfg, scoped]);
 
   // Every tag with how many it's on, most used first; picked ones stay listed even at 0.
+  // Ordered by how common each tag is (so the list doesn't jump around), counted over what the other
+  // filters and the tags already picked leave: the count is what picking it would show.
   const cloud = useMemo(() => {
-    const c = tagCounts(cfg, scoped);
-    url.tagFilters.forEach((t) => (c[t] ??= 0));
-    return Object.keys(c).sort((a, b) => c[b] - c[a] || a.localeCompare(b)).map((tag) => ({ tag, count: c[tag] }));
-  }, [cfg, scoped, url.tagFilters]);
-  const toggleTag = (t: string) =>
-    setUrl((s) => ({ tagFilters: s.tagFilters.includes(t) ? s.tagFilters.filter((x) => x !== t) : [...s.tagFilters, t] }));
+    const all = tagCounts(cfg, scoped);
+    url.tagFilters.forEach((t) => (all[t] ??= 0));
+    const st = { q: url.q, status: url.status, catFilter: url.catFilter, tagFilters: url.tagFilters, sortKey: "default", sortDir: "asc" as const };
+    const now = tagCounts(cfg, scoped.filter((g) => matches(cfg, g, st)));
+    return Object.keys(all)
+      .sort((a, b) => all[b] - all[a] || a.localeCompare(b))
+      .map((tag) => ({ tag, count: now[tag] || 0 }));
+  }, [cfg, scoped, url.q, url.status, url.catFilter, url.tagFilters]);
   const addTag = (t: string) => setUrl((s) => (s.tagFilters.includes(t) ? {} : { tagFilters: [...s.tagFilters, t] }));
   const onDelete = (g: Item) => {
     removeItem(g);
@@ -160,21 +163,30 @@ export function LibraryView() {
             </Pill>
           ))}
         </PillGroup>
-        {cloud.length > 0 && (
-          <button
-            type="button"
-            aria-expanded={tagsOpen}
-            aria-controls="library-tags"
-            onClick={() => setTagsOpen((o) => !o)}
-            className={
-              "flex cursor-pointer items-center gap-1.5 self-stretch rounded-[9px] border bg-topchip px-3 text-[12.5px] font-medium transition-[color,border-color] duration-200 hover:border-wi hover:text-text " +
-              (tagsOpen || url.tagFilters.length ? "border-wi text-text" : "border-wd text-text2") +
-              (isMobile ? " py-2.5" : "")
-            }
-          >
-            Tags
-            {url.tagFilters.length > 0 && <span className="rounded-full bg-accent px-1.5 font-mono text-[11px] leading-[17px] text-on-accent">{url.tagFilters.length}</span>}
-          </button>
+        {/* Secondary filters: one button each, naming what's picked; the options open on demand. */}
+        {(categories.length > 1 || cloud.length > 0) && (
+          <div className={isMobile ? "grid w-full grid-cols-2 gap-2" : "flex gap-2"}>
+            {categories.length > 1 && (
+              <FilterMenu
+                label={cfg.categoryLabel || "Category"}
+                mobile={isMobile}
+                options={categories.filter((c) => c.value !== "all")}
+                picked={url.catFilter && url.catFilter !== "all" ? [url.catFilter] : []}
+                onChange={(v) => setUrl({ catFilter: v[0] ?? "all" })}
+              />
+            )}
+            {cloud.length > 0 && (
+              <FilterMenu
+                label="Tags"
+                multi
+                hint={`${cfg.nounPlural[0].toUpperCase() + cfg.nounPlural.slice(1)} with all the ones picked`}
+                mobile={isMobile}
+                options={cloud.map(({ tag, count }) => ({ value: tag, label: tag, count, disabled: !count && !url.tagFilters.includes(tag) }))}
+                picked={url.tagFilters}
+                onChange={(v) => setUrl({ tagFilters: v })}
+              />
+            )}
+          </div>
         )}
         {/* Only there once the table has been re-sorted. */}
         {!isDefaultSort && (
@@ -193,70 +205,6 @@ export function LibraryView() {
       <div aria-live="polite" className="sr-only">
         {`${rows.length} ${cfg.nounPlural} shown`}
       </div>
-
-      {categories.length > 1 && (
-        <PillGroup label={cfg.categoryLabel || "Category"} bare className={"mb-[14px] " + (isMobile ? "g-noscroll w-full overflow-x-auto" : "flex-wrap")}>
-          {categories.map((c) => (
-            <Pill key={c.value} quiet active={url.catFilter === c.value} onClick={() => setUrl({ catFilter: c.value })} className={pillSize}>
-              {c.label}
-            </Pill>
-          ))}
-        </PillGroup>
-      )}
-
-      {tagsOpen && cloud.length > 0 && (
-        <div id="library-tags" className="mb-[14px] rounded-xl border border-wd bg-topchip p-3" style={{ animation: "gfade .16s ease" }}>
-          <div className="mb-2 flex items-center justify-between text-[11px] font-semibold tracking-[.06em] text-dim uppercase">
-            <span>Tags · all of</span>
-            {url.tagFilters.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setUrl({ tagFilters: [] })}
-                className="cursor-pointer border-none bg-transparent p-0 text-xs font-normal tracking-normal text-accent normal-case underline-offset-2 hover:underline"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <div className={"flex flex-wrap gap-1.5 " + (isMobile ? "" : "g-scroll max-h-[168px] overflow-auto")}>
-            {cloud.map(({ tag, count }) => {
-              const on = url.tagFilters.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggleTag(tag)}
-                  className={tagChip(on) + " rounded-[20px] px-2.5 text-[12px] " + (isMobile ? "py-2" : "py-[5px]")}
-                >
-                  {tag} <span className="font-mono text-[11px] tabular-nums opacity-70">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {!tagsOpen && url.tagFilters.length > 0 && (
-        <div className="mb-[14px] flex flex-wrap gap-[7px]">
-          {url.tagFilters.map((t, i) => (
-            <button
-              key={i}
-              type="button"
-              aria-label={"Remove tag " + t}
-              onClick={() => setUrl((s) => ({ tagFilters: s.tagFilters.filter((x) => x !== t) }))}
-              className="flex cursor-pointer items-center gap-1.5 rounded-[20px] border px-2.5 py-[5px] text-xs text-accent transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[.97]"
-              style={{
-                background: "color-mix(in srgb, var(--accent) 13%, transparent)",
-                borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
-              }}
-            >
-              {t}
-              <CloseIcon size={10} />
-            </button>
-          ))}
-        </div>
-      )}
 
       {loaded && dupes.length > 0 && (
         <div role="note" className="mb-[14px] flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-muted">
