@@ -13,10 +13,10 @@ import {
   blankCard, blankTrip, cleanCard, cleanTrip, moveCardDay, moveCardOrder, setCardDay, tripCards,
   type CardDraft, type Trip, type TripCard, type TripData,
 } from "@/lib/trips/model";
-import type { TripStore } from "@/lib/trips/store";
+import type { ShareResult, TripPerson, TripStore } from "@/lib/trips/store";
 import { useTripStore, useTrips, type TripsState } from "@/lib/trips/useTrips";
 import { CompareDrawer, type CompareState, openInCompare } from "./CompareDrawer";
-import { CardEditorDialog, CardViewDialog, DeleteTripDialog, TripEditorDialog } from "./dialogs";
+import { CardEditorDialog, CardViewDialog, DeleteTripDialog, ShareTripDialog, TripEditorDialog } from "./dialogs";
 import { TripBoard } from "./TripBoard";
 import { TripsHome } from "./TripsHome";
 import { Button, IconButton } from "./ui";
@@ -84,8 +84,19 @@ function useNav() {
 export type CardModal = CardDraft & { __new?: boolean };
 export type TripModal = Trip & { __new?: boolean };
 
+export interface TripAccess {
+  /** The user owns the trip (also when nobody is listed: a trip just made, or a store without sharing). */
+  owner: boolean;
+  /** Owner first, then guests. */
+  people: TripPerson[];
+}
+
 export interface TripCtx {
   data: TripsState;
+  /** The signed-in account. */
+  me: string | null;
+  access(tripId: string): TripAccess;
+  openShare(): void;
   isMobile: boolean;
   trip: Trip | null;
   /** Cards of the open trip, in stored order. */
@@ -133,8 +144,9 @@ const refocusCard = (id: string) =>
 export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const userStore = useTripStore();
   const store = override === undefined ? userStore : override;
-  const { state: data, persist, retry, dismissSyncError } = useTrips(store);
+  const { state: data, persist, reload, retry, dismissSyncError } = useTrips(store);
   const { user } = useAuth();
+  const me = user?.id ?? null;
   // Numbers for the Trips tile on the home page, kept on this device.
   useEffect(() => {
     if (override === undefined && data.status === "ready") rememberSummary(user?.id, "trips", tripsSummary(data.trips));
@@ -145,6 +157,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const [tripModal, setTripModal] = useState<TripModal | null>(null);
   const [delTrip, setDelTrip] = useState<{ id: string; name: string } | null>(null);
+  const [sharing, setSharing] = useState(false);
   const [undo, setUndo] = useState<{ id: number; label: string; before: Partial<TripData> } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [liveMsg, setLiveMsg] = useState("");
@@ -171,9 +184,19 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
     undoTimer.current = setTimeout(() => setUndo(null), 8000);
   }, []);
 
+  const access = useCallback(
+    (tripId: string): TripAccess => {
+      const people = data.people.filter((p) => p.trip === tripId).sort((a, b) => +(b.role === "owner") - +(a.role === "owner"));
+      const owner = people.find((p) => p.role === "owner");
+      return { owner: !owner || owner.user === me, people };
+    },
+    [data.people, me],
+  );
+
   const ctx = useMemo<TripCtx>(
     () => ({
-      data, isMobile, trip, cards, nav, persist, poolFilter, setPoolFilter, compare,
+      data, me, access, isMobile, trip, cards, nav, persist, poolFilter, setPoolFilter, compare,
+      openShare: () => setSharing(true),
       setCompare: (fn) => setCompare(fn),
       setTab: (boardTab) => setNav({ boardTab }),
       openTrip: (id) => {
@@ -221,7 +244,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
       offerUndo,
       announce: setLiveMsg,
     }),
-    [data, isMobile, trip, cards, nav, persist, poolFilter, compare, setNav, openEdit, offerUndo],
+    [data, me, access, isMobile, trip, cards, nav, persist, poolFilter, compare, setNav, openEdit, offerUndo],
   );
 
   const saveCard = (m: CardModal) => {
@@ -255,6 +278,23 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
     setDelTrip(null);
     setTripModal(null);
     ctx.goHome();
+  };
+
+  const share = async (tripId: string, email: string): Promise<ShareResult> => {
+    if (!store) return "not_owner";
+    const r = await store.share(tripId, email);
+    if (r === "ok") await reload();
+    return r;
+  };
+
+  const unshare = async (tripId: string, userId: string) => {
+    if (!store) return;
+    await store.unshare(tripId, userId);
+    if (userId === me) {
+      setSharing(false);
+      ctx.goHome();
+    }
+    await reload();
   };
 
   const viewed = nav.viewCard ? data.cards.find((c) => c.id === nav.viewCard) : undefined;
@@ -323,7 +363,17 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
             setModal={setTripModal}
             onSave={saveTrip}
             onClose={() => setTripModal(null)}
-            onDelete={() => setDelTrip({ id: tripModal.id, name: tripModal.name || "Untitled trip" })}
+            onDelete={access(tripModal.id).owner ? () => setDelTrip({ id: tripModal.id, name: tripModal.name || "Untitled trip" }) : undefined}
+          />
+        )}
+        {sharing && trip && (
+          <ShareTripDialog
+            trip={trip}
+            me={me}
+            access={access(trip.id)}
+            onShare={(email) => share(trip.id, email)}
+            onRemove={(userId) => unshare(trip.id, userId)}
+            onClose={() => setSharing(false)}
           />
         )}
         {delTrip && <DeleteTripDialog name={delTrip.name} onCancel={() => setDelTrip(null)} onConfirm={() => confirmDeleteTrip(delTrip.id)} />}

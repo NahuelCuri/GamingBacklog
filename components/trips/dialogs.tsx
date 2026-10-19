@@ -1,18 +1,19 @@
 "use client";
 
-// Trip Planner dialogs: read-only card view, card editor, trip editor and the
-// type-the-name delete confirmation.
+// Trip Planner dialogs: read-only card view, card editor, trip editor, the
+// type-the-name delete confirmation and who a trip is shared with.
 import { useEffect, useId, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { ArrowUpRightIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useDialog } from "@/lib/hooks/useDialog";
 import {
-  PRIOS, STATUSES, TYPES, addTag, byNearness, dayHint, locQuery, locStatus, locStr, lookalikes, money, parseLoc, pickPlace, regionFromAddress, regionSuggestions, reverseUrl, tagSuggestions, tripArea, typeMeta, type Place, type TripCard,
+  PRIOS, STATUSES, TYPES, addTag, byNearness, dayHint, locQuery, locStatus, locStr, lookalikes, money, parseLoc, pickPlace, regionFromAddress, regionSuggestions, reverseUrl, tagSuggestions, tripArea, typeMeta, type Place, type Trip, type TripCard,
 } from "@/lib/trips/model";
 import { searchPlaces, tripCountries } from "@/lib/trips/places";
+import type { ShareResult } from "@/lib/trips/store";
 import { Fact, StatusPrio, sourceShort } from "./cardBits";
 import { LookalikeNote } from "./LookalikeNote";
-import { useTripCtx, type CardModal, type TripModal } from "./TripPlanner";
+import { useTripCtx, type CardModal, type TripAccess, type TripModal } from "./TripPlanner";
 import { Button, Chip, FieldLabel, IconButton, Kicker, TypeLabel, cx, inputCls, tagCls, tint } from "./ui";
 
 function Dialog({ label, onClose, children, accent, narrow, top }: { label: string; onClose(): void; children: ReactNode; accent?: string; narrow?: boolean; top?: boolean }) {
@@ -556,7 +557,8 @@ export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete
   setModal: Dispatch<SetStateAction<TripModal | null>>;
   onSave(d: TripModal): void;
   onClose(): void;
-  onDelete(): void;
+  /** Missing for a trip shared with the user: only its owner deletes it. */
+  onDelete?(): void;
 }) {
   const uid = useId();
   const set = (patch: Partial<TripModal>) => setModal((s) => (s ? { ...s, ...patch } : s));
@@ -593,7 +595,7 @@ export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete
         </Field>
       </div>
       <Foot>
-        {d.__new ? (
+        {d.__new || !onDelete ? (
           <div />
         ) : (
           <Button variant="danger" onClick={onDelete}>
@@ -638,5 +640,148 @@ export function DeleteTripDialog({ name, onCancel, onConfirm }: { name: string; 
         </Button>
       </Foot>
     </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------- share
+
+const SHARE_ERRORS: Record<Exclude<ShareResult, "ok">, string> = {
+  not_found: "No account uses that email. They need to sign up first.",
+  self: "That’s you.",
+  not_owner: "Only the trip’s owner can invite people.",
+};
+
+export function ShareTripDialog({ trip, me, access, onShare, onRemove, onClose }: {
+  trip: Trip;
+  me: string | null;
+  access: TripAccess;
+  onShare(email: string): Promise<ShareResult>;
+  onRemove(userId: string): Promise<void>;
+  onClose(): void;
+}) {
+  const uid = useId();
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  // A removal or leave asks twice: the first click arms it.
+  const [armed, setArmed] = useState<string | null>(null);
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+  const run = async (job: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await job();
+    } catch (e) {
+      setMsg({ text: (e as { message?: string })?.message || "Something went wrong.", error: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const invite = () =>
+    valid &&
+    !busy &&
+    run(async () => {
+      const r = await onShare(email.trim());
+      if (r === "ok") {
+        setMsg({ text: email.trim() + " can now see and edit this trip." });
+        setEmail("");
+      } else setMsg({ text: SHARE_ERRORS[r], error: true });
+    });
+
+  const remove = (userId: string) => {
+    if (armed !== userId) return setArmed(userId);
+    setArmed(null);
+    void run(() => onRemove(userId));
+  };
+
+  const guests = access.people.filter((p) => p.role !== "owner");
+  const owner = access.people.find((p) => p.role === "owner");
+
+  return (
+    <Dialog label="Share trip" onClose={onClose} narrow>
+      <Head onClose={onClose}>
+        <Kicker>Share · {trip.name || "Untitled trip"}</Kicker>
+      </Head>
+      <div className={body}>
+        {access.owner && (
+          <form
+            className="mb-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void invite();
+            }}
+          >
+            <FieldLabel htmlFor={uid + "email"}>Invite by email</FieldLabel>
+            <div className="flex gap-2">
+              <input
+                id={uid + "email"}
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setMsg(null);
+                }}
+                aria-label="Email to invite"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="friend@example.com"
+                className={cx(inputCls, "min-w-0 flex-1")}
+              />
+              <Button type="submit" variant="primary" disabled={!valid || busy}>
+                Invite
+              </Button>
+            </div>
+            <div className="mt-1.5 text-xs text-muted">Guests can see and edit everything in this trip. Only you can delete it.</div>
+          </form>
+        )}
+        {msg && (
+          <div role={msg.error ? "alert" : "status"} className={cx("mb-4 rounded-lg px-3 py-2 text-13", msg.error ? "bg-[color-mix(in_srgb,var(--neg)_12%,transparent)] text-neg" : "bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent2")}>
+            {msg.text}
+          </div>
+        )}
+        <Kicker as="h3" className="mb-2">People</Kicker>
+        <ul className="m-0 list-none p-0">
+          <PersonRow email={owner ? owner.email : "You"} you={!owner || owner.user === me} role="Owner" />
+          {guests.map((p) => {
+            const you = p.user === me;
+            const canAct = access.owner || you;
+            return (
+              <PersonRow key={p.user} email={p.email} you={you} role={p.role === "viewer" ? "Viewer" : "Editor"}>
+                {canAct && (
+                  <Button size="sm" variant={armed === p.user ? "dangerSolid" : "danger"} disabled={busy} onClick={() => remove(p.user)}>
+                    {armed === p.user ? (you ? "Leave for good" : "Remove for good") : you ? "Leave trip" : "Remove"}
+                  </Button>
+                )}
+              </PersonRow>
+            );
+          })}
+        </ul>
+        {!guests.length && <div className="mt-2 text-13 text-muted">Nobody else has this trip yet.</div>}
+      </div>
+      <Foot className="justify-end">
+        <Button variant="ghost" onClick={onClose}>
+          Done
+        </Button>
+      </Foot>
+    </Dialog>
+  );
+}
+
+function PersonRow({ email, you, role, children }: { email: string; you: boolean; role: string; children?: ReactNode }) {
+  return (
+    <li className="flex min-h-11 items-center gap-3 border-b border-wf py-1.5 last:border-b-0">
+      <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full bg-chip2 text-2xs font-bold text-text2 uppercase">
+        {email.slice(0, 1)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-13 text-text">
+          {email}
+          {you && email !== "You" && <span className="text-muted"> (you)</span>}
+        </span>
+        <span className="block font-mono text-2xs text-muted">{role}</span>
+      </span>
+      {children}
+    </li>
   );
 }

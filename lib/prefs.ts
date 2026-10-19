@@ -2,7 +2,7 @@
 // as-is, so the old and new app stay in sync while both are live:
 //   backlog:libs:<uid>      visible library keys
 //   backlog:libsSeen:<uid>  every library that existed when last saved
-import { LIBRARY_KEYS, isTripMember, type LibraryKey } from "@/config/libraries";
+import { LIBRARY_KEYS, type LibraryKey } from "@/config/libraries";
 
 export interface KeyValueStorage {
   getItem(k: string): string | null;
@@ -22,24 +22,29 @@ function readArray(storage: KeyValueStorage, key: string): string[] | null {
   }
 }
 
+/**
+ * Trips used to be members-only, yet "seen" listed it for everyone, so a saved
+ * list without it doesn't mean the user hid it. This marker in "seen" says
+ * trips was really on offer; until it's there, trips counts as new.
+ */
+const TRIPS_OPEN = "trips:open";
+
 function markSeen(storage: KeyValueStorage, uid: string | null) {
   try {
-    storage.setItem(seenKey(uid), JSON.stringify(LIBRARY_KEYS));
+    storage.setItem(seenKey(uid), JSON.stringify([...LIBRARY_KEYS, TRIPS_OPEN]));
   } catch {}
 }
 
 /**
  * Visible libraries, in picker order. Libraries added since the user last
- * saved default to visible; ones they hid stay hidden. Trips is always shown
- * to trip members.
+ * saved default to visible; ones they hid stay hidden.
  */
 export function loadVisibleLibs(storage: KeyValueStorage, uid: string | null): LibraryKey[] {
   const saved = readArray(storage, libsKey(uid));
   if (saved && saved.length) {
     const seen = readArray(storage, seenKey(uid)) ?? [];
-    const fresh = LIBRARY_KEYS.filter((k) => !saved.includes(k) && !seen.includes(k));
-    let next = LIBRARY_KEYS.filter((k) => saved.includes(k) || fresh.includes(k));
-    if (isTripMember(uid) && !next.includes("trips")) next = LIBRARY_KEYS.filter((k) => next.includes(k) || k === "trips");
+    const wasSeen = (k: LibraryKey) => seen.includes(k) && (k !== "trips" || seen.includes(TRIPS_OPEN));
+    const next = LIBRARY_KEYS.filter((k) => saved.includes(k) || !wasSeen(k));
     markSeen(storage, uid);
     return next;
   }

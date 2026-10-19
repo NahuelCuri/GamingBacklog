@@ -163,7 +163,23 @@ export const ArrowDownIcon = (p: IconProps) => (
   </Glyph>
 );
 
-export const GlobeIcon = (p: IconProps) => (
+/** Two people: share. */
+export const UsersIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <circle cx="9" cy="8.5" r="3.3" {...stroke} />
+    <path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8" {...stroke} />
+    <path d="M15.2 5.4a3.3 3.3 0 0 1 0 6.3M17.3 14.4c1.7.6 2.9 2.2 3.2 4.6" {...stroke} />
+  </Glyph>
+);
+
+/** Arrow into a tray: download / export. */
+export const DownloadIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 15.5v3.5h15v-3.5" {...stroke} />
+  </Glyph>
+);
+
+export const GlobeIcon =(p: IconProps) => (
   <Glyph {...p}>
     <circle cx="12" cy="12" r="9" {...stroke} />
     <path d="M3 12h18" {...stroke} />
