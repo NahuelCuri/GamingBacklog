@@ -484,5 +484,50 @@ describe("TripPlanner", () => {
     act(() => void fireEvent.keyDown(window, { key: "Escape" }));
     expect(screen.queryByRole("region", { name: "Currency converter" })).toBeNull();
   });
-});
 
+  it("the owner invites by email, sees why an invite fails, and removes a guest", async () => {
+    const store = memoryTripStore(seedTrips(), { users: { "bro@example.com": "u2" } });
+    render(<TripPlanner store={store} />);
+    await screen.findByText("Where to next?");
+    openJapan();
+    fireEvent.click(screen.getByRole("button", { name: "Share trip" }));
+    const share = screen.getByRole("dialog", { name: "Share trip" });
+    const email = within(share).getByRole("textbox", { name: "Email to invite" });
+    fireEvent.change(email, { target: { value: "nobody@example.com" } });
+    fireEvent.click(within(share).getByRole("button", { name: "Invite" }));
+    expect((await within(share).findByRole("alert")).textContent).toMatch(/No account uses that email/);
+    fireEvent.change(email, { target: { value: "bro@example.com" } });
+    fireEvent.click(within(share).getByRole("button", { name: "Invite" }));
+    await within(share).findByText("bro@example.com can now see and edit this trip.");
+    expect(store.people).toEqual([{ trip: "t1", user: "u2", email: "bro@example.com", role: "editor" }]);
+    expect(within(share).getByText("bro@example.com")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Share trip, 1 guest" })).toBeTruthy();
+    // Removing asks twice.
+    fireEvent.click(within(share).getByRole("button", { name: "Remove" }));
+    fireEvent.click(within(share).getByRole("button", { name: "Remove for good" }));
+    await waitFor(() => expect(store.people).toEqual([]));
+    await within(share).findByText("Nobody else has this trip yet.");
+  });
+
+  it("a trip shared with you says by whom, can't be deleted, and can be left", async () => {
+    const people = [
+      { trip: "t1", user: "u9", email: "owner@example.com", role: "owner" as const },
+      { trip: "t1", user: "u1", email: "me@example.com", role: "editor" as const },
+    ];
+    const store = memoryTripStore(seedTrips(), { people });
+    render(<TripPlanner store={store} />);
+    await screen.findByText("Shared by owner@example.com");
+    openJapan();
+    fireEvent.click(screen.getByRole("button", { name: "Edit trip" }));
+    expect(within(dialog()).queryByRole("button", { name: "Delete trip" })).toBeNull();
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share trip, 1 guest" }));
+    const share = screen.getByRole("dialog", { name: "Share trip" });
+    expect(within(share).queryByRole("textbox", { name: "Email to invite" })).toBeNull();
+    fireEvent.click(within(share).getByRole("button", { name: "Leave trip" }));
+    fireEvent.click(within(share).getByRole("button", { name: "Leave for good" }));
+    await waitFor(() => expect(store.people.map((p) => p.user)).toEqual(["u9"]));
+    await screen.findByText("Where to next?");
+    expect(screen.queryByRole("dialog", { name: "Share trip" })).toBeNull();
+  });
+});

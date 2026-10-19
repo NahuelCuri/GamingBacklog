@@ -13,7 +13,7 @@ import { memoryStore, type CollectionStore } from "@/lib/data/store";
 import { withBase } from "@/lib/paths";
 import { LibraryPicker } from "@/components/home/LibraryPicker";
 import { TripPlanner } from "@/components/trips/TripPlanner";
-import { TRIP_MEMBERS } from "@/config/libraries";
+import { ADMIN_UID } from "@/config/libraries";
 import { PreviewAuthProvider } from "@/lib/auth";
 import { rememberLast, rememberSummary } from "@/lib/home";
 import { seedTrips } from "@/lib/trips/model";
@@ -33,7 +33,7 @@ export default function PreviewPage() {
   return key ? <Preview collection={key} /> : null;
 }
 
-const PREVIEW_USER = { id: TRIP_MEMBERS[0], email: "preview@localhost" };
+const PREVIEW_USER = { id: ADMIN_UID, email: "preview@localhost" };
 
 function HomePreview() {
   const [ready] = useState(() => {
@@ -55,7 +55,7 @@ function HomePreview() {
 
 function TripsPreview() {
   useCollectionTheme("trips");
-  const [store] = useState(() => memoryTripStore(seedTrips()));
+  const [store] = useState(() => memoryTripStore(seedTrips(), { users: { "friend@example.com": "u-friend" } }));
   return <TripPlanner store={store} />;
 }
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ADMIN_UID, TRIP_MEMBERS } from "@/config/libraries";
+import { ADMIN_UID } from "@/config/libraries";
 
 // ---- mocks: router, auth and supabase
 const router = { push: vi.fn(), replace: vi.fn() };
@@ -57,18 +57,12 @@ afterEach(() => {
 const cardNames = () => screen.getAllByRole("button", { name: /^Open / }).map((b) => b.getAttribute("aria-label")!.replace(/^Open /, ""));
 
 describe("library picker", () => {
-  it("shows every library except trips for a non-member", () => {
+  it("shows every library, trips included, to every user", () => {
     renderPicker();
     expect(cardNames()).toEqual([
       expect.stringMatching(/^Games/), expect.stringMatching(/^Books/), expect.stringMatching(/^Wines/),
-      expect.stringMatching(/^Movies/), expect.stringMatching(/^Expenses/),
+      expect.stringMatching(/^Movies/), expect.stringMatching(/^Expenses/), expect.stringMatching(/^Trips/),
     ]);
-  });
-
-  it("shows trips to trip members", () => {
-    auth.user = { id: TRIP_MEMBERS[1], email: "bro@example.com" };
-    renderPicker();
-    expect(cardNames().at(-1)).toMatch(/^Trips/);
   });
 
   it("puts the library opened last first, with the numbers it saved on this device", () => {
@@ -129,7 +123,7 @@ describe("library picker", () => {
 
   it("opens the only visible library right after sign-in", () => {
     localStorage.setItem("backlog:libs:someone", '["wines"]');
-    localStorage.setItem("backlog:libsSeen:someone", '["games","books","wines","movies","expenses","trips"]');
+    localStorage.setItem("backlog:libsSeen:someone", '["games","books","wines","movies","expenses","trips","trips:open"]');
     renderPicker();
     expect(router.replace).toHaveBeenCalledWith("/wines/");
   });

@@ -2,10 +2,12 @@
 
 // One trip: header with dates and budget, then the Cards / Itinerary / Map tabs.
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
-import { CaretLeftIcon, PencilIcon } from "@/components/icons";
+import { CaretLeftIcon, DownloadIcon, PencilIcon, UsersIcon } from "@/components/icons";
 import { CountUp } from "@/components/ui/CountUp";
 import { Tick } from "@/components/ui/Tick";
+import { downloadJson } from "@/lib/data/transfer";
 import { budget, tripRange } from "@/lib/trips/model";
+import { buildTripExport } from "@/lib/trips/transfer";
 import { CardsTab } from "./CardsTab";
 import { ItineraryTab } from "./ItineraryTab";
 import { TripMap } from "./TripMap";
@@ -13,7 +15,7 @@ import { useTripCtx, type BoardTab } from "./TripPlanner";
 import { IconButton, cx } from "./ui";
 
 export function TripBoard() {
-  const { trip, cards, isMobile: mob, nav, setTab, goHome, editTrip } = useTripCtx();
+  const { data, access, trip, cards, isMobile: mob, nav, setTab, goHome, editTrip, openShare } = useTripCtx();
   const navRef = useRef<HTMLDivElement>(null);
   const tabEls = useRef(new Map<BoardTab, HTMLButtonElement>());
   // Underline under the active tab: a 1px bar moved and stretched with transform only.
@@ -29,7 +31,12 @@ export function TripBoard() {
     return () => ro?.disconnect();
   }, [nav.boardTab, cards, mob]);
   if (!trip) return null;
+  const onExport = () => {
+    const file = buildTripExport(data, trip.id);
+    if (file) downloadJson(file.fileName, file.json);
+  };
   const b = budget(trip, cards);
+  const guests = access(trip.id).people.filter((p) => p.role !== "owner").length;
   const located = cards.filter((c) => c.loc && isFinite(c.loc.lat)).length;
   const planned = cards.filter((c) => c.day != null).length;
   const tabs: { k: BoardTab; label: string; badge: React.ReactNode; sr: string }[] = [
@@ -60,6 +67,12 @@ export function TripBoard() {
             {!mob && <span className="shrink-0 rounded-md bg-chip2 px-2 py-0.5 font-mono text-2xs text-muted">{tripRange(trip)}</span>}
             <IconButton aria-label="Edit trip" title="Edit trip" onClick={() => editTrip(trip.id)} className="-ml-1">
               <PencilIcon size={13} />
+            </IconButton>
+            <IconButton aria-label="Export trip" title="Export trip (JSON)" onClick={onExport} className="-ml-2">
+              <DownloadIcon size={13} />
+            </IconButton>
+            <IconButton aria-label={guests ? `Share trip, ${guests} ${guests === 1 ? "guest" : "guests"}` : "Share trip"} title="Share trip" onClick={openShare} className={cx("-ml-2", guests > 0 && "text-accent")}>
+              <UsersIcon size={14} />
             </IconButton>
           </div>
           <div className="mt-0.5 truncate text-xs text-muted">{mob ? tripRange(trip) : trip.subtitle}</div>

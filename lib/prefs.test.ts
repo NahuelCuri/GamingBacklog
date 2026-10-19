@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LIBRARY_KEYS, TRIP_MEMBERS } from "@/config/libraries";
+import { LIBRARY_KEYS } from "@/config/libraries";
 import { validateCredentials } from "./auth";
 import { libsKey, loadVisibleLibs, saveVisibleLibs, seenKey, toggleLib, type KeyValueStorage } from "./prefs";
 
@@ -10,6 +10,8 @@ function mem(init: Record<string, string> = {}): KeyValueStorage & { data: Recor
 
 describe("library visibility (legacy keys, legacy rules)", () => {
   const uid = "user-1";
+  /** What "seen" holds once trips is open to everyone. */
+  const SEEN = JSON.stringify([...LIBRARY_KEYS, "trips:open"]);
 
   it("uses the legacy key names", () => {
     expect(libsKey(uid)).toBe("backlog:libs:user-1");
@@ -19,11 +21,11 @@ describe("library visibility (legacy keys, legacy rules)", () => {
   it("shows everything to a new user and records what exists", () => {
     const s = mem();
     expect(loadVisibleLibs(s, uid)).toEqual(LIBRARY_KEYS);
-    expect(JSON.parse(s.data[seenKey(uid)])).toEqual(LIBRARY_KEYS);
+    expect(s.data[seenKey(uid)]).toEqual(SEEN);
   });
 
   it("keeps hidden libraries hidden", () => {
-    const s = mem({ [libsKey(uid)]: '["games","books"]', [seenKey(uid)]: JSON.stringify(LIBRARY_KEYS) });
+    const s = mem({ [libsKey(uid)]: '["games","books"]', [seenKey(uid)]: SEEN });
     expect(loadVisibleLibs(s, uid)).toEqual(["games", "books"]);
   });
 
@@ -32,10 +34,12 @@ describe("library visibility (legacy keys, legacy rules)", () => {
     expect(loadVisibleLibs(s, uid)).toEqual(["games", "movies", "expenses", "trips"]);
   });
 
-  it("always shows trips to trip members", () => {
-    const member = TRIP_MEMBERS[0];
-    const s = mem({ [libsKey(member)]: '["games"]', [seenKey(member)]: JSON.stringify(LIBRARY_KEYS) });
-    expect(loadVisibleLibs(s, member)).toEqual(["games", "trips"]);
+  it("shows trips once now that everyone has it, then respects hiding it", () => {
+    // Saved while trips was members-only: "seen" listed it but it was never on offer.
+    const s = mem({ [libsKey(uid)]: '["games"]', [seenKey(uid)]: JSON.stringify(LIBRARY_KEYS) });
+    expect(loadVisibleLibs(s, uid)).toEqual(["games", "trips"]);
+    saveVisibleLibs(s, uid, ["games"]);
+    expect(loadVisibleLibs(s, uid)).toEqual(["games"]);
   });
 
   it("treats malformed or throwing storage as unset", () => {
