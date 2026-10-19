@@ -183,6 +183,7 @@ export const ES: Readonly<Record<string, string>> = {
   "My 2026 backlog": "Mi backlog 2026",
   "Time range · by completion year": "Rango de tiempo · por año",
   "All time": "Todo el tiempo",
+  "This month": "Este mes",
   "By year": "Por año",
   "Interval": "Intervalo",
   "to": "a",
