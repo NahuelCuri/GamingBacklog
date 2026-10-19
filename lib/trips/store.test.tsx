@@ -102,9 +102,12 @@ describe("useTrips", () => {
     const seed = seedTrips();
     const [trip] = store.data.trips;
     expect(store.data.trips).toHaveLength(1); // StrictMode's second load doesn't add another
-    expect(trip).toEqual({ ...seed.trips[0], id: expect.stringMatching(/^t\d+\w{6}$/) });
+    expect(trip).toEqual({ ...seed.trips[0], id: expect.stringMatching(/^t\d+[0-9a-f]{6}$/) });
     expect(store.data.cards.map((c) => c.title)).toEqual(seed.cards.map((c) => c.title));
-    expect(store.data.cards.every((c) => c.trip === trip.id && !/^c\d+$/.test(c.id))).toBe(true);
+    const seedIds = new Set(seed.cards.map((c) => c.id));
+    const ids = store.data.cards.map((c) => c.id);
+    expect(store.data.cards.every((c) => c.trip === trip.id && /^c\d+[0-9a-f]{6}$/.test(c.id) && !seedIds.has(c.id))).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
     expect(result.current.state.trips).toEqual(store.data.trips);
   });
 
