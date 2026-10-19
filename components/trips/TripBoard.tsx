@@ -2,7 +2,7 @@
 
 // One trip: header with dates and budget, then the Cards / Itinerary / Map tabs.
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
-import { CaretLeftIcon, DownloadIcon, PencilIcon, UsersIcon } from "@/components/icons";
+import { CaretLeftIcon, DownloadIcon, PencilIcon, QuestionIcon, UsersIcon } from "@/components/icons";
 import { CountUp } from "@/components/ui/CountUp";
 import { Tick } from "@/components/ui/Tick";
 import { downloadJson } from "@/lib/data/transfer";
@@ -15,7 +15,7 @@ import { useTripCtx, type BoardTab } from "./TripPlanner";
 import { IconButton, cx } from "./ui";
 
 export function TripBoard() {
-  const { data, access, trip, cards, isMobile: mob, nav, setTab, goHome, editTrip, openShare } = useTripCtx();
+  const { data, access, trip, cards, isMobile: mob, nav, setTab, goHome, editTrip, openShare, startTour } = useTripCtx();
   const navRef = useRef<HTMLDivElement>(null);
   const tabEls = useRef(new Map<BoardTab, HTMLButtonElement>());
   // Underline under the active tab: a 1px bar moved and stretched with transform only.
@@ -44,6 +44,22 @@ export function TripBoard() {
     { k: "itinerary", label: "Itinerary", badge: <><Tick value={planned} />/{cards.length}</>, sr: `${planned} of ${cards.length} planned` },
     { k: "map", label: "Map", badge: <Tick value={located} />, sr: `${located} on the map` },
   ];
+  const actions = (
+    <>
+      <IconButton aria-label="Edit trip" title="Edit trip" onClick={() => editTrip(trip.id)} className="-ml-1">
+        <PencilIcon size={13} />
+      </IconButton>
+      <IconButton aria-label="Export trip" title="Export trip (JSON)" onClick={onExport} className="-ml-2">
+        <DownloadIcon size={13} />
+      </IconButton>
+      <IconButton aria-label={guests ? `Share trip, ${guests} ${guests === 1 ? "guest" : "guests"}` : "Share trip"} title="Share trip" onClick={openShare} data-tour="share" className={cx("-ml-2", guests > 0 && "text-accent")}>
+        <UsersIcon size={14} />
+      </IconButton>
+      <IconButton aria-label="How it works" title="How it works" onClick={startTour} data-tour="tour" className="-ml-2">
+        <QuestionIcon size={14} />
+      </IconButton>
+    </>
+  );
   // Arrow keys, Home and End move between the tabs (and open them).
   const onTabKey = (e: KeyboardEvent) => {
     const i = tabs.findIndex((t) => t.k === nav.boardTab);
@@ -57,7 +73,7 @@ export function TripBoard() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className={cx("flex shrink-0 items-center border-b border-wf bg-surface", mob ? "gap-3 px-4 py-3" : "gap-4 px-6 py-4")}>
+      <header className={cx("flex shrink-0 items-center border-b border-wf bg-surface", mob ? "flex-wrap gap-x-3 gap-y-0.5 px-4 pt-3 pb-1" : "gap-4 px-6 py-4")}>
         <IconButton tone="framed" onClick={goHome} aria-label="Back to all trips">
           <CaretLeftIcon size={16} />
         </IconButton>
@@ -65,19 +81,11 @@ export function TripBoard() {
           <div className="flex min-w-0 items-center gap-2.5">
             <h1 className={cx("m-0 truncate font-extrabold tracking-[-.01em] text-text", mob ? "text-base" : "text-xl")}>{trip.name}</h1>
             {!mob && <span className="shrink-0 rounded-md bg-chip2 px-2 py-0.5 font-mono text-2xs text-muted">{tripRange(trip)}</span>}
-            <IconButton aria-label="Edit trip" title="Edit trip" onClick={() => editTrip(trip.id)} className="-ml-1">
-              <PencilIcon size={13} />
-            </IconButton>
-            <IconButton aria-label="Export trip" title="Export trip (JSON)" onClick={onExport} className="-ml-2">
-              <DownloadIcon size={13} />
-            </IconButton>
-            <IconButton aria-label={guests ? `Share trip, ${guests} ${guests === 1 ? "guest" : "guests"}` : "Share trip"} title="Share trip" onClick={openShare} className={cx("-ml-2", guests > 0 && "text-accent")}>
-              <UsersIcon size={14} />
-            </IconButton>
+            {!mob && actions}
           </div>
-          <div className="mt-0.5 truncate text-xs text-muted">{mob ? tripRange(trip) : trip.subtitle}</div>
+          {!mob && <div className="mt-0.5 truncate text-xs text-muted">{trip.subtitle}</div>}
         </div>
-        <div className="shrink-0 text-right">
+        <div data-tour="budget" className="shrink-0 text-right">
           <div className="font-mono text-sm tabular-nums">
             <span className={cx("font-semibold", b.overDisp ? "text-neg" : "text-text")}>
               <CountUp value={b.spentDisp} />
@@ -89,6 +97,13 @@ export function TripBoard() {
           </div>
           {b.overDisp && <div className="mt-1 font-mono text-2xs text-neg tabular-nums">{`${b.overDisp} over budget`}</div>}
         </div>
+        {/* On phones the dates and buttons get a row of their own, so the name has room. */}
+        {mob && (
+          <div className="flex basis-full items-center gap-2.5 text-xs text-muted">
+            <span className="flex-1 truncate">{tripRange(trip)}</span>
+            {actions}
+          </div>
+        )}
       </header>
 
       <div ref={navRef} role="tablist" aria-label="Trip views" className={cx("relative flex shrink-0 gap-6 border-b border-wf bg-surface", mob ? "px-4" : "px-6")}>
@@ -102,6 +117,7 @@ export function TripBoard() {
                 else tabEls.current.delete(t.k);
               }}
               id={"tp-tab-" + t.k}
+              data-tour={"tab-" + t.k}
               type="button"
               role="tab"
               aria-selected={on}

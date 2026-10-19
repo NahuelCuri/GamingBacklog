@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { byOrder, seedTrips } from "@/lib/trips/model";
 import { memoryTripStore } from "@/lib/trips/store";
 import { TripPlanner } from "./TripPlanner";
+import { TOUR_KEY, TOUR_STEPS } from "./TripTour";
 
 vi.mock("@/components/shell/ShellProvider", () => ({ useShell: () => ({ libs: ["games"], navigate: vi.fn(), openSettings: vi.fn() }) }));
 // jsdom has no WebGL: stand in for the MapLibre canvas with one element per pin.
@@ -25,6 +26,7 @@ beforeEach(() => {
   vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
   vi.stubGlobal("fetch", async () => ({ ok: false, status: 503, json: async () => ({}) }));
   history.replaceState(null, "", "/trips/");
+  localStorage.setItem(TOUR_KEY, "1"); // the tour has its own tests
 });
 afterEach(() => {
   cleanup();
@@ -565,5 +567,65 @@ describe("TripPlanner", () => {
     openJapan();
     fireEvent.click(screen.getByRole("button", { name: "Edit trip" }));
     expect(within(dialog()).queryByRole("textbox", { name: "Email to invite" })).toBeNull();
+  });
+
+  describe("tour", () => {
+    const tour = () => screen.getByRole("dialog", { name: /./ });
+    const next = () => fireEvent.click(within(tour()).getByRole("button", { name: "Next" }));
+
+    it("starts on the first trip opened, walks the tabs, and Finish puts the tab back", async () => {
+      localStorage.removeItem(TOUR_KEY);
+      await setup();
+      openJapan();
+      expect(within(await screen.findByRole("dialog")).getByRole("heading").textContent).toBe(TOUR_STEPS[0].title);
+      expect(within(tour()).queryByRole("button", { name: "Back" })).toBeNull();
+      next();
+      expect(within(tour()).getByRole("heading").textContent).toBe("Everything is a card");
+      next();
+      next();
+      expect(location.search).toBe("?trip=t1&tab=itinerary");
+      fireEvent.click(within(tour()).getByRole("button", { name: "Back" }));
+      expect(within(tour()).getByRole("heading").textContent).toBe("Compare and convert");
+      await waitFor(() => expect(location.search).toBe("?trip=t1&tab=cards"));
+      for (let k = 2; k < TOUR_STEPS.length - 1; k++) next();
+      expect(within(tour()).getByRole("heading").textContent).toBe("That’s it");
+      expect(within(tour()).queryByRole("button", { name: "Skip tour" })).toBeNull();
+      fireEvent.click(within(tour()).getByRole("button", { name: "Finish" }));
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(location.search).toBe("?trip=t1&tab=cards");
+      expect(localStorage.getItem(TOUR_KEY)).toBe("1");
+      expect(errors).toEqual([]);
+    });
+
+    it("Skip goes to the last step, which points at the ? button; that button replays it", async () => {
+      localStorage.removeItem(TOUR_KEY);
+      await setup();
+      openJapan();
+      await screen.findByRole("dialog");
+      next();
+      fireEvent.click(within(tour()).getByRole("button", { name: "Skip tour" }));
+      expect(within(tour()).getByRole("heading").textContent).toBe("That’s it");
+      expect(within(tour()).getByText(/\? button/)).toBeTruthy();
+      expect(within(tour()).queryByRole("button", { name: "Back" })).toBeNull();
+      fireEvent.click(within(tour()).getByRole("button", { name: "Finish" }));
+      expect(screen.queryByRole("dialog")).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Back to all trips" }));
+      openJapan();
+      expect(screen.queryByRole("dialog")).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+      expect(within(tour()).getByRole("heading").textContent).toBe(TOUR_STEPS[0].title);
+    });
+
+    it("Escape skips to the end, then closes", async () => {
+      localStorage.removeItem(TOUR_KEY);
+      await setup();
+      openJapan();
+      await screen.findByRole("dialog");
+      fireEvent.keyDown(window, { key: "Escape" });
+      await waitFor(() => expect(within(tour()).getByRole("heading").textContent).toBe("That’s it"));
+      fireEvent.keyDown(window, { key: "Escape" });
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      expect(localStorage.getItem(TOUR_KEY)).toBe("1");
+    });
   });
 });

@@ -163,6 +163,15 @@ export const ArrowDownIcon = (p: IconProps) => (
   </Glyph>
 );
 
+/** Question mark in a circle: help, the trip tour. */
+export const QuestionIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <circle cx="12" cy="12" r="8.5" {...stroke} />
+    <path d="M9.6 9.6a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6" {...stroke} />
+    <circle cx="12" cy="16.9" r=".9" fill="currentColor" />
+  </Glyph>
+);
+
 /** Two people: share. */
 export const UsersIcon = (p: IconProps) => (
   <Glyph {...p}>
