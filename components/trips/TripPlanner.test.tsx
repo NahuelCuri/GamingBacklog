@@ -530,4 +530,40 @@ describe("TripPlanner", () => {
     await screen.findByText("Where to next?");
     expect(screen.queryByRole("dialog", { name: "Share trip" })).toBeNull();
   });
+
+  it("a new trip can invite people; it reports who couldn’t be invited", async () => {
+    const store = memoryTripStore(seedTrips(), { users: { "bro@example.com": "u2" } });
+    render(<TripPlanner store={store} />);
+    await screen.findByText("Where to next?");
+    fireEvent.click(screen.getByRole("button", { name: "New trip" }));
+    const editor = dialog();
+    fireEvent.change(within(editor).getByRole("textbox", { name: "Trip name" }), { target: { value: "Rome" } });
+    const email = within(editor).getByRole("textbox", { name: "Email to invite" });
+    fireEvent.change(email, { target: { value: "Bro@Example.com" } });
+    fireEvent.keyDown(email, { key: "Enter" });
+    fireEvent.change(email, { target: { value: "x@nowhere.com" } });
+    fireEvent.keyDown(email, { key: "Enter" });
+    fireEvent.change(email, { target: { value: "drop@me.com" } });
+    fireEvent.click(within(editor).getByRole("button", { name: "Add" }));
+    fireEvent.click(within(editor).getByRole("button", { name: "Don’t invite drop@me.com" }));
+    const list = within(editor).getByRole("list", { name: "People to invite" });
+    expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["bro@example.com", "x@nowhere.com"]);
+    // An email still in the box is invited too.
+    fireEvent.change(email, { target: { value: "bro@example.com" } });
+    fireEvent.click(within(editor).getByRole("button", { name: "Create trip" }));
+    const share = await screen.findByRole("dialog", { name: "Share trip" });
+    const rome = store.data.trips.find((t) => t.name === "Rome")!;
+    expect(rome).not.toHaveProperty("invites");
+    expect(store.people).toEqual([{ trip: rome.id, user: "u2", email: "bro@example.com", role: "editor" }]);
+    expect(within(share).getByRole("alert").textContent).toBe("Invited bro@example.com. No account uses x@nowhere.com. They need to sign up first.");
+    expect(within(share).getByText("bro@example.com")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Rome" })).toBeTruthy();
+  });
+
+  it("the invite field only shows for a new trip", async () => {
+    await setup();
+    openJapan();
+    fireEvent.click(screen.getByRole("button", { name: "Edit trip" }));
+    expect(within(dialog()).queryByRole("textbox", { name: "Email to invite" })).toBeNull();
+  });
 });
