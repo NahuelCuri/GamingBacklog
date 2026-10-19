@@ -615,7 +615,7 @@ export function ItineraryTab() {
     <div className="flex min-h-0 flex-1 flex-col tp:flex-row">
       {mob ? (
         <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
-          <section data-dropzone="" data-day="pool" aria-label="Pool" className="border-b border-wf bg-surface">
+          <section data-dropzone="" data-day="pool" data-tour="pool" aria-label="Pool" className="border-b border-wf bg-surface">
             <button type="button" onClick={() => setPoolOpen((o) => !o)} aria-expanded={poolOpen} className="flex w-full cursor-pointer items-center gap-2 px-4 pt-4 text-left">
               <Kicker as="span">{`Pool · ${pool.length}`}</Kicker>
               <span className="text-xs text-muted">not scheduled yet</span>
@@ -630,7 +630,7 @@ export function ItineraryTab() {
         </div>
       ) : (
         <>
-          <aside data-dropzone="" data-day="pool" aria-label="Pool" className="flex w-[320px] shrink-0 flex-col border-r border-wf bg-surface">
+          <aside data-dropzone="" data-day="pool" data-tour="pool" aria-label="Pool" className="flex w-[320px] shrink-0 flex-col border-r border-wf bg-surface">
             {poolBody}
           </aside>
           <div className="flex min-w-0 flex-1 flex-col bg-bg">

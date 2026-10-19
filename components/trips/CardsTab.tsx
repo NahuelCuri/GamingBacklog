@@ -49,6 +49,7 @@ export function CardsTab() {
             )}
           </div>
           <div className="flex gap-2">
+            <div data-tour="card-tools" className="flex gap-2">
             <Button variant={compare.on ? "soft" : "secondary"} aria-pressed={compare.on} title="Compare cards side by side" onClick={() => setCompare((c) => (c.on ? { ...c, on: false, open: [], min: false } : { ...c, on: true, min: false }))}>
               <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M8 4 4 8l4 4M4 8h13M16 20l4-4-4-4M20 16H7" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
@@ -59,7 +60,8 @@ export function CardsTab() {
               <SwapIcon size={15} />
               Convert
             </Button>
-            <Button variant="primary" onClick={() => newCard()}>
+            </div>
+            <Button variant="primary" onClick={() => newCard()} data-tour="new-card">
               <PlusIcon size={14} />
               New card
             </Button>

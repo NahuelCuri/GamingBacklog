@@ -19,6 +19,7 @@ import { CompareDrawer, type CompareState, openInCompare } from "./CompareDrawer
 import { CardEditorDialog, CardViewDialog, DeleteTripDialog, ShareTripDialog, TripEditorDialog } from "./dialogs";
 import { TripBoard } from "./TripBoard";
 import { TripsHome } from "./TripsHome";
+import { TripTour, tourSeen } from "./TripTour";
 import { Button, IconButton } from "./ui";
 
 export type BoardTab = "cards" | "itinerary" | "map";
@@ -98,6 +99,8 @@ export interface TripCtx {
   me: string | null;
   access(tripId: string): TripAccess;
   openShare(): void;
+  /** Shows the board tour (again). */
+  startTour(): void;
   isMobile: boolean;
   trip: Trip | null;
   /** Cards of the open trip, in stored order. */
@@ -165,6 +168,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const [liveMsg, setLiveMsg] = useState("");
   const [poolFilter, setPoolFilter] = useState("all");
   const [compare, setCompare] = useState<CompareState>({ on: false, open: [], min: false, h: null, zoom: 1 });
+  const [touring, setTouring] = useState(false);
 
   const trip = (nav.view === "board" && data.trips.find((t) => t.id === nav.tripId)) || null;
   const cards = useMemo(() => tripCards(data.cards, trip?.id ?? null), [data.cards, trip?.id]);
@@ -172,6 +176,14 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   dataRef.current = data;
 
   useEffect(() => () => clearTimeout(undoTimer.current), []);
+
+  // The first trip opened on this device starts the tour (once per page load at most).
+  const autoTour = useRef(false);
+  useEffect(() => {
+    if (autoTour.current || data.status !== "ready" || !trip || nav.viewCard || tourSeen()) return;
+    autoTour.current = true;
+    setTouring(true);
+  }, [data.status, trip, nav.viewCard]);
 
   const openEdit = useCallback((id: string) => {
     const c = dataRef.current.cards.find((x) => x.id === id);
@@ -202,6 +214,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
         setShareNotice(null);
         setSharing(true);
       },
+      startTour: () => setTouring(true),
       setCompare: (fn) => setCompare(fn),
       setTab: (boardTab) => setNav({ boardTab }),
       openTrip: (id) => {
@@ -388,6 +401,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
             onClose={() => setSharing(false)}
           />
         )}
+        {touring && trip && <TripTour onClose={() => setTouring(false)} />}
         {delTrip && <DeleteTripDialog name={delTrip.name} onCancel={() => setDelTrip(null)} onConfirm={() => confirmDeleteTrip(delTrip.id)} />}
 
         <div aria-live="polite" className="sr-only">
