@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { byOrder, seedTrips, withOrder, type TripCard } from "./model";
-import { diffRows, LOCAL_KEY, memoryTripStore, supabaseTripStore, type TripChange, type TripStore } from "./store";
+import { diffRows, localKey, memoryTripStore, supabaseTripStore, type TripChange, type TripStore } from "./store";
 import { useTrips } from "./useTrips";
 
 afterEach(() => localStorage.clear());
@@ -44,9 +44,27 @@ describe("supabaseTripStore", () => {
 
   it("load unwraps both tables and throws on error", async () => {
     const ok = supabaseTripStore(fakeSupabase({ data: [{ data: card("c1") }, { data: null }] }).sb, "u1");
-    expect(await ok.load()).toEqual({ trips: [card("c1")], cards: [card("c1")] });
+    expect(await ok.load()).toMatchObject({ trips: [card("c1")], cards: [card("c1")] });
     const bad = supabaseTripStore(fakeSupabase({ error: { message: "permission denied" } }).sb, "u1");
     await expect(bad.load()).rejects.toMatchObject({ message: "permission denied" });
+  });
+
+  it("loads who is in each trip", async () => {
+    const people = [{ trip_id: "t1", user_id: "u1", email: "me@x", role: "owner" }];
+    const { sb, log } = fakeSupabase({ data: people });
+    expect((await supabaseTripStore(sb, "u1").load()).people).toEqual([{ trip: "t1", user: "u1", email: "me@x", role: "owner" }]);
+    expect(log).toContainEqual(["rpc", "trip_people"]);
+  });
+
+  it("invites through the RPC and removes a share by trip and user", async () => {
+    const { sb, log } = fakeSupabase({ data: "ok" as never });
+    const s = supabaseTripStore(sb, "u1");
+    expect(await s.share("t1", "bro@x")).toBe("ok");
+    await s.unshare("t1", "u2");
+    expect(log).toEqual([
+      ["rpc", "share_trip", { p_trip: "t1", p_email: "bro@x" }],
+      ["from", "trip_shares"], ["delete"], ["eq", "trip_id", "t1"], ["eq", "user_id", "u2"],
+    ]);
   });
 
   it("maps realtime events from both tables on one channel", () => {
@@ -56,13 +74,14 @@ describe("supabaseTripStore", () => {
       on: (_e: string, f: { table: string }, cb: (p: unknown) => void) => ((handlers[f.table] = cb), channel),
       subscribe: () => channel,
     };
-    const sb = { channel: (n: string) => (expect(n).toBe("trips-shared"), channel), removeChannel: (c: unknown) => removed.push(c) };
+    const sb = { channel: (n: string) => (expect(n).toBe("trips-u1"), channel), removeChannel: (c: unknown) => removed.push(c) };
     const got: TripChange[] = [];
     const off = supabaseTripStore(sb as never, "u1").subscribe!((c) => got.push(c));
     handlers.trip_cards({ eventType: "UPDATE", new: { id: "c1", data: card("c1") } });
     handlers.trips({ eventType: "DELETE", old: { id: "t1" } });
     handlers.trips({ eventType: "INSERT", new: { id: "t2" } }); // no data: ignored
-    expect(got).toEqual([{ kind: "cards", type: "upsert", row: card("c1") }, { kind: "trips", type: "delete", id: "t1" }]);
+    handlers.trip_shares({ eventType: "INSERT", new: { trip_id: "t1" } });
+    expect(got).toEqual([{ kind: "cards", type: "upsert", row: card("c1") }, { kind: "trips", type: "delete", id: "t1" }, { kind: "shares", type: "reload" }]);
     off();
     expect(removed).toEqual([channel]);
   });
@@ -76,12 +95,45 @@ describe("supabaseTripStore", () => {
 });
 
 describe("useTrips", () => {
-  it("adds the example trip to an empty shared space", async () => {
+  it("gives an account with no trips the example one, under ids of its own", async () => {
     const store = memoryTripStore();
     const { result } = renderHook(() => useTrips(store), { wrapper: StrictMode });
     await waitFor(() => expect(result.current.state.status).toBe("ready"));
-    expect(result.current.state).toMatchObject(seedTrips());
-    expect(store.data).toEqual(seedTrips());
+    const seed = seedTrips();
+    const [trip] = store.data.trips;
+    expect(store.data.trips).toHaveLength(1); // StrictMode's second load doesn't add another
+    expect(trip).toEqual({ ...seed.trips[0], id: expect.stringMatching(/^t\d+\w{6}$/) });
+    expect(store.data.cards.map((c) => c.title)).toEqual(seed.cards.map((c) => c.title));
+    expect(store.data.cards.every((c) => c.trip === trip.id && !/^c\d+$/.test(c.id))).toBe(true);
+    expect(result.current.state.trips).toEqual(store.data.trips);
+  });
+
+  it("writes a new trip before its cards and deletes cards before their trip", async () => {
+    const inner = memoryTripStore(seedTrips());
+    const calls: string[] = [];
+    const store: TripStore = {
+      ...inner,
+      upsert: async (k, rows) => (rows.length && calls.push("upsert " + k), inner.upsert(k, rows)),
+      remove: async (k, ids) => (ids.length && calls.push("remove " + k), inner.remove(k, ids)),
+    };
+    const { result } = renderHook(() => useTrips(store));
+    await waitFor(() => expect(result.current.state.status).toBe("ready"));
+    await act(() => result.current.persist({ trips: [...result.current.state.trips, { id: "t2", name: "Rome" }], cards: [...result.current.state.cards, card("n1", { trip: "t2" })] }));
+    await act(() => result.current.persist({ trips: result.current.state.trips.filter((t) => t.id !== "t2"), cards: result.current.state.cards.filter((c) => c.trip !== "t2") }));
+    expect(calls).toEqual(["upsert trips", "upsert cards", "remove cards", "remove trips"]);
+  });
+
+  it("reloads when someone is invited or removed", async () => {
+    let push!: (c: TripChange) => void;
+    const inner = memoryTripStore(seedTrips());
+    const store: TripStore = { ...inner, subscribe: (cb) => ((push = cb), () => {}) };
+    const { result } = renderHook(() => useTrips(store));
+    await waitFor(() => expect(result.current.state.status).toBe("ready"));
+    inner.data.trips.push({ id: "t9", name: "Shared with me" });
+    inner.people.push({ trip: "t9", user: "u9", email: "friend@x", role: "owner" });
+    act(() => push({ kind: "shares", type: "reload" }));
+    await waitFor(() => expect(result.current.state.trips.map((t) => t.id)).toEqual(["t1", "t9"]));
+    expect(result.current.state.people).toEqual([{ trip: "t9", user: "u9", email: "friend@x", role: "owner" }]);
   });
 
   it("a failed load is an error with retry, not the example trip", async () => {
@@ -104,7 +156,7 @@ describe("useTrips", () => {
     const cards = result.current.state.cards.filter((c) => c.id !== "c12").map((c) => (c.id === "c1" ? { ...c, day: 2 } : c));
     await act(() => result.current.persist({ cards }));
     expect(store.data.cards).toEqual(withOrder(cards));
-    expect(JSON.parse(localStorage.getItem(LOCAL_KEY)!).cards).toEqual(withOrder(cards));
+    expect(JSON.parse(localStorage.getItem(localKey())!).cards).toEqual(withOrder(cards));
   });
 
   it("saves card order so a reorder survives a reload (legacy lost it)", async () => {

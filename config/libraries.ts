@@ -24,11 +24,4 @@ export const LIBRARY_KEYS = LIBRARIES.map((d) => d.key);
 
 export const ADMIN_UID = "8ca752c7-962b-4bcf-98a6-392d168b6481";
 
-/** Trips is private to these accounts (data guarded by RLS via trip_members). */
-export const TRIP_MEMBERS = [
-  "8ca752c7-962b-4bcf-98a6-392d168b6481", // admin account
-  "7576f6af-09b6-4c22-8357-2e42dd418b94", // brother
-];
-
 export const isAdmin = (uid: string | null | undefined) => uid === ADMIN_UID;
-export const isTripMember = (uid: string | null | undefined) => !!uid && TRIP_MEMBERS.includes(uid);

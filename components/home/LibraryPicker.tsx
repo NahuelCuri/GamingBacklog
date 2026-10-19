@@ -8,7 +8,7 @@ import { useMemo, useState, type CSSProperties, type KeyboardEvent, type MouseEv
 import { ArrowUpRightIcon, GearIcon, LIBRARY_ICON_COLOR, LibraryIcon } from "@/components/icons";
 import { useShell } from "@/components/shell/ShellProvider";
 import { CountUp } from "@/components/ui/CountUp";
-import { LIBRARIES, isTripMember, type LibraryDef, type LibraryKey } from "@/config/libraries";
+import { LIBRARIES, type LibraryDef, type LibraryKey } from "@/config/libraries";
 import { useAuth } from "@/lib/auth";
 import { readHome, type LibSummary } from "@/lib/home";
 import { readLang } from "@/lib/i18n/translator";
@@ -89,10 +89,10 @@ export function LibraryPicker() {
   });
 
   const ordered = useMemo(() => {
-    const cards = LIBRARIES.filter((l) => libs.includes(l.key) && (l.key !== "trips" || isTripMember(user?.id)));
+    const cards = LIBRARIES.filter((l) => libs.includes(l.key));
     const big = cards.find((l) => l.key === memory.last) ?? cards[0];
     return big ? [big, ...cards.filter((l) => l !== big)] : [];
-  }, [libs, user?.id, memory.last]);
+  }, [libs, memory.last]);
   const spans = smallSpans(ordered.length - 1);
 
   // First visit this session gets the full entrance; coming back is quicker.

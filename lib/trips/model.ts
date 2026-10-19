@@ -185,7 +185,20 @@ export function seedTrips(): TripData {
 
 // ---------------------------------------------------------------- editing
 
-export const newId = (prefix: "t" | "c", now = Date.now()) => prefix + now;
+/**
+ * "t1792…a3f9c2": time first so ids still sort by creation, then a random tail
+ * because every account writes to the same tables and ids must not collide.
+ */
+export const newId = (prefix: "t" | "c", now = Date.now()) => prefix + now + crypto.randomUUID().slice(0, 6);
+
+/** The same trips and cards under new ids (the example trip, written once per account). */
+export function withFreshIds(d: TripData): TripData {
+  const tripIds = new Map(d.trips.map((t) => [t.id, newId("t")]));
+  return {
+    trips: d.trips.map((t) => ({ ...t, id: tripIds.get(t.id)! })),
+    cards: d.cards.map((c) => ({ ...c, id: newId("c"), trip: tripIds.get(c.trip) ?? c.trip })),
+  };
+}
 
 export function blankTrip(now = Date.now()): Trip {
   return {

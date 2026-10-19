@@ -10,7 +10,7 @@ import { useTripCtx } from "./TripPlanner";
 import { Button, IconButton } from "./ui";
 
 export function TripsHome() {
-  const { data, openTrip, newTrip, editTrip } = useTripCtx();
+  const { data, access, openTrip, newTrip, editTrip } = useTripCtx();
   const { navigate, openSettings } = useShell();
   const { user, signOut } = useAuth();
   const n = data.trips.length;
@@ -67,10 +67,14 @@ export function TripsHome() {
             const delay = Math.min(i, 12) * 40;
             const cs = tripCards(data.cards, t.id);
             const b = budget(t, cs);
+            const a = access(t.id);
+            const guests = a.people.filter((p) => p.role !== "owner").length;
+            const shared = a.owner ? (guests ? `Shared with ${guests}` : "") : "Shared by " + (a.people.find((p) => p.role === "owner")?.email ?? "someone");
             return (
               <article key={t.id} className="relative overflow-hidden rounded-2xl border border-wf bg-card transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)]" style={{ animation: `grise 320ms var(--ease-out) ${delay}ms both` }}>
-                <div className="relative flex h-24 items-end px-4 py-3.5" style={{ background: t.cover }}>
+                <div className="relative flex h-24 items-end gap-1.5 px-4 py-3.5" style={{ background: t.cover }}>
                   <span className="rounded-md bg-black/30 px-2 py-1 font-mono text-2xs font-semibold text-white/90 backdrop-blur-[3px]">{tripRange(t)}</span>
+                  {shared && <span className="min-w-0 truncate rounded-md bg-black/30 px-2 py-1 font-mono text-2xs font-semibold text-white/90 backdrop-blur-[3px]">{shared}</span>}
                 </div>
                 <div className="p-4">
                   <h2 className="m-0 mb-0.5 text-lg font-bold tracking-[-.01em] text-text">
