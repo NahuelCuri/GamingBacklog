@@ -82,7 +82,8 @@ function useNav() {
 }
 
 export type CardModal = CardDraft & { __new?: boolean };
-export type TripModal = Trip & { __new?: boolean };
+/** A trip being edited; a new one may carry emails to invite once it's created. */
+export type TripModal = Trip & { __new?: boolean; invites?: string[] };
 
 export interface TripAccess {
   /** The user owns the trip (also when nobody is listed: a trip just made, or a store without sharing). */
@@ -158,6 +159,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const [tripModal, setTripModal] = useState<TripModal | null>(null);
   const [delTrip, setDelTrip] = useState<{ id: string; name: string } | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [shareNotice, setShareNotice] = useState<{ text: string; error?: boolean } | null>(null);
   const [undo, setUndo] = useState<{ id: number; label: string; before: Partial<TripData> } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [liveMsg, setLiveMsg] = useState("");
@@ -196,7 +198,10 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
   const ctx = useMemo<TripCtx>(
     () => ({
       data, me, access, isMobile, trip, cards, nav, persist, poolFilter, setPoolFilter, compare,
-      openShare: () => setSharing(true),
+      openShare: () => {
+        setShareNotice(null);
+        setSharing(true);
+      },
       setCompare: (fn) => setCompare(fn),
       setTab: (boardTab) => setNav({ boardTab }),
       openTrip: (id) => {
@@ -263,14 +268,20 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
     offerUndo((m.title || "Card") + " deleted", { cards: before });
   };
 
-  const saveTrip = (d: TripModal) => {
-    const { __new, ...rest } = d;
+  const saveTrip = async (d: TripModal) => {
+    const { __new, invites = [], ...rest } = d;
     const clean = cleanTrip(rest);
-    if (__new) {
-      void persist({ trips: [...data.trips, clean] });
-      ctx.openTrip(clean.id);
-    } else void persist({ trips: data.trips.map((x) => (x.id === clean.id ? clean : x)) });
     setTripModal(null);
+    if (!__new) return void persist({ trips: data.trips.map((x) => (x.id === clean.id ? clean : x)) });
+    const saved = persist({ trips: [...data.trips, clean] });
+    ctx.openTrip(clean.id);
+    if (!invites.length || !store) return;
+    // Invites need the trip stored first (only its owner can share it).
+    await saved;
+    const results = await Promise.all(invites.map((email) => store.share(clean.id, email).catch((): ShareResult | "error" => "error")));
+    await reload();
+    setShareNotice(inviteNotice(invites, results));
+    setSharing(true);
   };
 
   const confirmDeleteTrip = (id: string) => {
@@ -371,6 +382,7 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
             trip={trip}
             me={me}
             access={access(trip.id)}
+            notice={shareNotice}
             onShare={(email) => share(trip.id, email)}
             onRemove={(userId) => unshare(trip.id, userId)}
             onClose={() => setSharing(false)}
@@ -419,6 +431,18 @@ export function TripPlanner({ store: override }: { store?: TripStore | null }) {
       </div>
     </Ctx.Provider>
   );
+}
+
+/** "Invited a@x. No account uses b@y." for the invites sent with a new trip. */
+function inviteNotice(emails: string[], results: (ShareResult | "error")[]) {
+  const by = (r: ShareResult | "error") => emails.filter((_, i) => results[i] === r);
+  const parts = [
+    by("ok").length && "Invited " + by("ok").join(", ") + ".",
+    by("not_found").length && "No account uses " + by("not_found").join(", ") + ". They need to sign up first.",
+    by("self").length && "You don’t need to invite yourself.",
+    (by("error").length || by("not_owner").length) && "Couldn’t invite " + [...by("error"), ...by("not_owner")].join(", ") + ". Try again from here.",
+  ].filter(Boolean);
+  return { text: parts.join(" "), error: results.some((r) => r !== "ok") };
 }
 
 function Centered({ children }: { children: ReactNode }) {

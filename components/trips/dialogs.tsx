@@ -552,6 +552,8 @@ export function CardEditorDialog({ modal: m, setModal, confirmDel, onSave, onDel
 
 // ---------------------------------------------------------------- trip editor
 
+const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+
 export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete }: {
   modal: TripModal;
   setModal: Dispatch<SetStateAction<TripModal | null>>;
@@ -563,6 +565,19 @@ export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete
   const uid = useId();
   const set = (patch: Partial<TripModal>) => setModal((s) => (s ? { ...s, ...patch } : s));
   const header = d.__new ? "New trip" : "Edit trip";
+  // A new trip can invite people right away; they're sent once it's created.
+  const [inviteText, setInviteText] = useState("");
+  const invites = d.invites || [];
+  const addInvite = () => {
+    const email = inviteText.trim().toLowerCase();
+    if (!isEmail(email)) return;
+    if (!invites.includes(email)) set({ invites: [...invites, email] });
+    setInviteText("");
+  };
+  const save = () => {
+    const typed = inviteText.trim().toLowerCase();
+    onSave(isEmail(typed) && !invites.includes(typed) ? { ...d, invites: [...invites, typed] } : d);
+  };
   return (
     <Dialog label={header} onClose={onClose} narrow>
       <Head onClose={onClose}>
@@ -593,6 +608,45 @@ export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete
             <input id={uid + "budget"} value={String(d.budget ?? "")} onChange={(e) => set({ budget: e.target.value as never })} aria-label="Budget in dollars" placeholder="2000" inputMode="decimal" autoComplete="off" className={cx(inputCls, "min-w-0 flex-1")} />
           </div>
         </Field>
+        {d.__new && (
+          <Field label="Invite people (optional)" htmlFor={uid + "invite"} className="mt-4 mb-0">
+            <div className="flex gap-2">
+              <input
+                id={uid + "invite"}
+                type="email"
+                value={inviteText}
+                onChange={(e) => setInviteText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    addInvite();
+                  }
+                }}
+                aria-label="Email to invite"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="friend@example.com"
+                className={cx(inputCls, "min-w-0 flex-1")}
+              />
+              <Button onClick={addInvite} disabled={!isEmail(inviteText)}>
+                Add
+              </Button>
+            </div>
+            {invites.length > 0 && (
+              <ul aria-label="People to invite" className="m-0 mt-2 flex list-none flex-wrap gap-1.5 p-0">
+                {invites.map((email) => (
+                  <li key={email} className={tagCls}>
+                    {email}
+                    <button type="button" aria-label={"Don’t invite " + email} onClick={() => set({ invites: invites.filter((x) => x !== email) })} className="cursor-pointer opacity-70 hover:opacity-100">
+                      <CloseIcon size={11} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-1.5 text-xs text-muted">They need an account. Guests can see and edit the trip; only you can delete it.</div>
+          </Field>
+        )}
       </div>
       <Foot>
         {d.__new || !onDelete ? (
@@ -606,7 +660,7 @@ export function TripEditorDialog({ modal: d, setModal, onSave, onClose, onDelete
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={() => onSave(d)}>
+          <Button variant="primary" onClick={save}>
             {d.__new ? "Create trip" : "Save"}
           </Button>
         </div>
@@ -651,8 +705,10 @@ const SHARE_ERRORS: Record<Exclude<ShareResult, "ok">, string> = {
   not_owner: "Only the trip’s owner can invite people.",
 };
 
-export function ShareTripDialog({ trip, me, access, onShare, onRemove, onClose }: {
+export function ShareTripDialog({ trip, me, access, notice, onShare, onRemove, onClose }: {
   trip: Trip;
+  /** A first message, e.g. how the invites sent with a new trip went. */
+  notice?: { text: string; error?: boolean } | null;
   me: string | null;
   access: TripAccess;
   onShare(email: string): Promise<ShareResult>;
@@ -662,10 +718,10 @@ export function ShareTripDialog({ trip, me, access, onShare, onRemove, onClose }
   const uid = useId();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(notice ?? null);
   // A removal or leave asks twice: the first click arms it.
   const [armed, setArmed] = useState<string | null>(null);
-  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const valid = isEmail(email);
 
   const run = async (job: () => Promise<void>) => {
     setBusy(true);
