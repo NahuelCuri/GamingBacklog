@@ -350,6 +350,26 @@ export interface StatsConfig {
   suspect?: { field: string; vs: string; times: number; max: number; vsMax: number; label: string };
 }
 
+/**
+ * A yearly target the user picks ("24 books in 2026"). Only the number is stored
+ * (lib/goals.ts); progress counts the items matching `match` whose `dateField`
+ * falls in that year.
+ */
+export interface GoalConfig {
+  /** "Reading goal" */
+  label: string;
+  /** What's counted, plural ("books"), and what doing one is ("read"). */
+  noun: string;
+  verb: string;
+  match: Cond;
+  /** "YYYY-MM-DD" text: the day one was done. */
+  dateField: string;
+  /** Under way now: drawn as a faint tail on the bar ("if I finish these"). */
+  inProgress?: Cond;
+  /** A second total to report beside the count (pages read). */
+  extra?: { field: string; label: string };
+}
+
 export interface CurrencyConfig {
   base: string;
   baseSymbol: string;
@@ -425,4 +445,5 @@ export interface CollectionConfig {
   derive?: (item: Item) => Item;
   geo?: { field?: string; label?: string; subtitle?: string };
   currency?: CurrencyConfig;
+  goal?: GoalConfig;
 }

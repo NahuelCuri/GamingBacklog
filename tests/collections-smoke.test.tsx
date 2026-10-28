@@ -32,11 +32,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const YEAR = new Date().getFullYear();
+
 function ctxFor(key: CollectionKey, items: Item[]): CollectionCtx {
   const noop = vi.fn();
   return {
     collection: key, cfg: COLLECTIONS[key], data: { ...initialCollectionState, status: "ready", items, full: true }, items,
     actions: { save: noop, remove: noop, loadStarter: noop, refresh: noop, loadAll: noop, loadMonth: noop } as never,
+    // Libraries with a goal render its cards too, with this year's and last year's set.
+    goals: COLLECTIONS[key].goal ? { goals: { [YEAR]: 24, [YEAR - 1]: 10 }, error: null, setGoal: noop } : null,
     money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: noop,
     openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop, removeItem: noop,
   };
@@ -61,8 +65,10 @@ describe.each(KEYS)("%s", (key) => {
     wrap(<StatsView />);
     // Widgets with hideWhenEmpty may drop out; everything built must be on screen.
     const built = buildStats(cfg, items, { accent: cfg.theme.accent });
+    // The goal card heads the right column ("2026Reading goal": year and label).
+    const goal = cfg.goal ? [YEAR + cfg.goal.label] : [];
     expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(
-      [...built.left, ...built.right].map((w) => w.title),
+      [...built.left, ...goal, ...built.right].map((w) => (typeof w === "string" ? w : w.title)),
     );
     expect(errors).toEqual([]);
   });

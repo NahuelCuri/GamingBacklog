@@ -12,6 +12,7 @@ import { monthKey, monthLabel } from "@/lib/collection/format";
 import { hasMonth } from "@/lib/data/collection-state";
 import type { Item } from "@/lib/collection/types";
 import { useCollectionCtx } from "./CollectionContext";
+import { GoalCard } from "./goal/Goal";
 import { ItemTable, ItemTableSkeleton } from "./ItemTable";
 
 export function LibraryView() {
@@ -126,6 +127,8 @@ export function LibraryView() {
           </div>
         ))}
       </div>
+
+      {loaded && !empty && <GoalCard />}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div

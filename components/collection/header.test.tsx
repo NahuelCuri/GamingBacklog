@@ -28,7 +28,7 @@ function renderHeader(status: "ready" | "loading" = "ready") {
     <CollectionContext.Provider
       value={{
         collection: "games", cfg: COLLECTIONS.games, data: { ...initialCollectionState, status, items, full: status === "ready" }, items,
-        actions: actions as never, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
+        actions: actions as never, goals: null, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
         openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), removeItem: vi.fn(),
       }}
     >
