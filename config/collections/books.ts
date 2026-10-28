@@ -448,4 +448,13 @@ export const books: CollectionConfig = {
     ],
     shareYearField: "pubYear",
   },
+  goal: {
+    label: "Reading goal",
+    noun: "books",
+    verb: "read",
+    match: { field: "status", eq: "finished" },
+    dateField: "finished",
+    inProgress: { field: "status", eq: "reading" },
+    extra: { field: "pages", label: "pages" },
+  },
 };

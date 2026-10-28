@@ -10,6 +10,7 @@ import { useCollectionTheme } from "@/components/shell/useCollectionTheme";
 import { isCollectionKey } from "@/config/collections";
 import type { CollectionKey } from "@/lib/collection/types";
 import { memoryStore, type CollectionStore } from "@/lib/data/store";
+import { memoryGoalStore } from "@/lib/goals";
 import { withBase } from "@/lib/paths";
 import { LibraryPicker } from "@/components/home/LibraryPicker";
 import { TripPlanner } from "@/components/trips/TripPlanner";
@@ -62,10 +63,12 @@ function TripsPreview() {
 function Preview({ collection }: { collection: CollectionKey }) {
   useCollectionTheme(collection);
   const [store, setStore] = useState<CollectionStore | null>(null);
+  // The seed's books were finished in 2022–23, so those years have goals to look back on.
+  const [goalStore] = useState(() => memoryGoalStore({ books: { [new Date().getFullYear()]: 24, 2023: 6, 2022: 2 } }));
   useEffect(() => {
     fetch(withBase(`/seeds/${collection}.json`))
       .then((r) => r.json())
       .then((items) => setStore(memoryStore(items)));
   }, [collection]);
-  return store ? <CollectionBody collection={collection} store={store} /> : null;
+  return store ? <CollectionBody collection={collection} store={store} goalStore={goalStore} /> : null;
 }

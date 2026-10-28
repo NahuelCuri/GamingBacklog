@@ -21,7 +21,7 @@ function makeCtx(key: CollectionKey, items: Item[], over: Partial<CollectionCtx>
   const actions = { save: vi.fn(), remove: vi.fn(), loadStarter: vi.fn(), refresh: vi.fn(), loadAll: vi.fn(async () => {}), loadMonth: vi.fn(async () => {}) };
   const ctx: CollectionCtx = {
     collection: key, cfg: COLLECTIONS[key], data: { ...initialCollectionState, status: "ready", items, full: true }, items,
-    actions: actions as never, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
+    actions: actions as never, goals: null, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
     openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), removeItem: vi.fn(), ...over,
   };
   return { ctx, actions };

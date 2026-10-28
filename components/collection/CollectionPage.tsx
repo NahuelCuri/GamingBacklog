@@ -12,11 +12,13 @@ import { COLLECTIONS } from "@/config/collections";
 import { blankDraft, draftFromItem } from "@/lib/collection";
 import type { CollectionKey, Item } from "@/lib/collection/types";
 import type { CollectionStore } from "@/lib/data/store";
+import type { GoalStore } from "@/lib/goals";
 import { useAuth } from "@/lib/auth";
 import { collectionSummary, rememberSummary } from "@/lib/home";
 import { useCollection } from "@/lib/data/useCollection";
 import { useStore } from "@/lib/data/useStore";
 import { useCurrency } from "@/lib/hooks/useCurrency";
+import { useGoals, useGoalStore } from "@/lib/hooks/useGoals";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { hasView } from "@/lib/collection/url-state";
 import { useUrlState } from "@/lib/hooks/useUrlState";
@@ -46,10 +48,12 @@ export function CollectionPage({ collection }: { collection: CollectionKey }) {
 
 const alertClass = "mt-6 rounded-xl border border-neg/25 bg-neg/8 px-4 py-3 text-sm text-neg";
 
-/** The collection UI. `store` overrides the signed-in user's Supabase store (dev preview). */
-export function CollectionBody({ collection, store }: { collection: CollectionKey; store?: CollectionStore | null }) {
+/** The collection UI. `store` and `goalStore` override the signed-in user's Supabase ones (dev preview). */
+export function CollectionBody({ collection, store, goalStore }: { collection: CollectionKey; store?: CollectionStore | null; goalStore?: GoalStore | null }) {
   const cfg = COLLECTIONS[collection];
   const userStore = useStore(collection);
+  const userGoalStore = useGoalStore();
+  const goals = useGoals(collection, goalStore === undefined ? userGoalStore : goalStore, !!cfg.goal);
   // Ledgers (expenses) read one month at a time; every other library reads everything.
   const { state: data, actions } = useCollection(collection, store === undefined ? userStore : store, { byMonth: !!cfg.ledgerMonth });
   const isMobile = useIsMobile();
@@ -112,11 +116,11 @@ export function CollectionBody({ collection, store }: { collection: CollectionKe
 
   const ctx = useMemo<CollectionCtx>(
     () => ({
-      collection, cfg, data, items, actions, money, currency, isMobile, url, setUrl, openAdd, openEdit, removeItem,
+      collection, cfg, data, items, actions, goals, money, currency, isMobile, url, setUrl, openAdd, openEdit, removeItem,
       openShare: setShareItem,
       openStatsImage: () => setStatsImage(true),
     }),
-    [collection, cfg, data, items, actions, money, currency, isMobile, url, setUrl, openAdd, openEdit, removeItem],
+    [collection, cfg, data, items, actions, goals, money, currency, isMobile, url, setUrl, openAdd, openEdit, removeItem],
   );
 
   return (

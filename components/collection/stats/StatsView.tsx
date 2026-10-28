@@ -6,6 +6,7 @@ import { CountUp } from "@/components/ui/CountUp";
 import { Pill, PillGroup, accentButton } from "@/components/ui/Pills";
 import { buildStats, monthKey, suspects, type Widget } from "@/lib/collection";
 import { useCollectionCtx } from "../CollectionContext";
+import { GoalWidget } from "../goal/Goal";
 import { StatWidget } from "./StatWidget";
 
 const HISTORY = new Set<Widget["kind"]>(["trend", "heatmap"]);
@@ -93,6 +94,7 @@ export function StatsView() {
       <div className="grid items-start gap-5" style={{ gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "1.15fr .85fr" }}>
         {[stats.left, stats.right].map((col, i) => (
           <div key={i} className="flex flex-col gap-5">
+            {i === 1 && <GoalWidget />}
             {col.map((w) => (
               <StatWidget key={w.title} w={w} onYear={setSpendYear} />
             ))}
