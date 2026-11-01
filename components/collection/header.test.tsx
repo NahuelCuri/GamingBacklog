@@ -29,7 +29,7 @@ function renderHeader(status: "ready" | "loading" = "ready") {
       value={{
         collection: "games", cfg: COLLECTIONS.games, data: { ...initialCollectionState, status, items, full: status === "ready" }, items,
         actions: actions as never, goals: null, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
-        openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), removeItem: vi.fn(),
+        month: "2026-01", setMonth: vi.fn(), openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), removeItem: vi.fn(),
       }}
     >
       <CollectionHeader />

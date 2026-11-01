@@ -16,10 +16,8 @@ import { GoalCard } from "./goal/Goal";
 import { ItemTable, ItemTableSkeleton } from "./ItemTable";
 
 export function LibraryView() {
-  const { cfg, data, items, actions, money, isMobile, url, setUrl, openAdd, removeItem } = useCollectionCtx();
+  const { cfg, data, items, actions, money, isMobile, url, setUrl, month, setMonth, openAdd, removeItem } = useCollectionCtx();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  // Ledger collections (expenses) show one month at a time, the current one first.
-  const [month, setMonth] = useState(currentMonthKey);
   // Expenses read one month from the server at a time; this asks for the one picked.
   useEffect(() => {
     if (cfg.ledgerMonth) actions?.loadMonth(month);

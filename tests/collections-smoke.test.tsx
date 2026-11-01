@@ -14,7 +14,7 @@ import { ShareCardDialog } from "@/components/collection/share/ShareCardDialog";
 import { ShareImageDialog } from "@/components/collection/share/ShareImageDialog";
 import { StatsView } from "@/components/collection/stats/StatsView";
 import { COLLECTIONS } from "@/config/collections";
-import { blankDraft, buildStats, draftFromItem, type CollectionKey, type Item } from "@/lib/collection";
+import { blankDraft, buildStats, currentMonthKey, draftFromItem, type CollectionKey, type Item } from "@/lib/collection";
 import { DEFAULT_URL_STATE } from "@/lib/collection/url-state";
 import { initialCollectionState } from "@/lib/data/collection-state";
 import { usd } from "@/lib/spending";
@@ -42,6 +42,7 @@ function ctxFor(key: CollectionKey, items: Item[]): CollectionCtx {
     // Libraries with a goal render its cards too, with this year's and last year's set.
     goals: COLLECTIONS[key].goal ? { goals: { [YEAR]: 24, [YEAR - 1]: 10 }, error: null, setGoal: noop } : null,
     money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: noop,
+    month: currentMonthKey(), setMonth: noop,
     openAdd: noop, openEdit: noop, openShare: noop, openStatsImage: noop, removeItem: noop,
   };
 }

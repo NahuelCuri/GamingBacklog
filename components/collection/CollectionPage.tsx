@@ -9,7 +9,7 @@ import { accentButton, closeButton } from "@/components/ui/Pills";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { useCollectionTheme } from "@/components/shell/useCollectionTheme";
 import { COLLECTIONS } from "@/config/collections";
-import { blankDraft, draftFromItem } from "@/lib/collection";
+import { blankDraft, currentMonthKey, draftFromItem } from "@/lib/collection";
 import type { CollectionKey, Item } from "@/lib/collection/types";
 import type { CollectionStore } from "@/lib/data/store";
 import type { GoalStore } from "@/lib/goals";
@@ -110,17 +110,22 @@ export function CollectionBody({ collection, store, goalStore }: { collection: C
   }, [needsAll, data.status, actions]);
   const all = data.status === "ready" && data.full;
 
-  const openAdd = useCallback(() => setModal({ mode: "add", draft: blankDraft(cfg) }), [cfg]);
+  // Ledgers show one month at a time; kept here so adding from the header lands in it too.
+  const [month, setMonth] = useState(currentMonthKey);
+  const openAdd = useCallback(
+    () => setModal({ mode: "add", draft: blankDraft(cfg, new Date(), cfg.ledgerMonth ? month : undefined) }),
+    [cfg, month],
+  );
   const openEdit = useCallback((g: Item) => setModal({ mode: "edit", draft: draftFromItem(cfg, g) }), [cfg]);
   const closeModal = useCallback(() => setModal(null), []);
 
   const ctx = useMemo<CollectionCtx>(
     () => ({
-      collection, cfg, data, items, actions, goals, money, currency, isMobile, url, setUrl, openAdd, openEdit, removeItem,
+      collection, cfg, data, items, actions, goals, money, currency, isMobile, url, setUrl, month, setMonth, openAdd, openEdit, removeItem,
       openShare: setShareItem,
       openStatsImage: () => setStatsImage(true),
     }),
-    [collection, cfg, data, items, actions, goals, money, currency, isMobile, url, setUrl, openAdd, openEdit, removeItem],
+    [collection, cfg, data, items, actions, goals, money, currency, isMobile, url, setUrl, month, setMonth, openAdd, openEdit, removeItem],
   );
 
   return (

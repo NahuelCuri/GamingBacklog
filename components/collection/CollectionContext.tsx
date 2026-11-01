@@ -23,6 +23,9 @@ export interface CollectionCtx {
   isMobile: boolean;
   url: UrlState;
   setUrl(patch: Partial<UrlState> | ((s: UrlState) => Partial<UrlState>)): void;
+  /** The ledger month on screen ("YYYY-MM"); new rows default into it. */
+  month: string;
+  setMonth(k: string): void;
   openAdd(): void;
   openEdit(item: Item): void;
   /** Deletes at once and offers Undo for a few seconds. */

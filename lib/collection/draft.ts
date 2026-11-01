@@ -8,7 +8,15 @@ export type Draft = Record<string, unknown> & { id?: string };
 
 const modalFields = (cfg: CollectionConfig) => cfg.modal.groups.flatMap((g) => g.fields);
 
-export function blankDraft(cfg: CollectionConfig, today = new Date()): Draft {
+const pad = (n: number) => String(n).padStart(2, "0");
+/** "YYYY-MM-DD" of a local date; toISOString gives the UTC day, a day ahead late at night west of UTC. */
+const localDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+/**
+ * A new item's form. With `month` ("YYYY-MM", the ledger month on screen) other than this one,
+ * the auto date lands in that month, on today's day of the month (or its last day).
+ */
+export function blankDraft(cfg: CollectionConfig, today = new Date(), month?: string): Draft {
   const d: Draft = { tagInput: "" };
   for (const f of modalFields(cfg)) {
     if (f.kind === "tags") d[f.key] = [];
@@ -16,7 +24,14 @@ export function blankDraft(cfg: CollectionConfig, today = new Date()): Draft {
     else if (f.kind === "status") d[f.key] = cfg.defaultStatus;
     else d[f.key] = "";
   }
-  if (cfg.modal.autoDateField) d[cfg.modal.autoDateField] = today.toISOString().slice(0, 10);
+  if (cfg.modal.autoDateField) {
+    let day = today;
+    if (month && month !== localDay(today).slice(0, 7)) {
+      const [y, m] = month.split("-").map(Number);
+      day = new Date(y, m - 1, Math.min(today.getDate(), new Date(y, m, 0).getDate()));
+    }
+    d[cfg.modal.autoDateField] = localDay(day);
+  }
   return d;
 }
 
