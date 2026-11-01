@@ -22,7 +22,7 @@ function makeCtx(key: CollectionKey, items: Item[], over: Partial<CollectionCtx>
   const ctx: CollectionCtx = {
     collection: key, cfg: COLLECTIONS[key], data: { ...initialCollectionState, status: "ready", items, full: true }, items,
     actions: actions as never, goals: null, money: usd, isMobile: false, url: DEFAULT_URL_STATE, setUrl: () => {},
-    openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), removeItem: vi.fn(), ...over,
+    month: currentMonthKey(), setMonth: () => {}, openAdd: vi.fn(), openEdit: vi.fn(), openShare: vi.fn(), openStatsImage: vi.fn(), removeItem: vi.fn(), ...over,
   };
   return { ctx, actions };
 }
@@ -32,9 +32,10 @@ function renderLibrary(key: CollectionKey, items: Item[]) {
   const { ctx, actions } = makeCtx(key, items);
   function Harness() {
     const [url, setUrlState] = useState<UrlState>(DEFAULT_URL_STATE);
+    const [month, setMonth] = useState(currentMonthKey);
     const setUrl = (p: Partial<UrlState> | ((s: UrlState) => Partial<UrlState>)) => setUrlState((s) => ({ ...s, ...(typeof p === "function" ? p(s) : p) }));
     return (
-      <CollectionContext.Provider value={{ ...ctx, url, setUrl }}>
+      <CollectionContext.Provider value={{ ...ctx, url, setUrl, month, setMonth }}>
         <LibraryView />
       </CollectionContext.Provider>
     );
