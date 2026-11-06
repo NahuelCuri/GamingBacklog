@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "backlog": {
+      "command": "node",
+      "args": [
+        "scripts/mcp/server.mjs"
+      ]
+    }
+  }
+}
