@@ -9,7 +9,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint",
-    "districts": "vite-node --config vitest.config.mts scripts/districts.ts"
+    "districts": "vite-node --config vitest.config.mts scripts/districts.ts",
+    "mcp": "node scripts/mcp/server.mjs",
+    "mcp:login": "node scripts/mcp/login.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
