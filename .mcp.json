@@ -3,6 +3,7 @@
     "backlog": {
       "command": "node",
       "args": [
+        "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
         "scripts/mcp/server.mjs"
       ]
     }

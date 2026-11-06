@@ -10,8 +10,9 @@
     "test:watch": "vitest",
     "lint": "eslint",
     "districts": "vite-node --config vitest.config.mts scripts/districts.ts",
-    "mcp": "node scripts/mcp/server.mjs",
-    "mcp:login": "node scripts/mcp/login.mjs"
+    "mcp": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/mcp/server.mjs",
+    "mcp:login": "node scripts/mcp/login.mjs",
+    "mcp:schemas": "vite-node --config vitest.config.mts scripts/mcp/build-schemas.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

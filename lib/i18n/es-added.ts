@@ -88,4 +88,15 @@ export const ES_ADDED: Readonly<Record<string, string>> = {
   "Where an even pace would be today": "Donde estarías hoy a ritmo parejo",
   "How many books do you want to read?": "¿Cuántos libros quieres leer?",
   "finished books without a date don't count:": "libros terminados sin fecha no cuentan:",
+  // OAuth consent (app/oauth/consent)
+  "Returning to the app…": "Volviendo a la app…",
+  "This link is missing its authorization request.": "A este link le falta la solicitud de autorización.",
+  "This connector is private": "Este conector es privado",
+  "Only its owner can connect apps to it.": "Solo su dueño puede conectarle apps.",
+  "Go back": "Volver",
+  "wants to use your Backlog": "quiere usar tu Backlog",
+  "It will be able to read, add, edit and delete items in every library.": "Podrá ver, agregar, editar y borrar ítems de todas tus bibliotecas.",
+  "Returns to": "Vuelve a",
+  Deny: "Rechazar",
+  Allow: "Permitir",
 };

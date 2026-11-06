@@ -1,0 +1,648 @@
+[
+  {
+    "key": "games",
+    "noun": "game",
+    "nounPlural": "games",
+    "shared": false,
+    "titleField": "title",
+    "statusField": "status",
+    "statuses": [
+      "playing",
+      "played",
+      "backlog"
+    ],
+    "defaultStatus": "backlog",
+    "dateField": null,
+    "accountField": null,
+    "numberFields": [
+      "score",
+      "hours",
+      "hltb",
+      "price"
+    ],
+    "yearFields": [
+      "yearCompleted"
+    ],
+    "required": [
+      "title"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Title",
+        "kind": "text",
+        "placeholder": "Game title"
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "status"
+      },
+      {
+        "key": "tags",
+        "label": "Tags",
+        "kind": "tags"
+      },
+      {
+        "key": "score",
+        "label": "Score /10",
+        "kind": "number",
+        "min": 0,
+        "max": 10
+      },
+      {
+        "key": "review",
+        "label": "My thoughts",
+        "kind": "longtext",
+        "placeholder": "What you liked, what you didn't…"
+      },
+      {
+        "key": "hours",
+        "label": "Hours played",
+        "kind": "number",
+        "min": 0
+      },
+      {
+        "key": "hltb",
+        "label": "HLTB",
+        "kind": "number",
+        "min": 0
+      },
+      {
+        "key": "releaseDate",
+        "label": "Release date",
+        "kind": "date"
+      },
+      {
+        "key": "yearCompleted",
+        "label": "Year completed",
+        "kind": "number",
+        "min": 1980,
+        "max": 2030
+      },
+      {
+        "key": "source",
+        "label": "How I got it",
+        "kind": "enum",
+        "options": [
+          "Bought",
+          "Game Pass",
+          "Pirated",
+          "Gift",
+          "Free"
+        ]
+      },
+      {
+        "key": "platform",
+        "label": "Platform",
+        "kind": "enum",
+        "options": [
+          "Steam",
+          "Epic",
+          "EA",
+          "GOG",
+          "Xbox",
+          "PlayStation",
+          "Switch"
+        ]
+      },
+      {
+        "key": "price",
+        "label": "Price",
+        "kind": "number",
+        "min": 0
+      },
+      {
+        "key": "purchaseDate",
+        "label": "Purchase date",
+        "kind": "date"
+      },
+      {
+        "key": "owned",
+        "label": "Owned",
+        "kind": "toggle"
+      }
+    ]
+  },
+  {
+    "key": "books",
+    "noun": "book",
+    "nounPlural": "books",
+    "shared": false,
+    "titleField": "title",
+    "statusField": "status",
+    "statuses": [
+      "reading",
+      "finished",
+      "backlog",
+      "paused",
+      "dropped"
+    ],
+    "defaultStatus": "backlog",
+    "dateField": "dateAdded",
+    "accountField": null,
+    "numberFields": [
+      "score",
+      "pages",
+      "volume"
+    ],
+    "yearFields": [
+      "pubYear"
+    ],
+    "required": [
+      "title"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Title",
+        "kind": "text",
+        "placeholder": "Book title"
+      },
+      {
+        "key": "author",
+        "label": "Author",
+        "kind": "text",
+        "placeholder": "Author"
+      },
+      {
+        "key": "series",
+        "label": "Series",
+        "kind": "text",
+        "placeholder": "Series (optional)"
+      },
+      {
+        "key": "volume",
+        "label": "Volume #",
+        "kind": "number",
+        "min": 0
+      },
+      {
+        "key": "pages",
+        "label": "Pages",
+        "kind": "number",
+        "min": 0
+      },
+      {
+        "key": "pubYear",
+        "label": "Published",
+        "kind": "number",
+        "min": 1400,
+        "max": 2030
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "status"
+      },
+      {
+        "key": "score",
+        "label": "Rating /10",
+        "kind": "number",
+        "min": 0,
+        "max": 10
+      },
+      {
+        "key": "language",
+        "label": "Language",
+        "kind": "text",
+        "placeholder": "e.g. English"
+      },
+      {
+        "key": "started",
+        "label": "Started reading",
+        "kind": "date"
+      },
+      {
+        "key": "finished",
+        "label": "Finished reading",
+        "kind": "date"
+      },
+      {
+        "key": "isbn",
+        "label": "ISBN",
+        "kind": "text",
+        "placeholder": "Enter ISBN to auto-fill…"
+      },
+      {
+        "key": "genres",
+        "label": "Genres",
+        "kind": "tags"
+      },
+      {
+        "key": "dateAdded",
+        "label": "Date added",
+        "kind": "date"
+      },
+      {
+        "key": "synopsis",
+        "label": "Synopsis (optional)",
+        "kind": "longtext",
+        "placeholder": "What is it about…"
+      },
+      {
+        "key": "review",
+        "label": "My thoughts",
+        "kind": "longtext",
+        "placeholder": "What you liked, what you didn't…"
+      }
+    ]
+  },
+  {
+    "key": "wines",
+    "noun": "wine",
+    "nounPlural": "wines",
+    "shared": true,
+    "titleField": "title",
+    "statusField": "status",
+    "statuses": [
+      "cellar",
+      "opened"
+    ],
+    "defaultStatus": "cellar",
+    "dateField": null,
+    "accountField": null,
+    "numberFields": [],
+    "yearFields": [
+      "vintage"
+    ],
+    "required": [
+      "title"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Name",
+        "kind": "text",
+        "placeholder": "Wine name"
+      },
+      {
+        "key": "winery",
+        "label": "Winery",
+        "kind": "text",
+        "placeholder": "Bodega"
+      },
+      {
+        "key": "vintage",
+        "label": "Vintage",
+        "kind": "number",
+        "min": 1900,
+        "max": 2035
+      },
+      {
+        "key": "region",
+        "label": "Region",
+        "kind": "text",
+        "placeholder": "e.g. Mendoza · Rioja · Barossa"
+      },
+      {
+        "key": "aging",
+        "label": "Aging (crianza)",
+        "kind": "enum",
+        "options": [
+          "Joven",
+          "Crianza",
+          "Reserva",
+          "Gran Reserva"
+        ]
+      },
+      {
+        "key": "storage",
+        "label": "Stored in",
+        "kind": "enum",
+        "options": [
+          "Kitchen",
+          "Bedroom chest"
+        ]
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "status"
+      },
+      {
+        "key": "grape",
+        "label": "Grape / varietals — add each for a blend",
+        "kind": "tags"
+      },
+      {
+        "key": "pairings",
+        "label": "Suggested pairings",
+        "kind": "tags"
+      },
+      {
+        "key": "awards",
+        "label": "Awards (optional)",
+        "kind": "longtext",
+        "placeholder": "Medals, scores, competitions…"
+      },
+      {
+        "key": "notes",
+        "label": "Tasting notes",
+        "kind": "longtext",
+        "placeholder": "Nariz, boca, final…"
+      }
+    ]
+  },
+  {
+    "key": "movies",
+    "noun": "title",
+    "nounPlural": "titles",
+    "shared": false,
+    "titleField": "title",
+    "statusField": "status",
+    "statuses": [
+      "watching",
+      "completed",
+      "backlog",
+      "dropped"
+    ],
+    "defaultStatus": "backlog",
+    "dateField": "dateAdded",
+    "accountField": null,
+    "numberFields": [
+      "rating",
+      "runtime",
+      "episodes",
+      "epLength",
+      "seasons",
+      "imdb",
+      "rt"
+    ],
+    "yearFields": [
+      "year"
+    ],
+    "required": [
+      "title"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Title",
+        "kind": "text",
+        "placeholder": "Movie or series title"
+      },
+      {
+        "key": "type",
+        "label": "Type",
+        "kind": "enum",
+        "options": [
+          "Movie",
+          "Series",
+          "Mini-series",
+          "Documentary",
+          "Anime"
+        ]
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "status"
+      },
+      {
+        "key": "genres",
+        "label": "Genres",
+        "kind": "tags"
+      },
+      {
+        "key": "year",
+        "label": "Release year",
+        "kind": "number",
+        "min": 1900,
+        "max": 2035
+      },
+      {
+        "key": "rating",
+        "label": "My rating /10",
+        "kind": "number",
+        "min": 0,
+        "max": 10
+      },
+      {
+        "key": "imdb",
+        "label": "IMDb /10",
+        "kind": "number",
+        "min": 0,
+        "max": 10
+      },
+      {
+        "key": "rt",
+        "label": "Rotten Tom. %",
+        "kind": "number",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "key": "finished",
+        "label": "Date finished",
+        "kind": "date"
+      },
+      {
+        "key": "runtime",
+        "label": "Runtime (min)",
+        "kind": "number",
+        "min": 0,
+        "showWhen": {
+          "field": "type",
+          "notIn": [
+            "Series",
+            "Mini-series",
+            "Anime"
+          ]
+        }
+      },
+      {
+        "key": "director",
+        "label": "Director",
+        "kind": "text",
+        "placeholder": "Director",
+        "showWhen": {
+          "field": "type",
+          "notIn": [
+            "Series",
+            "Mini-series",
+            "Anime"
+          ]
+        }
+      },
+      {
+        "key": "episodes",
+        "label": "Episodes",
+        "kind": "number",
+        "min": 0,
+        "showWhen": {
+          "field": "type",
+          "in": [
+            "Series",
+            "Mini-series",
+            "Anime"
+          ]
+        }
+      },
+      {
+        "key": "epLength",
+        "label": "Avg ep. (min)",
+        "kind": "number",
+        "min": 0,
+        "showWhen": {
+          "field": "type",
+          "in": [
+            "Series",
+            "Mini-series",
+            "Anime"
+          ]
+        }
+      },
+      {
+        "key": "seasons",
+        "label": "Seasons",
+        "kind": "number",
+        "min": 0,
+        "showWhen": {
+          "field": "type",
+          "in": [
+            "Series",
+            "Mini-series",
+            "Anime"
+          ]
+        }
+      },
+      {
+        "key": "creator",
+        "label": "Creator / showrunner",
+        "kind": "text",
+        "placeholder": "Creator",
+        "showWhen": {
+          "field": "type",
+          "in": [
+            "Series",
+            "Mini-series",
+            "Anime"
+          ]
+        }
+      },
+      {
+        "key": "studio",
+        "label": "Studio (optional)",
+        "kind": "text",
+        "placeholder": "e.g. A24 · HBO · Studio Ghibli"
+      },
+      {
+        "key": "watchedOn",
+        "label": "Watched on",
+        "kind": "enum",
+        "options": [
+          "Home",
+          "Cinema"
+        ]
+      },
+      {
+        "key": "cast",
+        "label": "Main cast",
+        "kind": "tags"
+      },
+      {
+        "key": "awards",
+        "label": "Awards (optional)",
+        "kind": "longtext",
+        "placeholder": "Oscars, Emmys, festival wins…"
+      },
+      {
+        "key": "dateAdded",
+        "label": "Date added",
+        "kind": "date"
+      },
+      {
+        "key": "notes",
+        "label": "My thoughts",
+        "kind": "longtext",
+        "placeholder": "What you liked, what you didn't…"
+      }
+    ]
+  },
+  {
+    "key": "expenses",
+    "noun": "transaction",
+    "nounPlural": "transactions",
+    "shared": false,
+    "titleField": "title",
+    "statusField": "type",
+    "statuses": [
+      "expense",
+      "income",
+      "transfer"
+    ],
+    "defaultStatus": "expense",
+    "dateField": "date",
+    "accountField": "account",
+    "numberFields": [
+      "amount"
+    ],
+    "yearFields": [],
+    "required": [
+      "title",
+      "amount"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Description",
+        "kind": "text",
+        "placeholder": "e.g. Steam · McDonald’s · Salary"
+      },
+      {
+        "key": "type",
+        "label": "Type",
+        "kind": "status"
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "kind": "combo",
+        "placeholder": "Type a category… e.g. Food, Rent, Meds",
+        "suggest": [
+          "Food",
+          "Housing",
+          "Transport",
+          "Games",
+          "Subs",
+          "Health",
+          "Income",
+          "Other"
+        ]
+      },
+      {
+        "key": "account",
+        "label": "Transfer to account",
+        "kind": "enum",
+        "options": [
+          "Savings",
+          "Investing",
+          "USD"
+        ],
+        "showWhen": {
+          "field": "type",
+          "eq": "transfer"
+        }
+      },
+      {
+        "key": "amount",
+        "label": "Amount",
+        "kind": "number",
+        "placeholder": "0.00",
+        "min": 0
+      },
+      {
+        "key": "date",
+        "label": "Date",
+        "kind": "date"
+      },
+      {
+        "key": "notes",
+        "label": "Note",
+        "kind": "longtext",
+        "placeholder": "What was this for…"
+      }
+    ]
+  }
+]
