@@ -43,6 +43,9 @@ const schemaOf = (key: unknown): CollectionSchema => {
 
 // ---------------------------------------------------------------- storage
 
+/** Trip Planner tables (lib/trips/store.ts): shared rows, RLS limits them to the user's own and shared trips. */
+const TRIP_TABLES = ["trips", "trip_cards"];
+
 /** Rows of one user. `from`/`to` are inclusive "YYYY-MM-DD" bounds on `field`. */
 export interface Rows {
   list(collection: string, range?: { field: string; from?: string; to?: string }): Promise<Item[]>;
@@ -64,7 +67,7 @@ export function supabaseRows(sb: Sb, uid: string): Rows {
   const check = ({ error }: { error: unknown }) => {
     if (error) throw error;
   };
-  const shared = (c: string) => schemaOf(c).shared;
+  const shared = (c: string) => TRIP_TABLES.includes(c) || schemaOf(c).shared;
   return {
     async list(c, range) {
       let q = sb.from(c).select("data");
@@ -231,6 +234,415 @@ const newId = (now: number) => "x" + (lastId = Math.max(now, lastId + 1));
 
 const collectionArg = { type: "string", enum: COLLECTIONS.map((c) => c.key) };
 
+// ---------------------------------------------------------------- summaries, suggestions, trips
+
+const MONTH = /^\d{4}-\d{2}$/;
+const monthArg = { type: "string", pattern: MONTH.source, description: "YYYY-MM" };
+const money = (n: number) => Math.round(n * 100) / 100;
+const todayOf = (ctx: Ctx) => dayIn((ctx.now ?? (() => new Date()))(), ctx.tz);
+
+/** "2026-10", -1 → "2026-09". */
+export function shiftMonth(m: string, by: number): string {
+  const [y, mo] = m.split("-").map(Number);
+  return new Date(Date.UTC(y, mo - 1 + by, 1)).toISOString().slice(0, 7);
+}
+
+const monthItems = (ctx: Ctx, m: string) => ctx.rows.list("expenses", { field: "date", from: `${m}-01`, to: `${m}-31` });
+const shiftDay = (d: string, by: number) => new Date(Date.parse(d + "T00:00:00Z") + by * 86400000).toISOString().slice(0, 10);
+const dayDiff = (a: string, b: string) => Math.abs(Date.parse(a + "T00:00:00Z") - Date.parse(b + "T00:00:00Z")) / 86400000;
+
+/** Lowercase, no accents or punctuation, so names compare loosely ("Día" = "dia"). */
+const loose = (t: unknown) =>
+  String(t ?? "")
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+function totals(items: Item[], groupBy: string) {
+  const sum: Record<string, number> = { income: 0, expense: 0, transfer: 0 };
+  const groups = new Map<string, { total: number; count: number }>();
+  for (const g of items) {
+    const amt = Number(g.amount) || 0;
+    const type = String(g.type || "expense");
+    sum[type] = (sum[type] ?? 0) + amt;
+    if (type !== "expense") continue;
+    const key = String(g[groupBy] || "(none)");
+    const cur = groups.get(key) ?? { total: 0, count: 0 };
+    cur.total += amt;
+    cur.count++;
+    groups.set(key, cur);
+  }
+  return { income: money(sum.income), expense: money(sum.expense), transfer: money(sum.transfer), net: money(sum.income - sum.expense), count: items.length, groups };
+}
+
+/** Per library: the "done" status and its year, the score, length and tag fields. */
+const STATS: Record<string, { done: string; doneYear: (g: Item) => string; score?: string; length?: { field: string; unit: string }; tags: string }> = {
+  games: { done: "played", doneYear: (g) => String(g.yearCompleted ?? ""), score: "score", length: { field: "hltb", unit: "hours to beat" }, tags: "tags" },
+  books: { done: "finished", doneYear: (g) => String(g.finished ?? "").slice(0, 4), score: "score", length: { field: "pages", unit: "pages" }, tags: "genres" },
+  movies: { done: "completed", doneYear: (g) => String(g.finished ?? "").slice(0, 4), score: "rating", length: { field: "runtime", unit: "minutes" }, tags: "genres" },
+  wines: { done: "opened", doneYear: () => "", tags: "grape" },
+};
+
+// Trip cards as lib/trips/model.ts defines them (tests/mcp.test.ts keeps these in sync).
+export const TRIP_CARD_TYPES = ["place", "food", "activity", "lodging", "transport", "watch", "research", "todo", "important"];
+export const TRIP_CARD_STATUSES = ["idea", "researched", "confirmed", "booked"];
+export const TRIP_CARD_PRIOS = ["must", "nice", "backup"];
+/** Like the planner's newId: time first, then a random tail (every account writes to the same table). */
+const cardId = (now: number) => "c" + now + crypto.randomUUID().slice(0, 6);
+
+const cardProps: Record<string, JsonSchema> = {
+  title: { type: "string" },
+  type: { type: "string", enum: TRIP_CARD_TYPES, description: "default place" },
+  status: { type: "string", enum: TRIP_CARD_STATUSES, description: "default idea" },
+  priority: { type: "string", enum: TRIP_CARD_PRIOS, description: "default nice" },
+  tags: { type: "array", items: { type: "string" } },
+  price: { type: "number", description: "In the trip's currency" },
+  region: { type: "string", description: "Neighbourhood or city" },
+  notes: { type: "string" },
+  source: { type: "string", description: "Link" },
+  startTime: { type: "string", description: "e.g. 09:30" },
+  duration: { type: "string", description: "e.g. 2h" },
+  day: { type: ["number", "null"], minimum: 1, description: "Day of the trip (1 = first); null keeps it in the pool" },
+};
+
+/** Checks a card the way the planner's editor stores it (cleanCard). */
+function checkCardKeys(input: Record<string, unknown>) {
+  const bad = Object.keys(input).filter((k) => !(k in cardProps));
+  if (bad.length) throw new Error(`Unknown card field(s) ${bad.join(", ")}. Fields: ${Object.keys(cardProps).join(", ")}`);
+}
+
+function cleanCard(input: Record<string, unknown>): Item {
+  const out: Record<string, unknown> = { ...input, title: String(input.title ?? "").trim() };
+  if (!out.title) throw new Error("A card needs a title");
+  const oneOf = (k: string, list: string[]) => {
+    if (!list.includes(String(out[k]))) throw new Error(`card "${out.title}": ${k} must be one of ${list.join(", ")}`);
+  };
+  oneOf("type", TRIP_CARD_TYPES);
+  oneOf("status", TRIP_CARD_STATUSES);
+  oneOf("priority", TRIP_CARD_PRIOS);
+  out.tags = (Array.isArray(out.tags) ? out.tags : String(out.tags ?? "").split(",")).map((x) => String(x).trim()).filter(Boolean);
+  if (out.price === "" || out.price == null) out.price = null;
+  else if (!Number.isFinite(Number(out.price))) throw new Error(`card "${out.title}": price must be a number`);
+  else out.price = Number(out.price);
+  if (out.day === "" || out.day == null) out.day = null;
+  else if (!Number.isInteger(Number(out.day)) || Number(out.day) < 1) throw new Error(`card "${out.title}": day must be 1 or more`);
+  else out.day = Number(out.day);
+  return out as Item;
+}
+
+async function tripOf(ctx: Ctx, id: unknown) {
+  const t = await ctx.rows.get("trips", String(id));
+  if (!t) throw new Error(`No trip with id ${id} (list_trips shows them)`);
+  return t;
+}
+
+const EXTRA_TOOLS: Record<string, Tool> = {
+  summarize_expenses: {
+    description:
+      "Totals of the expenses ledger for a month (default this month) or a from/to range: income, expense, net, and expenses " +
+      "grouped by category (or account / title). For a month it also gives the previous month's totals per group.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        month: monthArg,
+        from: { type: "string", pattern: DAY.source, description: "YYYY-MM-DD, instead of month" },
+        to: { type: "string", pattern: DAY.source, description: "YYYY-MM-DD, instead of month" },
+        group_by: { type: "string", enum: ["category", "account", "title"], description: "default category" },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    async run(a, ctx) {
+      const groupBy = String(a.group_by || "category");
+      const ranged = !a.month && !!(a.from || a.to);
+      const month = String(a.month || todayOf(ctx).slice(0, 7));
+      const items = ranged
+        ? await ctx.rows.list("expenses", { field: "date", from: a.from as string | undefined, to: a.to as string | undefined })
+        : await monthItems(ctx, month);
+      const cur = totals(items, groupBy);
+      const prevMonth = ranged ? null : shiftMonth(month, -1);
+      const prev = prevMonth ? totals(await monthItems(ctx, prevMonth), groupBy) : null;
+      const keys = [...cur.groups.keys(), ...(prev ? [...prev.groups.keys()].filter((k) => !cur.groups.has(k)) : [])];
+      const expensesBy = keys
+        .map((k) => ({
+          [groupBy]: k,
+          total: money(cur.groups.get(k)?.total ?? 0),
+          count: cur.groups.get(k)?.count ?? 0,
+          ...(prev && { previous: money(prev.groups.get(k)?.total ?? 0) }),
+        }))
+        .sort((x, y) => y.total - x.total || (y.previous ?? 0) - (x.previous ?? 0));
+      const { groups: _g, ...head } = cur;
+      return {
+        ...(ranged ? { from: a.from ?? null, to: a.to ?? null } : { month }),
+        ...head,
+        ...(prev && { previous: { month: prevMonth, income: prev.income, expense: prev.expense, net: prev.net } }),
+        expensesBy,
+      };
+    },
+  },
+  reconcile_statement: {
+    description:
+      "Compare the movements of a bank or card statement with the expenses ledger. A movement counts as recorded when an entry of the " +
+      "same type and amount is within `tolerance_days` (names may differ). Returns the matches, the missing movements (in the statement, " +
+      "not in the app) and the app-only entries of the period. Adds nothing: show the missing ones and add them with add_expenses if the user agrees.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        movements: {
+          type: "array",
+          minItems: 1,
+          items: {
+            type: "object",
+            properties: {
+              date: { type: "string", pattern: DAY.source },
+              description: { type: "string" },
+              amount: { type: "number", description: "Positive" },
+              type: { type: "string", enum: ["expense", "income"], description: "default expense" },
+            },
+            required: ["date", "amount"],
+            additionalProperties: false,
+          },
+        },
+        tolerance_days: { type: "number", minimum: 0, maximum: 7, description: "default 1" },
+      },
+      required: ["movements"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    async run(a, ctx) {
+      const tol = a.tolerance_days == null ? 1 : Number(a.tolerance_days);
+      const moves = ((a.movements as Record<string, unknown>[]) ?? []).map((m, i) => {
+        if (!DAY.test(String(m.date))) throw new Error(`movement ${i + 1}: date must be YYYY-MM-DD`);
+        const amount = Math.abs(Number(m.amount));
+        if (!Number.isFinite(amount)) throw new Error(`movement ${i + 1}: amount must be a number`);
+        return { date: String(m.date), description: String(m.description ?? ""), amount, type: String(m.type || "expense") };
+      });
+      if (!moves.length) throw new Error("movements must be a non-empty array");
+      const dates = moves.map((m) => m.date).sort();
+      const from = dates[0], to = dates[dates.length - 1];
+      const recorded = await ctx.rows.list("expenses", { field: "date", from: shiftDay(from, -tol), to: shiftDay(to, tol) });
+      const used = new Set<string>();
+      const matches: unknown[] = [], missing: unknown[] = [];
+      for (const m of moves) {
+        const words = loose(m.description).split(" ").filter((w) => w.length > 2);
+        // Closest date first, then a shared word in the name, so near-duplicates pair up sensibly.
+        const hit = recorded
+          .filter((g) => !used.has(g.id) && String(g.type || "expense") === m.type && Math.abs((Number(g.amount) || 0) - m.amount) < 0.01)
+          .map((g) => ({ g, days: dayDiff(String(g.date), m.date), named: words.some((w) => loose(g.title).includes(w)) }))
+          .filter((c) => c.days <= tol)
+          .sort((x, y) => x.days - y.days || Number(y.named) - Number(x.named))[0];
+        if (hit) {
+          used.add(hit.g.id);
+          matches.push({ movement: m, recorded: { id: hit.g.id, date: hit.g.date, title: hit.g.title, category: hit.g.category } });
+        } else missing.push(m);
+      }
+      const appOnly = recorded
+        .filter((g) => !used.has(g.id) && String(g.date) >= from && String(g.date) <= to && g.type !== "transfer")
+        .map((g) => ({ id: g.id, date: g.date, title: g.title, amount: g.amount, type: g.type }));
+      return { period: { from, to }, matched: matches.length, missing, appOnly, matches };
+    },
+  },
+  recurring_expenses: {
+    description:
+      "Expenses and income that repeat month after month (same name in at least 2 of the last `lookback` months) and are not yet in " +
+      "`month` (default this month), with their last amount, category and usual day. Adds nothing: confirm with the user, then add_expenses.",
+    inputSchema: {
+      type: "object",
+      properties: { month: monthArg, lookback: { type: "number", minimum: 2, maximum: 12, description: "default 3" } },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    async run(a, ctx) {
+      const month = String(a.month || todayOf(ctx).slice(0, 7));
+      const lookback = Number(a.lookback) || 3;
+      const past = await ctx.rows.list("expenses", { field: "date", from: `${shiftMonth(month, -lookback)}-01`, to: `${shiftMonth(month, -1)}-31` });
+      const key = (g: Item) => `${g.type}|${loose(g.title)}`;
+      const have = new Set((await monthItems(ctx, month)).map(key));
+      const seen = new Map<string, { months: Set<string>; last: Item }>();
+      for (const g of past) {
+        if (!loose(g.title) || g.type === "transfer") continue;
+        const e = seen.get(key(g)) ?? { months: new Set<string>(), last: g };
+        e.months.add(String(g.date).slice(0, 7));
+        if (String(g.date) > String(e.last.date)) e.last = g;
+        seen.set(key(g), e);
+      }
+      const lastDay = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+      const suggestions = [...seen.entries()]
+        .filter(([k, e]) => e.months.size >= 2 && !have.has(k))
+        .map(([, e]) => {
+          const day = Math.min(Number(String(e.last.date).slice(8, 10)) || 1, lastDay);
+          const { title, type, category, account, amount } = e.last;
+          return { title, type, category, account, amount, date: `${month}-${String(day).padStart(2, "0")}`, monthsSeen: e.months.size };
+        })
+        .sort((x, y) => x.date.localeCompare(y.date));
+      return { month, lookback, suggestions };
+    },
+  },
+  backlog_stats: {
+    description: "Overview of the games, books, movies and wines libraries (or one): how many per status, finished this year, average score and top tags.",
+    inputSchema: {
+      type: "object",
+      properties: { collection: { type: "string", enum: Object.keys(STATS) }, year: { type: "string", pattern: "^\\d{4}$", description: "default this year" } },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    async run(a, ctx) {
+      const year = String(a.year || todayOf(ctx).slice(0, 4));
+      const out: Record<string, unknown> = { year };
+      for (const key of a.collection ? [String(a.collection)] : Object.keys(STATS)) {
+        const st = STATS[key], s = schemaOf(key);
+        const items = await ctx.rows.list(key);
+        const byStatus: Record<string, number> = {};
+        for (const g of items) byStatus[String(g[s.statusField] ?? "")] = (byStatus[String(g[s.statusField] ?? "")] ?? 0) + 1;
+        const scores = st.score ? items.map((g) => g[st.score!]).filter((v): v is number => typeof v === "number") : [];
+        const tagCount = new Map<string, number>();
+        for (const g of items) for (const t of (g[st.tags] as string[]) || []) tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
+        out[key] = {
+          total: items.length,
+          byStatus,
+          ...(key !== "wines" && { finishedThisYear: items.filter((g) => g[s.statusField] === st.done && st.doneYear(g) === year).length }),
+          ...(scores.length && { averageScore: money(scores.reduce((x, y) => x + y, 0) / scores.length), scored: scores.length }),
+          topTags: [...tagCount.entries()].sort((x, y) => y[1] - x[1]).slice(0, 8).map(([tag, count]) => ({ tag, count })),
+        };
+      }
+      return out;
+    },
+  },
+  pick_next: {
+    description:
+      "Suggest what to play, read or watch next: random picks from the backlog (or another status), optionally only with some tags " +
+      "(games) or genres (books, movies) and up to a maximum length (games: hours to beat, books: pages, movies: minutes).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        collection: { type: "string", enum: ["games", "books", "movies"] },
+        status: { type: "string", description: "default backlog" },
+        tags: { type: "array", items: { type: "string" }, description: "Any of these" },
+        max_length: { type: "number", minimum: 0 },
+        count: { type: "number", minimum: 1, maximum: 10, description: "default 3" },
+      },
+      required: ["collection"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    async run(a, ctx) {
+      const key = String(a.collection);
+      const st = STATS[key], s = schemaOf(key);
+      if (!st.length) throw new Error(`pick_next works on games, books and movies`);
+      const status = String(a.status || "backlog");
+      const tags = ((a.tags as string[]) || []).map(loose);
+      const max = a.max_length == null ? null : Number(a.max_length);
+      const pool = (await ctx.rows.list(key)).filter((g) => {
+        if (g[s.statusField] !== status) return false;
+        if (tags.length && !((g[st.tags] as string[]) || []).some((t) => tags.includes(loose(t)))) return false;
+        const len = g[st.length!.field];
+        return max == null || (typeof len === "number" && len <= max);
+      });
+      const picks = [...pool];
+      for (let i = picks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [picks[i], picks[j]] = [picks[j], picks[i]];
+      }
+      return { poolSize: pool.length, lengthUnit: st.length!.unit, picks: picks.slice(0, Number(a.count) || 3) };
+    },
+  },
+  list_trips: {
+    description: "The user's trips (own and shared with them) with dates, budget, spent so far and how many cards each has per status.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: true },
+    async run(_a, ctx) {
+      const [trips, cards] = await Promise.all([ctx.rows.list("trips"), ctx.rows.list("trip_cards")]);
+      return trips
+        .map((t) => {
+          const mine = cards.filter((c) => c.trip === t.id);
+          const byStatus: Record<string, number> = {};
+          for (const c of mine) byStatus[String(c.status)] = (byStatus[String(c.status)] ?? 0) + 1;
+          return {
+            id: t.id, name: t.name, subtitle: t.subtitle, start: t.start, end: t.end, dayCount: t.dayCount, currency: t.currency,
+            budget: t.budget, spent: money(mine.reduce((x, c) => x + (Number(c.price) || 0), 0)), cards: mine.length, byStatus,
+          };
+        })
+        .sort((x, y) => String(y.start ?? "").localeCompare(String(x.start ?? "")));
+    },
+  },
+  list_trip_cards: {
+    description: "Cards of one trip (places, food, lodging, to-dos…) in itinerary order: by day, unscheduled pool last, then the planner's order.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        trip: { type: "string", description: "Trip id (list_trips)" },
+        day: { type: ["number", "null"], description: "Only this day; null for the unscheduled pool" },
+        status: { type: "string", enum: TRIP_CARD_STATUSES },
+        type: { type: "string", enum: TRIP_CARD_TYPES },
+        query: { type: "string" },
+      },
+      required: ["trip"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    async run(a, ctx) {
+      const t = await tripOf(ctx, a.trip);
+      let cards = (await ctx.rows.list("trip_cards")).filter((c) => c.trip === t.id);
+      if (a.day !== undefined) cards = cards.filter((c) => (c.day ?? null) === a.day);
+      if (a.status) cards = cards.filter((c) => c.status === a.status);
+      if (a.type) cards = cards.filter((c) => c.type === a.type);
+      if (a.query) {
+        const q = loose(a.query);
+        cards = cards.filter((c) => loose([c.title, c.region, c.notes, ...((c.tags as string[]) || [])].join(" ")).includes(q));
+      }
+      const dayKey = (c: Item) => (c.day == null ? Infinity : Number(c.day));
+      const orderKey = (c: Item) => (c.order == null ? Infinity : Number(c.order));
+      cards.sort((x, y) => dayKey(x) - dayKey(y) || orderKey(x) - orderKey(y) || 0);
+      return { trip: { id: t.id, name: t.name, start: t.start, end: t.end, dayCount: t.dayCount, currency: t.currency }, cards };
+    },
+  },
+  add_trip_cards: {
+    description: "Add cards (places to see, restaurants, lodging, transport, to-dos…) to a trip. Without `day` they go to the trip's pool.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        trip: { type: "string", description: "Trip id (list_trips)" },
+        cards: { type: "array", minItems: 1, items: { type: "object", properties: cardProps, required: ["title"], additionalProperties: false } },
+      },
+      required: ["trip", "cards"],
+      additionalProperties: false,
+    },
+    async run(a, ctx) {
+      const t = await tripOf(ctx, a.trip);
+      const list = a.cards;
+      if (!Array.isArray(list) || !list.length) throw new Error("cards must be a non-empty array");
+      const now = (ctx.now ?? (() => new Date()))().getTime();
+      const existing = (await ctx.rows.list("trip_cards")).filter((c) => c.trip === t.id);
+      // After every card already there, so they show up last in the pool or their day.
+      let order = existing.reduce((m, c) => Math.max(m, c.order == null ? -1 : Number(c.order)), existing.length - 1);
+      const base = { trip: t.id, title: "", type: "place", status: "idea", tags: [], price: null, region: "", notes: "", source: "", startTime: "", duration: "", priority: "nice", day: null, addedBy: "Me" };
+      const cards = list.map((raw: Record<string, unknown>) => (checkCardKeys(raw), { ...cleanCard({ ...base, ...raw }), id: cardId(now), order: ++order }));
+      await ctx.rows.put("trip_cards", cards);
+      return { trip: t.name, added: cards };
+    },
+  },
+  update_trip_card: {
+    description: "Change some fields of one trip card, e.g. mark it booked, move it to a day or set its price.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" }, patch: { type: "object", properties: cardProps, additionalProperties: false } },
+      required: ["id", "patch"],
+      additionalProperties: false,
+    },
+    async run(a, ctx) {
+      const cur = await ctx.rows.get("trip_cards", String(a.id));
+      if (!cur) throw new Error(`No trip card with id ${a.id}`);
+      const patch = (a.patch ?? {}) as Record<string, unknown>;
+      checkCardKeys(patch);
+      const next = { ...cleanCard({ ...cur, ...patch }), id: cur.id, trip: cur.trip } as Item;
+      await ctx.rows.put("trip_cards", [next]);
+      return { updated: next };
+    },
+  },
+};
+
 export const TOOLS: Record<string, Tool> = {
   whoami: {
     description: "Which Backlog account this is connected to.",
@@ -327,6 +739,7 @@ export const TOOLS: Record<string, Tool> = {
       return { updated: next };
     },
   },
+  ...EXTRA_TOOLS,
   delete_items: {
     description: "Permanently delete items by id. Always ask the user to confirm first, then pass confirm: true.",
     inputSchema: {
@@ -348,7 +761,7 @@ export const TOOLS: Record<string, Tool> = {
 
 // ---------------------------------------------------------------- JSON-RPC
 
-export const SERVER_INFO = { name: "backlog", version: "0.2.0" };
+export const SERVER_INFO = { name: "backlog", version: "0.3.0" };
 
 type Rpc = { jsonrpc?: string; id?: string | number | null; method?: string; params?: Record<string, unknown> };
 type RpcReply = { jsonrpc: "2.0"; id: string | number | null; result?: unknown; error?: { code: number; message: string } };
@@ -368,9 +781,10 @@ export async function handleRpc(msg: Rpc, ctx: Ctx): Promise<RpcReply | null> {
           capabilities: { tools: {} },
           serverInfo: SERVER_INFO,
           instructions:
-            "The user's personal Backlog: games, books, movies, wines and expenses. " +
+            "The user's personal Backlog: games, books, movies, wines, expenses and trips. " +
             "Amounts are in the user's currency (ARS). Dates are YYYY-MM-DD in the user's time zone. " +
-            "Check list_items before adding when a duplicate is plausible.",
+            "Check list_items before adding when a duplicate is plausible. " +
+            "reconcile_statement and recurring_expenses only suggest: show the user what would be added and add with add_expenses once they agree.",
         },
       });
     case "ping":
