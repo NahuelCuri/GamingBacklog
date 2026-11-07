@@ -199,8 +199,43 @@ export function normalize(s: CollectionSchema, input: Record<string, unknown>): 
 
 type JsonSchema = Record<string, unknown>;
 
+/** Where the form's label leaves the meaning or unit open, what a model needs to fill the field right. */
+export const FIELD_HINTS: Record<string, string> = {
+  "games.score": "My score, 0–10 (decimals allowed)",
+  "games.hours": "Hours I've played it",
+  "games.hltb": "HowLongToBeat main-story estimate, in hours",
+  "games.yearCompleted": "Year I finished it, e.g. 2026 (status played)",
+  "games.source": "How I got it (Game Pass = played through the subscription)",
+  "games.price": "What I paid, in US dollars (0 when free)",
+  "games.purchaseDate": "When I bought or got it",
+  "games.owned": "I own a copy (not just played it somewhere)",
+  "games.releaseDate": "The game's release date",
+  "books.score": "My rating, 0–10",
+  "books.volume": "Number within the series",
+  "books.pubYear": "Year first published",
+  "books.language": "Language I read it in, e.g. English",
+  "books.dateAdded": "When it went on my list",
+  "movies.rating": "My rating, 0–10",
+  "movies.imdb": "IMDb rating, 0–10",
+  "movies.rt": "Rotten Tomatoes critics score, in percent (0–100)",
+  "movies.runtime": "Runtime in minutes (movies)",
+  "movies.epLength": "Average episode length in minutes (series)",
+  "movies.episodes": "Total episodes (series)",
+  "movies.seasons": "Number of seasons (series)",
+  "movies.year": "Release year (first season for series)",
+  "movies.finished": "When I finished watching it",
+  "movies.dateAdded": "When it went on my list",
+  "wines.vintage": "Vintage (harvest year)",
+  "wines.storage": "Where the bottle is kept at home",
+  "wines.grape": "Grape varieties, one per entry for a blend",
+  "expenses.title": "What it was, e.g. Steam, McDonald's, Salary",
+  "expenses.amount": "Amount in Argentine pesos (ARS), always positive",
+  "expenses.type": "expense = money out, income = money in, transfer = moved to one of my accounts",
+  "expenses.account": "Account the money moved to",
+};
+
 function fieldSchema(s: CollectionSchema, f: CollectionSchema["fields"][number]): JsonSchema {
-  const hint = [f.label, f.placeholder && `e.g. ${f.placeholder.replace(/^e\.g\.\s*/i, "")}`].filter(Boolean).join(" — ");
+  const hint = FIELD_HINTS[`${s.key}.${f.key}`] ?? [f.label, f.placeholder && `e.g. ${f.placeholder.replace(/^e\.g\.\s*/i, "")}`].filter(Boolean).join(" — ");
   const when = f.showWhen ? ` Only when ${f.showWhen.field} is ${JSON.stringify(f.showWhen.eq)}.` : "";
   const description = hint + when;
   if (f.kind === "tags") return { type: "array", items: { type: "string" }, description };
@@ -720,25 +755,29 @@ export const TOOLS: Record<string, Tool> = {
       },
     ]),
   ),
-  update_item: {
-    description: "Change some fields of one item; `patch` holds only the fields to change.",
-    inputSchema: {
-      type: "object",
-      properties: { collection: collectionArg, id: { type: "string" }, patch: { type: "object" } },
-      required: ["collection", "id", "patch"],
-      additionalProperties: false,
-    },
-    async run(a, ctx) {
-      const s = schemaOf(a.collection);
-      const patch = (a.patch ?? {}) as Record<string, unknown>;
-      checkKeys(s, patch);
-      const cur = await ctx.rows.get(s.key, String(a.id));
-      if (!cur) throw new Error(`No ${s.noun} with id ${a.id} in ${s.key}`);
-      const next = { ...normalize(s, { ...cur, ...patch }), id: cur.id } as Item;
-      await ctx.rows.put(s.key, [next]);
-      return { updated: next };
-    },
-  },
+  ...Object.fromEntries(
+    COLLECTIONS.map((s): [string, Tool] => [
+      `update_${s.key}`,
+      {
+        description: `Change some fields of one ${s.noun} (id from list_items); \`patch\` holds only the fields to change.`,
+        inputSchema: {
+          type: "object",
+          properties: { id: { type: "string" }, patch: { ...itemSchema(s), required: undefined, minProperties: 1 } },
+          required: ["id", "patch"],
+          additionalProperties: false,
+        },
+        async run(a, ctx) {
+          const patch = (a.patch ?? {}) as Record<string, unknown>;
+          checkKeys(s, patch);
+          const cur = await ctx.rows.get(s.key, String(a.id));
+          if (!cur) throw new Error(`No ${s.noun} with id ${a.id} in ${s.key}`);
+          const next = { ...normalize(s, { ...cur, ...patch }), id: cur.id } as Item;
+          await ctx.rows.put(s.key, [next]);
+          return { updated: next };
+        },
+      },
+    ]),
+  ),
   ...EXTRA_TOOLS,
   delete_items: {
     description: "Permanently delete items by id. Always ask the user to confirm first, then pass confirm: true.",
