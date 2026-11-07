@@ -34,7 +34,7 @@ Claude mobile/web ──HTTPS──▶ Supabase Edge Function `mcp`  (Streamable
 - Tools pensadas para chat corto desde el celular:
   - `add_expense`, `add_game`, `add_book`, `add_movie`, `add_wine`: argumentos tipados por colección (fecha por defecto: hoy, en hora local AR).
   - `list_items` / `search_items` (por mes, texto, estado).
-  - `update_item`.
+  - `update_<collection>`.
   - `delete_items`: exige `confirm: true`; la descripción le pide a Claude confirmar con vos.
   - (Después) `lookup_game` usando el catálogo IGDB del plan social.
 - Tests con `memoryStore` como los del resto de `lib/`.

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SCHEMAS_FILE, schemasJson } from "@/scripts/mcp/schemas";
 import { PRIOS, STATUSES, TYPES } from "@/lib/trips/model";
-import { dayIn, handleRpc, memoryRows, TRIP_CARD_PRIOS, TRIP_CARD_STATUSES, TRIP_CARD_TYPES, type Ctx, type Item } from "@/supabase/functions/_shared/backlog-tools";
+import { COLLECTIONS, dayIn, FIELD_HINTS, handleRpc, memoryRows, TRIP_CARD_PRIOS, TRIP_CARD_STATUSES, TRIP_CARD_TYPES, type Ctx, type Item } from "@/supabase/functions/_shared/backlog-tools";
 
 const ctxWith = (initial: Record<string, Item[]> = {}) => {
   const rows = memoryRows(initial);
@@ -23,6 +23,24 @@ describe("MCP collection schemas", () => {
   });
 });
 
+describe("MCP field descriptions", () => {
+  it("only hints fields that exist", () => {
+    const known = new Set(COLLECTIONS.flatMap((c) => c.fields.map((f) => `${c.key}.${f.key}`)));
+    expect(Object.keys(FIELD_HINTS).filter((k) => !known.has(k))).toEqual([]);
+  });
+
+  it("types update patches like the add form, with units in the descriptions", async () => {
+    const { ctx } = ctxWith();
+    const list = await handleRpc({ jsonrpc: "2.0", id: 1, method: "tools/list" }, ctx);
+    const tools = (list!.result as { tools: { name: string; inputSchema: { properties: Record<string, { properties?: Record<string, { description: string }>; required?: unknown }> } }[] }).tools;
+    const patch = tools.find((t) => t.name === "update_games")!.inputSchema.properties.patch;
+    expect(patch.properties!.hltb.description).toMatch(/HowLongToBeat.*hours/);
+    expect(patch.required).toBeUndefined();
+    const add = tools.find((t) => t.name === "add_movies")!.inputSchema.properties.items as unknown as { items: { properties: Record<string, { description: string }> } };
+    expect(add.items.properties.runtime.description).toMatch(/minutes/);
+  });
+});
+
 describe("MCP trip cards", () => {
   it("accepts the planner's types, statuses and priorities", () => {
     expect(TRIP_CARD_TYPES).toEqual(TYPES.map((t) => t.value));
@@ -39,7 +57,7 @@ describe("MCP protocol", () => {
     expect(await handleRpc({ jsonrpc: "2.0", method: "notifications/initialized" }, ctx)).toBeNull();
     const list = await handleRpc({ jsonrpc: "2.0", id: 1, method: "tools/list" }, ctx);
     const names = (list!.result as { tools: { name: string }[] }).tools.map((t) => t.name);
-    expect(names).toEqual(expect.arrayContaining(["list_items", "add_expenses", "add_games", "add_books", "update_item", "delete_items"]));
+    expect(names).toEqual(expect.arrayContaining(["list_items", "add_expenses", "add_games", "add_books", "update_expenses", "update_games", "delete_items"]));
   });
 });
 
@@ -98,10 +116,10 @@ describe("MCP tools", () => {
 
   it("updates only the patched fields and re-checks them", async () => {
     const { rows, ctx } = ctxWith({ expenses: [{ id: "a", date: "2026-10-05", title: "Unknown", type: "expense", category: "Unknown", amount: 15500, account: "", notes: "" }] });
-    const r = await call(ctx, "update_item", { collection: "expenses", id: "a", patch: { title: "Levure", category: "Food" } });
+    const r = await call(ctx, "update_expenses", { id: "a", patch: { title: "Levure", category: "Food" } });
     expect(r.isError).toBe(false);
     expect(rows.data.expenses.get("a")).toMatchObject({ title: "Levure", category: "Food", amount: 15500, date: "2026-10-05" });
-    expect((await call(ctx, "update_item", { collection: "expenses", id: "a", patch: { amount: "lots" } })).isError).toBe(true);
+    expect((await call(ctx, "update_expenses", { id: "a", patch: { amount: "lots" } })).isError).toBe(true);
   });
 
   it("summarizes a month by category against the month before", async () => {
